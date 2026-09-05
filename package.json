@@ -19,7 +19,8 @@
     "backfill": "tsx --env-file=.env.local scripts/backfill.ts",
     "score": "tsx --env-file=.env.local scripts/score-day.ts",
     "horse": "tsx --env-file=.env.local scripts/horse-profile.ts",
-    "fetch:horse": "tsx --env-file=.env.local scripts/fetch-horse.ts"
+    "fetch:horse": "tsx --env-file=.env.local scripts/fetch-horse.ts",
+    "backtest": "tsx --env-file=.env.local scripts/backtest.ts"
   },
   "dependencies": {
     "next": "^15.1.6",
