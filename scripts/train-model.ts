@@ -300,6 +300,31 @@ async function main() {
     );
   }
 
+  /* ---------------------------------------------------------- persist --- */
+
+  const { writeFileSync, mkdirSync } = await import("node:fs");
+  mkdirSync("./model", { recursive: true });
+  writeFileSync(
+    "./model/weights.json",
+    JSON.stringify(
+      {
+        trainedAt: new Date().toISOString(),
+        split: SPLIT,
+        handicapsOnly: HANDICAPS_ONLY,
+        minHistory: MIN_HISTORY,
+        trainRaces: train.length,
+        testRaces: test.length,
+        testLogLoss: testLoss,
+        naiveLogLoss: naive,
+        features: FEATURE_NAMES,
+        weights: w,
+      },
+      null,
+      2
+    )
+  );
+  console.log(`\n  weights written to model/weights.json`);
+
   console.log(`\n${"=".repeat(76)}\n`);
   await client.end();
 }
