@@ -22,6 +22,9 @@ import Link from "next/link";
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { BUDGET, N_HORSES, N_JOCKEYS } from "@/lib/game-pricing";
+import { db, sessions, stables, users } from "@/db";
+import { eq, gt, sql } from "drizzle-orm";
+import { nextGameDate } from "@/lib/game-data";
 
 export const metadata: Metadata = {
   title: "Fantasy Stable — pick 6 horses, chase glory",
@@ -42,6 +45,8 @@ export default async function FantasyHome({
   // marketing copy from a signed-in session.
   if (!preview && (await currentUser())) redirect("/game");
 
+  const stats = await loadHomeStats();
+
   return (
     <main
       className="min-h-screen bg-[#57b25a] text-[var(--slate)]"
@@ -56,10 +61,85 @@ export default async function FantasyHome({
       }
     >
       <Hero />
+      <LiveStats stats={stats} />
       <HowItWorks />
       <SecondCta />
       <Footer />
     </main>
+  );
+}
+
+/* ------------------------------------------------------ live stats */
+
+async function loadHomeStats(): Promise<HomeStats> {
+  // Everything the homepage needs comes from three cheap queries. Kept
+  // together so we can Promise.all them and the marketing page never blocks
+  // on a slow tab. If any query throws we fall back to a zero'd shape
+  // rather than 500 the page — a homepage that renders "0 stables" beats
+  // one that renders a red error box.
+  try {
+    const gameweek = await nextGameDate();
+    const activeSince = new Date(Date.now() - 15 * 60_000);
+    const [[totalRow], [thisWeekRow], [liveRow]] = await Promise.all([
+      db.select({ n: sql<number>`count(*)::int` }).from(users),
+      db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(stables)
+        .where(eq(stables.raceDate, gameweek)),
+      // "Online now" = a session touched in the last 15 minutes. Close
+      // enough for a marketing counter, and doesn't need heartbeat plumbing.
+      db
+        .select({ n: sql<number>`count(distinct ${sessions.userId})::int` })
+        .from(sessions)
+        .where(gt(sessions.expiresAt, activeSince)),
+    ]);
+    return {
+      totalStables: totalRow?.n ?? 0,
+      thisWeek: thisWeekRow?.n ?? 0,
+      onlineNow: liveRow?.n ?? 0,
+      gameweek,
+    };
+  } catch {
+    return { totalStables: 0, thisWeek: 0, onlineNow: 0, gameweek: "" };
+  }
+}
+
+type HomeStats = {
+  totalStables: number;
+  thisWeek: number;
+  onlineNow: number;
+  gameweek: string;
+};
+
+function LiveStats({ stats }: { stats: HomeStats }) {
+  const cells = [
+    { label: "Stables joined", value: stats.totalStables },
+    { label: "Entered this week", value: stats.thisWeek },
+    { label: "Online now", value: stats.onlineNow },
+  ];
+  return (
+    <section className="bg-white px-4 py-8 sm:py-10">
+      <div className="mx-auto max-w-3xl">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          {cells.map((c) => (
+            <div
+              key={c.label}
+              className="rounded-2xl bg-[#f6f4f8] px-3 py-4 text-center shadow-[inset_0_-2px_0_rgba(0,0,0,0.03)] sm:px-5"
+            >
+              <div className="text-[26px] font-extrabold tabular-nums leading-none text-[var(--slate)] sm:text-[34px]">
+                {c.value.toLocaleString("en-GB")}
+              </div>
+              <div className="mt-1.5 text-[10.5px] font-bold uppercase tracking-[0.09em] text-[var(--slate-soft)] sm:text-[11.5px]">
+                {c.label}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-center text-[11.5px] text-[var(--slate-soft)]">
+          Updates every time you load the page.
+        </p>
+      </div>
+    </section>
   );
 }
 
@@ -78,31 +158,33 @@ function Hero() {
     >
       <div className="mx-auto flex max-w-3xl flex-col items-center px-4 text-center">
         <div className="rounded-full bg-white px-4 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[var(--slate)] shadow-[0_2px_8px_rgba(23,48,60,0.08)]">
-          A new card every Saturday
+          Free-to-play · A new card every Saturday
         </div>
 
-        <h1 className="mt-4 text-[38px] font-extrabold uppercase leading-[0.95] tracking-tight text-[var(--slate)] drop-shadow-[0_2px_2px_rgba(255,255,255,0.6)] sm:text-[56px]">
-          Fantasy
+        <h1 className="mt-4 text-[30px] font-extrabold uppercase leading-[0.95] tracking-tight text-[var(--slate)] drop-shadow-[0_2px_2px_rgba(255,255,255,0.6)] sm:text-[46px]">
+          Build Your Stable.
           <br />
-          Stable
+          Beat Your Mates.
+          <br />
+          Claim the BRR-Nagging Rights.
         </h1>
 
-        <p className="mt-3 max-w-[440px] text-[16px] font-semibold leading-snug text-[var(--slate)] drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)] sm:text-[18px]">
-          Pick {N_HORSES} horses and {N_JOCKEYS} jockeys from £{BUDGET}m.
-          <br className="hidden sm:block" /> Score when they run. Chase glory.
+        <p className="mt-4 max-w-[520px] text-[15px] font-semibold leading-snug text-[var(--slate)] drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)] sm:text-[17px]">
+          The free-to-play fantasy horse racing game. Pick your horses, join leagues with your
+          mates and compete for weekly bragging rights.
         </p>
 
         <Link
           href="/game/sign-in"
           className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(180deg,#1adc86,#04b56b)] px-8 py-3.5 text-[15px] font-extrabold text-white shadow-[0_6px_16px_rgba(4,181,107,0.35)]"
         >
-          Sign in and pick your stable
+          Build your stable
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden>
             <path d="M4 2.5 7.5 6 4 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </Link>
         <p className="mt-3 text-[12px] font-semibold text-[var(--slate)] opacity-70">
-          No password. A one-time link to your email.
+          Sign in with Google or a one-time email link. No password.
         </p>
       </div>
 
