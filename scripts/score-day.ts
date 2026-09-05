@@ -99,6 +99,15 @@ async function main() {
     drawMap.get(`${c}|${dist}|${going}|${band}`) ?? null;
   console.log(`  draw bias: ${drawMap.size} stored cells`);
 
+  const paceRows: any[] = await db.execute(sql`
+    select course_slug, dist_band, race_code, run_style, impact_value from pace_bias`);
+  const paceMap = new Map<string, number>();
+  for (const p of paceRows)
+    paceMap.set(`${p.course_slug}|${p.dist_band}|${p.race_code}|${p.run_style}`, Number(p.impact_value));
+  const paceBias = (c: string, dist: string, code: string, style: string) =>
+    paceMap.get(`${c}|${dist}|${code}|${style}`) ?? null;
+  console.log(`  pace bias: ${paceMap.size} stored cells`);
+
   // Jockey strike rates over everything we hold.
   const jockeyRows: any[] = await db.execute(sql`
     select r.jockey_id,
@@ -148,7 +157,7 @@ async function main() {
       };
 
       const raceForHorse: RaceToday = { ...raceToday, courseSlug: courseSlugOf(race.course_name) };
-      const s = scoreHorse(today, raceForHorse, history, jockeyStrikeRate, date, drawBias);
+      const s = scoreHorse(today, raceForHorse, history, jockeyStrikeRate, date, drawBias, paceBias);
       const decline = markDecline(history, date);
 
       // Dan's override: unproven is not fatal if it was staying on or blocked.

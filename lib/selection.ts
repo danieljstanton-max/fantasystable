@@ -327,6 +327,55 @@ export type DrawBiasLookup = (
   drawBand: DrawBand
 ) => number | null;
 
+/* -------------------------------------------------------------------------- */
+/* Pace bias                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/** Distance buckets for pace. Must match scripts/pace-bias.ts. */
+export function paceDistBand(f: number | null): string | null {
+  if (f === null) return null;
+  if (f <= 6.5) return "sprint";
+  if (f <= 8.5) return "7f-1m";
+  if (f <= 12.5) return "1m1f-1m4f";
+  if (f <= 17) return "1m5f-2m";
+  if (f <= 22) return "2m1f-2m6f";
+  return "beyond 2m6f";
+}
+
+export type PaceBiasLookup = (
+  courseSlug: string,
+  distBand: string,
+  code: string,
+  style: string
+) => number | null;
+
+/**
+ * The run style a horse habitually adopts, from its recent comments.
+ *
+ * This is the PREDICTIVE half of the pace question, and the distinction
+ * matters. The pace_bias table measures how horses that led on the day fared,
+ * which is not information you have before the off — you cannot back "the
+ * horse that will lead". What you CAN know is that this horse has led in four
+ * of its last five, and that this track rewards it.
+ *
+ * Needs a clear habit: at least three of the last five runs in one style.
+ */
+export function habitualStyle(history: PastRun[]): { style: string | null; of: number; from: number } {
+  const recent = history.slice(0, 5);
+  const counts = new Map<string, number>();
+  let read = 0;
+  for (const r of recent) {
+    const s = readComment(r.comment).runStyle;
+    if (!s) continue;
+    read++;
+    counts.set(s, (counts.get(s) ?? 0) + 1);
+  }
+  let best: string | null = null;
+  let n = 0;
+  for (const [k, v] of counts) if (v > n) { best = k; n = v; }
+  return n >= 3 ? { style: best, of: n, from: read } : { style: null, of: n, from: read };
+}
+
 export interface Signal {
   key: string;
   label: string;
@@ -1006,7 +1055,8 @@ export function scoreHorse(
   history: PastRun[],
   jockeyStrikeRate: (jockeyId: string) => number | null = () => null,
   raceDate: string = new Date().toISOString().slice(0, 10),
-  drawBias: DrawBiasLookup = () => null
+  drawBias: DrawBiasLookup = () => null,
+  paceBias: PaceBiasLookup = () => null
 ): HorseScore {
   const signals: Signal[] = [];
 
@@ -1104,6 +1154,33 @@ export function scoreHorse(
           detail: `${band} draw here wins ${iv.toFixed(2)}x its share on ${race.goingBand}`,
         });
     }
+  }
+
+  // Pace: does this horse's habitual style suit this track and trip?
+  //
+  // Across 43 measured cells front-runners average an impact value of 2.12,
+  // but that is measured after the event. Scoring it requires knowing the
+  // horse USUALLY leads — and that this particular track rewards it. Southwell
+  // and Wolverhampton beyond 1m4f punish front-runners (IV 0.72 and 0.86)
+  // while Lingfield and Doncaster reward them heavily.
+  const habit = habitualStyle(history);
+  const paceDist = paceDistBand(race.distanceF);
+  if (habit.style && paceDist && race.raceType) {
+    const iv = paceBias(race.courseSlug, paceDist, race.raceType, habit.style);
+    if (iv !== null && iv >= 1.6)
+      signals.push({
+        key: "pace-suits",
+        label: "Run style suits this track",
+        weight: weightFor("pace-suits", iv >= 2.2 ? 2 : 1),
+        detail: `usually ${habit.style} (${habit.of} of last ${habit.from}); ${habit.style} wins ${iv.toFixed(2)}x here`,
+      });
+    else if (iv !== null && iv <= 0.9)
+      signals.push({
+        key: "pace-against",
+        label: "Run style against this track",
+        weight: weightFor("pace-against", -1),
+        detail: `usually ${habit.style}; ${habit.style} wins only ${iv.toFixed(2)}x here`,
+      });
   }
 
   const trainer = trainerFormSignal(

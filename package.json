@@ -23,7 +23,8 @@
     "backtest": "tsx --env-file=.env.local scripts/backtest.ts",
     "flags": "tsx --env-file=.env.local scripts/flag-lab.ts",
     "movers": "tsx --env-file=.env.local scripts/movers.ts",
-    "draw": "tsx --env-file=.env.local scripts/draw-bias.ts"
+    "draw": "tsx --env-file=.env.local scripts/draw-bias.ts",
+    "pace": "tsx --env-file=.env.local scripts/pace-bias.ts"
   },
   "dependencies": {
     "next": "^15.1.6",
