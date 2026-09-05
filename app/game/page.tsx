@@ -17,6 +17,8 @@ import { pickStable, type GameCard } from "@/lib/game-card";
 import { loadCard, nextGameDate, raceWeekFor } from "@/lib/game-data";
 import { cardLockTime, isLocked, lockLabel } from "@/lib/lock";
 import { loadStable } from "@/lib/stable";
+import { db, stables, users } from "@/db";
+import { desc, eq } from "drizzle-orm";
 import { Bench, Pitch } from "@/components/game/pitch-view";
 import { Header, StatBar, TrophyMark } from "@/components/game/game-chrome";
 import { GameSidebar } from "@/components/game/game-sidebar";
@@ -149,8 +151,109 @@ export default async function GamePage({
           </div>
         )}
 
+        {/* Below-the-pitch content. These sections mean /game reads as a home
+            for the whole product — not just the picker. A signed-in player
+            can scroll to see standings and the rulebook without hunting for a
+            nav link, which was the biggest missing piece before this. */}
+        {user && (
+          <>
+            <LeaderboardPreview date={date} />
+            <RulesPreview />
+          </>
+        )}
+
       </div>
     </main>
+  );
+}
+
+/* ------------------------------------------------------- home sections */
+
+async function LeaderboardPreview({ date }: { date: string }) {
+  // Top five stables on this card, ordered by settled points. Zero rows is
+  // the normal state until deadline passes — say so honestly rather than
+  // hide the section.
+  const rows = await db
+    .select({
+      stableId: stables.id,
+      userId: stables.userId,
+      points: stables.points,
+      email: users.email,
+      displayName: users.displayName,
+    })
+    .from(stables)
+    .innerJoin(users, eq(users.id, stables.userId))
+    .where(eq(stables.raceDate, date))
+    .orderBy(desc(stables.points))
+    .limit(5);
+
+  return (
+    <section className="rounded-[22px] bg-white p-5 shadow-[0_2px_8px_rgba(23,48,60,0.06)]">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-[15px] font-extrabold uppercase tracking-tight text-[var(--slate)]">
+          Leaderboard
+        </h2>
+        <Link
+          href="/game/leaderboard"
+          className="text-[12px] font-bold text-[var(--go-deep)]"
+        >
+          Full board →
+        </Link>
+      </div>
+      {rows.length === 0 ? (
+        <p className="mt-3 text-[13px] leading-relaxed text-[var(--slate-soft)]">
+          The board fills in as each race settles on Saturday afternoon.
+        </p>
+      ) : (
+        <ol className="mt-3 space-y-1.5">
+          {rows.map((r, i) => {
+            const name = r.displayName ?? r.email.split("@")[0];
+            return (
+              <li
+                key={r.stableId}
+                className="flex items-center justify-between rounded-lg bg-[#f6f4f8] px-3 py-2 text-[13px]"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="w-5 text-right font-extrabold tabular-nums text-[var(--slate-soft)]">
+                    {i + 1}
+                  </span>
+                  <span className="font-bold text-[var(--slate)]">{name}</span>
+                </span>
+                <span className="font-extrabold tabular-nums text-[var(--slate)]">
+                  {r.points ?? 0}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
+  );
+}
+
+function RulesPreview() {
+  return (
+    <section className="rounded-[22px] bg-white p-5 shadow-[0_2px_8px_rgba(23,48,60,0.06)]">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-[15px] font-extrabold uppercase tracking-tight text-[var(--slate)]">
+          How Scoring Works
+        </h2>
+        <Link
+          href="/game/rules"
+          className="text-[12px] font-bold text-[var(--go-deep)]"
+        >
+          Full rules →
+        </Link>
+      </div>
+      <ul className="mt-3 space-y-1.5 text-[13px] leading-relaxed text-[var(--slate-soft)]">
+        <li>Win: 25 pts + place bonus depending on price</li>
+        <li>Place: 12 / 7 / 4 / 2 for 2nd → 5th</li>
+        <li>Non-completion (F, PU, UR): −5</li>
+        <li>Your NAP scores double</li>
+        <li>Jockey wins: 8 pts each</li>
+        <li>2 sales per race week at live market price</li>
+      </ul>
+    </section>
   );
 }
 
