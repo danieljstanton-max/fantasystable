@@ -164,6 +164,9 @@ export interface PastRun {
   comment: string | null;
   /** "Flat" | "Hurdle" | "Chase" | "NH Flat" */
   raceType: string | null;
+  /** Cumulative lengths behind the winner. 0 for the winner. */
+  ovrBtn: number | null;
+  age: number | null;
 }
 
 /**
@@ -204,6 +207,7 @@ export interface HorseToday {
   horseId: string;
   horseName: string;
   ofr: number | null;
+  age?: number | null;
   jockeyId: string | null;
   bestOddsDec: number | null;
   headgearFirstTime: boolean;
@@ -453,6 +457,97 @@ export function campaignedImpossibly(
 }
 
 /**
+ * A big run off today's mark, without needing a win.
+ *
+ * Dan, 2026-08-27: "we need to include BIG runs where horses went close and
+ * are running of the same marks or 1 or 2lb higher".
+ *
+ * wonOffHigherMark() only counts victories, which misses the horse beaten a
+ * neck off the same rating — arguably better evidence than a win from two
+ * years ago, because the handicapper has not reacted to it. Guesstimate was
+ * beaten 1.5 lengths off 72 and runs off 73: a length and a half from winning
+ * at effectively the same mark, and the model scored it nothing.
+ *
+ * Same discipline only, and inside the mark lookback window.
+ */
+export function wentCloseOffSimilarMark(
+  todayOfr: number | null,
+  history: PastRun[],
+  today: string,
+  todayType: string | null = null,
+  { maxLengths = 3, markTolerance = 2, withinMonths = MARK_LOOKBACK_MONTHS } = {}
+): { found: boolean; best: PastRun | null; lengths: number; markDiff: number } {
+  if (todayOfr === null) return { found: false, best: null, lengths: 0, markDiff: 0 };
+
+  let best: PastRun | null = null;
+  let bestLengths = Infinity;
+
+  for (const r of history) {
+    if (r.ofr === null || r.ovrBtn === null) continue;
+    if (r.positionNum === null || r.positionNum === 1) continue; // wins handled elsewhere
+    if (monthsBetween(r.raceDate, today) > withinMonths) continue;
+    if (todayType && !sameDiscipline(r.raceType, todayType)) continue;
+
+    // Ran off the same mark, or one it has since come down from — and no more
+    // than markTolerance above today's.
+    if (r.ofr < todayOfr - markTolerance) continue;
+    if (r.ofr > todayOfr + markTolerance) continue;
+
+    if (r.ovrBtn <= maxLengths && r.ovrBtn < bestLengths) {
+      best = r;
+      bestLengths = r.ovrBtn;
+    }
+  }
+
+  return best
+    ? { found: true, best, lengths: bestLengths, markDiff: (best.ofr as number) - todayOfr }
+    : { found: false, best: null, lengths: 0, markDiff: 0 };
+}
+
+/**
+ * Is the horse improving?
+ *
+ * Dan: "if a horse has been running badly we can tell this by how many lengths
+ * its been beat, and then puts in a more solid performance etc this is a big
+ * factor."
+ *
+ * Beaten lengths are compared within one discipline only — three lengths in a
+ * five-furlong sprint is not three lengths in a staying chase — and the recent
+ * two runs are set against the three before them. A horse beaten 20, 15 and 12
+ * that is then beaten 2 and 3 is telling you something the finishing positions
+ * alone may not.
+ */
+export function improvementTrend(
+  history: PastRun[],
+  todayType: string | null = null
+): { improving: boolean; recentAvg: number; priorAvg: number; gain: number; runs: number } {
+  const scoped = (todayType
+    ? history.filter((r) => sameDiscipline(r.raceType, todayType))
+    : history
+  ).filter((r) => r.ovrBtn !== null && r.positionNum !== null);
+
+  if (scoped.length < 4) return { improving: false, recentAvg: 0, priorAvg: 0, gain: 0, runs: scoped.length };
+
+  const recent = scoped.slice(0, 2);
+  const prior = scoped.slice(2, 5);
+  const mean = (xs: PastRun[]) => xs.reduce((a, b) => a + (b.ovrBtn as number), 0) / xs.length;
+
+  const recentAvg = mean(recent);
+  const priorAvg = mean(prior);
+  const gain = priorAvg - recentAvg;
+
+  // Needs to be a real move, not noise: at least 4 lengths better on average
+  // and at least a third of the previous deficit.
+  const improving = gain >= 4 && priorAvg > 0 && gain / priorAvg >= 0.33;
+
+  return { improving, recentAvg: round1(recentAvg), priorAvg: round1(priorAvg), gain: round1(gain), runs: scoped.length };
+}
+
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+/**
  * Is today's jockey booking significant?
  *
  * Three ways it counts: a change from last time to a materially better rider,
@@ -638,6 +733,34 @@ export function scoreHorse(
   const plot = campaignedImpossibly(history, 4, race.raceType);
   if (plot.found)
     signals.push({ key: "plot", label: "Mark being dropped", weight: 3, detail: plot.detail });
+
+  // A big run off today's mark. Only counted when the mark signal did not
+  // already fire, so a horse is not paid twice for the same evidence.
+  if (!mark.found) {
+    const close = wentCloseOffSimilarMark(today.ofr, history, raceDate, race.raceType);
+    if (close.found && close.best) {
+      signals.push({
+        key: "went-close",
+        label: "Went close off this mark",
+        weight: close.lengths <= 1 ? 3 : 2,
+        detail:
+          `beaten ${close.lengths}L off ${close.best.ofr}` +
+          `${close.markDiff > 0 ? ` (${close.markDiff}lb higher than today)` : ""} on ${close.best.raceDate}`,
+      });
+    }
+  }
+
+  const trend = improvementTrend(history, race.raceType);
+  if (trend.improving) {
+    // Young horses are still filling out, so a genuine upward move means more.
+    const young = (today.age ?? 99) <= 5;
+    signals.push({
+      key: "improving",
+      label: young ? "Improving, and young enough to keep doing so" : "Improving",
+      weight: young ? 3 : 2,
+      detail: `beaten ${trend.priorAvg}L on average, now ${trend.recentAvg}L`,
+    });
+  }
 
   const booking = significantBooking(today, history, jockeyStrikeRate);
   if (booking.found)

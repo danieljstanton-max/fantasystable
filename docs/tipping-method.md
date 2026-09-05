@@ -52,6 +52,36 @@ Five conditions. All five firing is the five-star case.
 Steps 1–3: the horse is well treated. Step 4: today is the day. Step 5:
 confirmation.
 
+## Improvement, and big runs off the same mark
+
+Added 2026-08-27 on Dan's steer:
+
+> "signs of improvment are really crucial. if a horse has been running badly we
+> can tell this by how many lentghs its been beat, and then puts in a more solid
+> performance etc this is a big factor."
+>
+> "the model is also based on handicap marks that are dropping but i think we
+> need to include BIG runs where horses went close and are running of the same
+> marks or 1 or 2lb higher - young horses typically will improve as get older."
+
+**`wentCloseOffSimilarMark()`** — a horse beaten up to 3 lengths off a mark
+within 2lb of today's. Until this existed the model only counted victories, so
+a horse beaten a neck off the same rating scored nothing — arguably better
+evidence than a win from eighteen months ago, because the handicapper has not
+reacted to it. Suppressed when the winning-mark signal already fired, so the
+same evidence is never paid for twice.
+
+**`improvementTrend()`** — mean beaten lengths over the last two runs against
+the three before them, within one discipline only (three lengths in a five
+furlong sprint is not three lengths in a staying chase). Needs a gain of at
+least 4 lengths AND a third of the previous deficit, so noise does not trigger
+it. Worth 3 points for a horse aged 5 or under, 2 for an older one, since a
+young horse still filling out is likelier to keep improving.
+
+On the first run these reshuffled the card: Vince L'Amour (18/1) came top on
+"beaten 26.2L on average, now 4.1L", and Theflyingbee (7/1) on being beaten
+0.75L off a mark of 115, one pound above today's.
+
 ## Marks are per discipline
 
 Decided 2026-08-27, on Dan spotting it: "final orders and jumps horses we need

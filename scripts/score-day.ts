@@ -123,6 +123,7 @@ async function main() {
         horseId: r.horse_id,
         horseName: r.horse_name,
         ofr: r.ofr,
+        age: r.age,
         jockeyId: r.jockey_id,
         bestOddsDec: r.best_odds_dec,
         headgearFirstTime: Boolean(r.headgear_first_time),
@@ -253,7 +254,7 @@ function courseSlugOf(name: string): string {
 async function loadHistory(horseId: string, before: string): Promise<PastRun[]> {
   const rows: any[] = await db.execute(sql`
     select ra.race_date::text race_date, ra.course_slug, ra.distance_f,
-           ra.going_band, ra.field_size, ra.race_type, r.position_num, r.ofr,
+           ra.going_band, ra.field_size, ra.race_type, r.position_num, r.ofr, r.ovr_btn, r.age,
            r.jockey_id, r.comment
     from runners r join races ra on ra.id = r.race_id
     where r.horse_id = ${horseId} and ra.race_date < ${before}
@@ -271,6 +272,8 @@ async function loadHistory(horseId: string, before: string): Promise<PastRun[]> 
     jockeyId: x.jockey_id,
     comment: x.comment,
     raceType: x.race_type,
+    ovrBtn: x.ovr_btn,
+    age: x.age,
   }));
 }
 
