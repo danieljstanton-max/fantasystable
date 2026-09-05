@@ -25,7 +25,8 @@
     "movers": "tsx --env-file=.env.local scripts/movers.ts",
     "draw": "tsx --env-file=.env.local scripts/draw-bias.ts",
     "pace": "tsx --env-file=.env.local scripts/pace-bias.ts",
-    "audit": "tsx --env-file=.env.local scripts/audit-comments.ts"
+    "audit": "tsx --env-file=.env.local scripts/audit-comments.ts",
+    "train": "tsx --env-file=.env.local scripts/train-model.ts"
   },
   "dependencies": {
     "next": "^15.1.6",
