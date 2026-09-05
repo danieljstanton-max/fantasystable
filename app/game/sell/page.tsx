@@ -15,7 +15,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
-import { loadCard, today } from "@/lib/game-data";
+import { loadCard, nextGameDate } from "@/lib/game-data";
 import { loadStable } from "@/lib/stable";
 import { GameShell, SubpageHeader } from "@/components/game/game-shell";
 import { N_SALES } from "@/lib/game-pricing";
@@ -34,7 +34,10 @@ export default async function SellPage({
   const user = (await currentUser()) ?? (preview ? { id: "__preview__", email: "preview@fantasystable.co.uk", displayName: "Preview" } : null);
   if (!user) redirect("/game/sign-in");
 
-  const date = today();
+  // Same rule as /game: the sell floor operates on the next open card, not
+  // literally today. Otherwise the moment the deadline passes we'd offer
+  // horses from a stable that no longer exists to sell against.
+  const date = await nextGameDate();
   const { card } = await loadCard(date);
   const saved = user.id === "__preview__" ? null : await loadStable(user.id, date);
 

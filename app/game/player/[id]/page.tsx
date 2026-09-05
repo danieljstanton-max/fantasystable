@@ -15,7 +15,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { GameShell, SubpageHeader } from "@/components/game/game-shell";
-import { loadCard, today } from "@/lib/game-data";
+import { loadCard, nextGameDate } from "@/lib/game-data";
 import { cardLockTime, isLocked } from "@/lib/lock";
 import { pickStable } from "@/lib/game-card";
 import { Bench, Pitch } from "@/components/game/pitch-view";
@@ -32,7 +32,7 @@ export default async function PlayerPage({
 }) {
   const { id } = await params;
   const { preview } = await searchParams;
-  const date = today();
+  const date = await nextGameDate();
   const { card, offDtByRaceId } = await loadCard(date);
 
   // Pre-lock privacy: another player's stable is opaque until the card locks.

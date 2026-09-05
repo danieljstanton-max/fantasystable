@@ -16,7 +16,7 @@ import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
 import { GameShell, SubpageHeader } from "@/components/game/game-shell";
 import { currentUser } from "@/lib/auth";
-import { loadCard, raceWeekFor, today } from "@/lib/game-data";
+import { loadCard, nextGameDate, raceWeekFor } from "@/lib/game-data";
 import { cardLockTime, isLocked } from "@/lib/lock";
 import { db, leagueMembers, leagues, stables, users } from "@/db";
 
@@ -44,7 +44,7 @@ export default async function LeaderboardPage({
     (await currentUser()) ??
     (preview ? { id: "__preview__", email: "preview@fantasystable.co.uk", displayName: "Preview" } : null);
 
-  const date = today();
+  const date = await nextGameDate();
   const { card, offDtByRaceId } = await loadCard(date);
   const lockTime = cardLockTime(card, offDtByRaceId);
   const locked = lockTime ? isLocked(lockTime) : false;
