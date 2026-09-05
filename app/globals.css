@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design direction — "Claret & Brass"
+ *
+ * Drawn from British racing's own colour vocabulary rather than a generic
+ * sports-data palette: the claret of Aintree and the racing silk tradition,
+ * brass for the trophy and the rail furniture, on a warm paper ground that
+ * reads like a printed racecard.
+ *
+ * Deliberately not Racing Post red, Sporting Life green, or At The Races blue —
+ * this has to be recognisable against them at a glance in a SERP screenshot or
+ * a shared link.
+ *
+ * Type does the heavy lifting. Antonio is a tall condensed face that reads like
+ * a betting board and lets long race titles set at size without wrapping.
+ * Everything numeric — off times, odds, form figures, weights, ratings — is set
+ * in a tabular mono so columns align down the card. That is not decoration:
+ * misaligned form strings are genuinely harder to scan, and scanning is the
+ * entire job of this page.
+ */
+
+@layer base {
+  :root {
+    --paper: #f7f4ee;
+    --surface: #ffffff;
+    --ink: #17140f;
+    --ink-muted: #6b6355;
+    --rule: #e2dccf;
+
+    --claret: #6e1d2b;
+    --claret-deep: #4d1420;
+    --brass: #a8813c;
+    --brass-light: #d9bc7e;
+
+    --live: #1f7a4d; /* races off soon */
+
+    --font-display: "Antonio", "Arial Narrow", sans-serif;
+    --font-body: "Inter", system-ui, -apple-system, sans-serif;
+    --font-data: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+
+    --shadow-card: 0 1px 2px rgb(23 20 15 / 0.05), 0 1px 8px rgb(23 20 15 / 0.04);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+
+  /* All numerics align in columns. */
+  .num {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--claret);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* The eyebrow rule: a short brass stroke above section headings. Used to
+     mark a genuine section boundary, not sprinkled for texture. */
+  .eyebrow {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brass);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Form figures. Wins get emphasis because that is what the eye hunts for. */
+  .form-fig {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.06em;
+  }
+  .form-fig .win {
+    color: var(--claret);
+    font-weight: 700;
+  }
+}
