@@ -42,7 +42,39 @@ import { filterRace } from "../lib/selection";
 
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes("--dry-run");
-const DO_HORSES = args.includes("--horses");
+/**
+ * --horses[=scope]
+ *
+ *   qualifying  horses in races that pass Dan's filters (~120/day) — default
+ *   declared    every horse declared today and tomorrow (~700/day)
+ *   all         every horse in the database (~25-30k, a one-off overnight run)
+ *
+ * Scope only changes WHICH horses are queried. Every query returns up to 50
+ * career runs with the complete field of each, so a wider scope deepens
+ * history much faster.
+ */
+const horsesArg = args.find((a) => a === "--horses" || a.startsWith("--horses="));
+const DO_HORSES = Boolean(horsesArg);
+const HORSE_SCOPE = (horsesArg?.split("=")[1] ?? "qualifying") as
+  | "qualifying"
+  | "declared"
+  | "all";
+if (DO_HORSES && !["qualifying", "declared", "all"].includes(HORSE_SCOPE)) {
+  console.error(`\n  Unknown --horses scope "${HORSE_SCOPE}". Use qualifying, declared or all.\n`);
+  process.exit(1);
+}
+
+/** Skip horses whose form was pulled within this many days. */
+const REFRESH_DAYS = (() => {
+  const m = args.find((a) => a.startsWith("--refresh-days="));
+  return m ? parseInt(m.split("=")[1], 10) : 7;
+})();
+
+/** Cap a run so an overnight job can be split. 0 = no cap. */
+const LIMIT_HORSES = (() => {
+  const m = args.find((a) => a.startsWith("--limit="));
+  return m ? parseInt(m.split("=")[1], 10) : 0;
+})();
 const MONTHS = (() => {
   const m = args.find((a) => a.startsWith("--months="));
   const n = m ? parseInt(m.split("=")[1], 10) : 0;
@@ -290,38 +322,78 @@ async function storeHistoricalRace(store: Store | null, raw: any) {
 /**
  * Which horses to fetch form for.
  *
- * Only horses declared in races that pass the filters. Fetching every horse
- * that has run in a year is ~30,000 calls and mostly wasted, because two thirds
- * of races are discarded before a horse is ever scored.
+ * Reads from the database rather than probe output, so it sees everything
+ * already ingested rather than one saved payload. Horses whose form was
+ * pulled recently are skipped, which makes a 30,000-call run resumable: stop
+ * it, restart it, and it picks up where it left off.
  */
-async function targetHorses(): Promise<Array<{ id: string; name: string }>> {
-  const { readFileSync, existsSync } = await import("node:fs");
-  const path = "./probe-output/racecards-pro.json";
-  if (!existsSync(path)) {
-    console.error("  no probe-output/racecards-pro.json — run `npm run probe` first");
-    return [];
+async function targetHorses(store: Store | null): Promise<Array<{ id: string; name: string }>> {
+  if (!store) return [];
+  const { db } = store;
+  const { sql } = await import("drizzle-orm");
+
+  const cutoff = `${REFRESH_DAYS} days`;
+
+  // `qualifying` needs today's card run through the filters, which is easier
+  // in JS than SQL; the other two are plain queries.
+  if (HORSE_SCOPE === "qualifying") {
+    const rows: any[] = await db.execute(sql`
+      select r.horse_id, r.horse_name, ra.name race_name, ra.age_band, ra.race_class,
+             r.age, r.is_non_runner
+      from runners r join races ra on ra.id = r.race_id
+      where ra.race_date >= current_date and ra.status = 'upcoming'`);
+
+    const byRace = new Map<string, any[]>();
+    for (const x of rows) {
+      const k = `${x.race_name}||${x.age_band}||${x.race_class}`;
+      if (!byRace.has(k)) byRace.set(k, []);
+      byRace.get(k)!.push(x);
+    }
+
+    const out = new Map<string, string>();
+    for (const [k, rs] of byRace) {
+      const [raceName, ageBand, raceClass] = k.split("||");
+      const verdict = filterRace(
+        { raceName, ageBand: ageBand || null, raceClass: raceClass || null },
+        rs.map((x) => ({ age: x.age, isNonRunner: x.is_non_runner }))
+      );
+      if (!verdict.eligible) continue;
+      for (const x of rs) if (!x.is_non_runner) out.set(x.horse_id, x.horse_name);
+    }
+    return [...out].map(([id, name]) => ({ id, name }));
   }
 
-  const payload = JSON.parse(readFileSync(path, "utf-8"));
-  const out = new Map<string, string>();
+  const rows: any[] =
+    HORSE_SCOPE === "declared"
+      ? await db.execute(sql`
+          select distinct r.horse_id, r.horse_name
+          from runners r join races ra on ra.id = r.race_id
+          left join horses h on h.id = r.horse_id
+          where ra.race_date >= current_date and r.is_non_runner = false
+            and (h.form_fetched_at is null or h.form_fetched_at < now() - ${cutoff}::interval)`)
+      : await db.execute(sql`
+          select distinct r.horse_id, r.horse_name
+          from runners r
+          left join horses h on h.id = r.horse_id
+          where h.form_fetched_at is null or h.form_fetched_at < now() - ${cutoff}::interval`);
 
-  for (const raw of payload.racecards ?? []) {
-    const race = mapRace(raw);
-    const rs = extractRunners(raw).map((h: any) => mapRunner(race.id, h));
-    const verdict = filterRace(
-      { raceName: race.name, ageBand: race.ageBand, raceClass: race.raceClass },
-      rs
-    );
-    if (!verdict.eligible) continue;
-    for (const r of rs) if (!r.isNonRunner) out.set(r.horseId, r.horseName);
-  }
-
-  return [...out].map(([id, name]) => ({ id, name }));
+  const list = rows.map((x: any) => ({ id: x.horse_id, name: x.horse_name }));
+  return LIMIT_HORSES > 0 ? list.slice(0, LIMIT_HORSES) : list;
 }
 
 async function horseCareers(store: Store | null) {
-  const horses = await targetHorses();
-  console.log(`\nPHASE 2 — horse careers  (${horses.length} horses in qualifying races)`);
+  const horses = await targetHorses(store);
+  console.log(
+    `\nPHASE 2 — horse careers  [scope: ${HORSE_SCOPE}]  ` +
+      `${horses.length.toLocaleString()} horses to fetch` +
+      (LIMIT_HORSES ? ` (capped at ${LIMIT_HORSES})` : "")
+  );
+  if (!horses.length) {
+    console.log(`  nothing to do — all fetched within the last ${REFRESH_DAYS} days`);
+    return;
+  }
+  const eta = Math.round((horses.length * 0.4) / 60);
+  console.log(`  ~${eta} min at 400ms per call`);
 
   if (DRY_RUN) {
     console.log(`  [dry run] would make ${horses.length} calls, ~${Math.round(horses.length * 0.4)}s`);
@@ -359,6 +431,15 @@ async function horseCareers(store: Store | null) {
 
       const rs = hr.results ?? [];
       stats.horseRuns += rs.length;
+
+      // Mark it fetched before storing races, so an interruption mid-horse
+      // costs one re-fetch rather than restarting the whole run.
+      const { sql: dsql } = await import("drizzle-orm");
+      if (store) {
+        await store.db.execute(dsql`
+          update horses set form_fetched_at = now(), form_runs = ${rs.length}
+          where id = ${h.id}`);
+      }
 
       for (const raw of rs) {
         const id = raw.race_id;

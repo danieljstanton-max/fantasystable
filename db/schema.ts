@@ -63,6 +63,12 @@ export const horses = pgTable(
     damsire: text("damsire"),
     damsireId: text("damsire_id"),
     breeder: text("breeder"),
+
+    // When this horse's career form was last pulled from
+    // /v1/horses/{id}/results. Lets the deep backfill resume after an
+    // interruption instead of re-fetching 30,000 careers from the start.
+    formFetchedAt: timestamp("form_fetched_at", { withTimezone: true }),
+    formRuns: integer("form_runs"),
   },
   (t) => ({
     slugIdx: index("horses_slug_idx").on(t.slug),
