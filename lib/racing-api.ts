@@ -8,6 +8,13 @@
 
 const BASE = process.env.RACING_API_BASE ?? "https://api.theracingapi.com";
 
+/**
+ * The regions we cover. Passed as an array so apiGet repeats the parameter —
+ * the API rejects a comma-joined value outright. Leaving the filter off
+ * entirely also returns French racing, which we do not want.
+ */
+export const REGIONS = ["gb", "ire"] as const;
+
 function authHeader(): string {
   const user = process.env.RACING_API_USERNAME;
   const pass = process.env.RACING_API_PASSWORD;
@@ -42,12 +49,25 @@ async function throttle() {
 
 export async function apiGet<T = unknown>(
   path: string,
-  params: Record<string, string | number | undefined> = {},
+  params: Record<string, string | number | readonly string[] | undefined> = {},
   { retries = 3 }: { retries?: number } = {}
 ): Promise<T> {
   const url = new URL(path.startsWith("/") ? path : `/${path}`, BASE);
   for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));
+    if (v === undefined || v === null || v === "") continue;
+    // Multi-value params MUST be repeated, not comma-joined. Confirmed
+    // 2026-08-26: `region_codes=gb,ire` returns
+    //   422 {"detail":"Validation error - unrecognised region code, gb,ire"}
+    // while `region_codes=gb&region_codes=ire` returns GB and Irish cards.
+    if (Array.isArray(v)) {
+      for (const item of v) {
+        if (item !== undefined && item !== null && item !== "") {
+          url.searchParams.append(k, String(item));
+        }
+      }
+    } else {
+      url.searchParams.set(k, String(v));
+    }
   }
 
   let lastErr: unknown;
@@ -129,7 +149,7 @@ export async function fetchRacecards(date: string, tier: "pro" | "standard" | "b
       : endpoints.racecardsBasic;
   return apiGet<{ racecards?: unknown[]; results?: unknown[] }>(path, {
     date,
-    region_codes: "gb,ire",
+    region_codes: REGIONS,
   });
 }
 
@@ -137,12 +157,12 @@ export async function fetchResults(startDate: string, endDate: string, limit = 2
   return apiGet<{ results?: unknown[]; total?: number }>(endpoints.results, {
     start_date: startDate,
     end_date: endDate,
-    region: "gb",
+    region: REGIONS,
     limit,
     skip,
   });
 }
 
 export async function fetchCourses() {
-  return apiGet<{ courses?: unknown[] }>(endpoints.courses, { region_codes: "gb,ire" });
+  return apiGet<{ courses?: unknown[] }>(endpoints.courses, { region_codes: REGIONS });
 }

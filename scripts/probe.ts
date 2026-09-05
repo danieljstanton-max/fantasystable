@@ -15,7 +15,7 @@
 
 import "dotenv/config";
 import { writeFileSync, mkdirSync } from "node:fs";
-import { apiGet, endpoints, RacingApiError } from "../lib/racing-api";
+import { apiGet, endpoints, RacingApiError, REGIONS } from "../lib/racing-api";
 
 const OUT = "./probe-output";
 const today = new Date().toISOString().slice(0, 10);
@@ -64,7 +64,7 @@ function describe(value: unknown, depth = 0, maxDepth = 4): string {
 async function probe(
   label: string,
   path: string,
-  params: Record<string, string | number> = {}
+  params: Record<string, string | number | readonly string[]> = {}
 ): Promise<ProbeResult> {
   process.stdout.write(`  ${label.padEnd(28)} `);
   try {
@@ -98,19 +98,19 @@ async function main() {
 
   const results: ProbeResult[] = [];
 
-  results.push(await probe("courses", endpoints.courses, { region_codes: "gb,ire" }));
+  results.push(await probe("courses", endpoints.courses, { region_codes: REGIONS }));
   results.push(await probe("racecards-free", endpoints.racecardsFree, { date: today }));
   results.push(
-    await probe("racecards-basic", endpoints.racecardsBasic, { date: today, region_codes: "gb" })
+    await probe("racecards-basic", endpoints.racecardsBasic, { date: today, region_codes: REGIONS })
   );
   results.push(
     await probe("racecards-standard", endpoints.racecardsStandard, {
       date: today,
-      region_codes: "gb",
+      region_codes: REGIONS,
     })
   );
   results.push(
-    await probe("racecards-pro", endpoints.racecardsPro, { date: today, region_codes: "gb" })
+    await probe("racecards-pro", endpoints.racecardsPro, { date: today, region_codes: REGIONS })
   );
   results.push(await probe("racecards-summaries", endpoints.racecardsSummaries, { date: today }));
   results.push(await probe("results-today", endpoints.resultsToday, {}));
@@ -118,7 +118,7 @@ async function main() {
     await probe("results-range", endpoints.results, {
       start_date: yesterday,
       end_date: yesterday,
-      region: "gb",
+      region: REGIONS,
       limit: 5,
     })
   );
