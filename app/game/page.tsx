@@ -14,7 +14,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { currentUser } from "@/lib/auth";
 import { pickStable, type GameCard } from "@/lib/game-card";
-import { loadCard, raceWeekFor, today } from "@/lib/game-data";
+import { loadCard, nextGameDate, raceWeekFor } from "@/lib/game-data";
 import { cardLockTime, isLocked, lockLabel } from "@/lib/lock";
 import { loadStable } from "@/lib/stable";
 import { Bench, Pitch } from "@/components/game/pitch-view";
@@ -40,7 +40,10 @@ export default async function GamePage({
   searchParams: Promise<{ date?: string; preview?: string }>;
 }) {
   const { date: requested, preview } = await searchParams;
-  const date = requested ?? today();
+  // Default to the next race day that's still open for building, not to
+  // "today" — the game is a build-then-lock flow and once today's deadline
+  // has passed, a signed-in player wants tomorrow's card ready to work on.
+  const date = requested ?? (await nextGameDate());
 
   const realUser = await currentUser();
   // Design-time bypass: `?preview=1` renders the signed-in shell against a

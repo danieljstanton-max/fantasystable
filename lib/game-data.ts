@@ -1,6 +1,7 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, gte, inArray } from "drizzle-orm";
 import { db, races, runners } from "@/db";
 import { buildCard, type GameCard } from "./game-card";
+import { LOCK_OFFSET_MS } from "./lock";
 
 /**
  * The card for a date, straight from the database.
@@ -50,7 +51,38 @@ export async function loadCardOnly(date: string) {
   return (await loadCard(date)).card;
 }
 
-export const today = () => new Date().toISOString().slice(0, 10);
+/**
+ * Today in Europe/London wall-clock (YYYY-MM-DD). Race dates are always UK
+ * local, so the game's notion of "today" must match — a UTC midnight would
+ * flip the date twice a year at 00:00 BST vs 01:00 GMT and put the wrong
+ * card on the pitch for an hour.
+ */
+export const today = (): string =>
+  new Date().toLocaleDateString("en-CA", { timeZone: "Europe/London" });
+
+/**
+ * The card a signed-in player should see by default.
+ *
+ * Not "today" — the game is a build-then-lock flow, so as soon as today's
+ * deadline has passed the card is a fait accompli and the punter wants the
+ * NEXT race day, ready to build. This picks the earliest date that:
+ *
+ *   • has at least one GB/IRE race in the database, and
+ *   • hasn't yet locked (i.e. first race is more than LOCK_OFFSET_MS away).
+ *
+ * Falls back to `today()` if nothing upcoming is ingested — the page will
+ * then show an empty-card state, which is honest.
+ */
+export async function nextGameDate(now: Date = new Date()): Promise<string> {
+  const cutoff = new Date(now.getTime() + LOCK_OFFSET_MS);
+  const rows = await db
+    .select({ raceDate: races.raceDate, offDt: races.offDt })
+    .from(races)
+    .where(and(inArray(races.region, ["GB", "IRE"]), gte(races.offDt, cutoff)))
+    .orderBy(asc(races.offDt))
+    .limit(1);
+  return rows[0]?.raceDate ?? today();
+}
 
 /**
  * Which race week is this?
