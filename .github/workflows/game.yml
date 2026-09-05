@@ -1,0 +1,64 @@
+# The Fantasy Stable game runs its own scheduled jobs — separately from
+# racecard/result ingest — because they only matter on race day:
+#
+#   • snapshot:prices  — freezes the game card's prices at a moment in time
+#                        so what a player sees on the pitch is what they get.
+#                        Runs every 15 min during the buy/build window.
+#   • settle:game       — scores every saved stable using whatever results
+#                        have landed. Idempotent: safe to re-run as more
+#                        results arrive through the afternoon.
+#
+# Vercel Hobby caps crons to once per day so we run them on GitHub Actions.
+# Free tier gives 2000 min/month on private repos — a handful of 30-second
+# runs on a Saturday is barely a rounding error.
+#
+# Times below are UTC. The site is Europe/London — most of the year UK is
+# UTC+1 (BST); winter is UTC. The windows are wide enough to cover both.
+
+name: game
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Prices: every 15 minutes from 08:00 UTC through 15:00 UTC on Saturday
+    # and Sunday. Covers the whole build window from breakfast to the first
+    # off. (BST → 09:00-16:00 local; GMT → 08:00-15:00 local.)
+    - cron: "*/15 8-15 * * 6,0"
+    # Settle: every 30 minutes from 13:00 UTC through 22:00 UTC on race days.
+    # First race normally goes off around 13:00-14:00 UTC; last race around
+    # 20:00-21:00. Later invocations pick up any late corrections.
+    - cron: "*/30 13-22 * * 6,0"
+
+jobs:
+  snapshot-prices:
+    if: startsWith(github.event.schedule, '*/15') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: Snapshot game prices
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        # No date arg → the script picks Europe/London today, which is what
+        # we want on the cron. To backfill a specific date, use
+        # workflow_dispatch and add the date to the run manually.
+        run: npx tsx scripts/game-prices-snapshot.ts
+
+  settle:
+    if: startsWith(github.event.schedule, '*/30') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: Settle stables
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx tsx scripts/settle-game.ts

@@ -48,6 +48,7 @@
     "sweep": "tsx --env-file=.env.local scripts/sweep.ts",
     "game": "tsx --env-file=.env.local scripts/game-card.ts",
     "settle:game": "tsx --env-file=.env.local scripts/settle-game.ts",
+    "snapshot:prices": "tsx --env-file=.env.local scripts/game-prices-snapshot.ts",
     "announce": "tsx --env-file=.env.local scripts/announce.ts"
   },
   "dependencies": {
