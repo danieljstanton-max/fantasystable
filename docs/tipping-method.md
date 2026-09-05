@@ -45,12 +45,35 @@ Five conditions. All five firing is the five-star case.
 |---|---|---|
 | 1 | Official rating trending **down** over the last 3–6 runs | `runners.ofr` across history |
 | 2 | Those defeats came on **unsuitable** going / trip / track | going band, `distance_f`, course vs the horse's winning profile |
-| 3 | Current mark is **below the last winning mark** — the gap in pounds is the size of the edge | `ofr` today vs `ofr` when it last won |
+| 3 | Current mark is **below a winning mark set in the last 18 months** — the gap in pounds is the size of the edge | `ofr` today vs `ofr` when it last won |
 | 4 | **Today the conditions match** — going, trip and course all inside its proven window | today's race vs winning profile |
 | 5 | **The yard agrees** — jockey upgrade, first-time headgear, wind surgery, market support | `jockey_id`, `headgear_run`, `wind_surgery_run`, odds history |
 
 Steps 1–3: the horse is well treated. Step 4: today is the day. Step 5:
 confirmation.
+
+## The 18-month mark window
+
+Decided 2026-08-27. A winning mark only counts if the win was inside the last
+**18 months**.
+
+Without it, `wonOffHigherMark()` returned the highest mark a horse had *ever*
+won off. On the first real run, Cordouan came out as the strongest selection on
+the card at "42lb below its last winning mark of 90" — a win from September
+2022. Its rating had fallen 90 → 82 → 68 → 53 across four years of poor form.
+That is not a plot; it is the handicapper being right, repeatedly.
+
+With the window applied, Cordouan drops from 5 stars to 3, and Gloriously Glam
+takes over on a mark 13lb below a winning mark set in May 2026 — three months
+old, and actually informative.
+
+The window applies to the **mark only**, never to proven conditions. A horse
+that has won at a course seven times still likes the course however long ago;
+what it won off back then says nothing about whether it is well treated today.
+
+**Long-term decline** (15lb+ lost over 24+ months with no recent win) is
+detected and reported by `markDecline()`, but does not currently change a
+score. Open question: should it be an active penalty?
 
 ## Positive factors
 

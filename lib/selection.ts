@@ -185,9 +185,59 @@ function goingDistance(a: GoingBand, b: GoingBand): number | null {
   return Math.abs(i - j);
 }
 
-/** Runs where the horse won or was placed — its proven conditions. */
+/** Runs where the horse won — its proven conditions. */
 function winningRuns(history: PastRun[]): PastRun[] {
   return history.filter((r) => r.positionNum !== null && r.positionNum === 1);
+}
+
+/**
+ * How far back a winning MARK still tells you anything. Set to 18 months on
+ * 2026-08-26.
+ *
+ * Without a window, wonOffHigherMark() returns the highest mark a horse ever
+ * won off. Cordouan scored five stars on a mark "42lb below its last winning
+ * mark of 90" — a win from September 2022. Four years of decline read as a
+ * plot. The handicapper had simply been right, repeatedly.
+ *
+ * The window applies to the MARK only, not to proven conditions. A horse that
+ * has won at a course seven times still likes the course, however long ago;
+ * what it won off back then says nothing about whether it is well treated now.
+ */
+export const MARK_LOOKBACK_MONTHS = 18;
+
+function monthsBetween(from: string, to: string): number {
+  const a = new Date(from);
+  const b = new Date(to);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return Infinity;
+  return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+}
+
+/**
+ * A mark falling steadily across years is decline, not a plot.
+ *
+ * Reported separately so it can be seen on a card without silently changing a
+ * score. A horse whose rating has eroded season after season while running
+ * poorly is being correctly assessed by the handicapper, and is the opposite
+ * of the angle we are looking for.
+ */
+export function markDecline(
+  history: PastRun[],
+  today: string
+): { declining: boolean; lbsLost: number; overMonths: number } {
+  const marked = history.filter((r) => r.ofr !== null);
+  if (marked.length < 6) return { declining: false, lbsLost: 0, overMonths: 0 };
+
+  const newest = marked[0];
+  const oldest = marked[marked.length - 1];
+  const span = monthsBetween(oldest.raceDate, newest.raceDate);
+  const lost = (oldest.ofr as number) - (newest.ofr as number);
+
+  // Long span, large loss, and no recent win to explain a rise.
+  const wonRecently = winningRuns(history).some(
+    (r) => monthsBetween(r.raceDate, today) <= MARK_LOOKBACK_MONTHS
+  );
+
+  return { declining: span >= 24 && lost >= 15 && !wonRecently, lbsLost: lost, overMonths: span };
 }
 
 /**
@@ -227,7 +277,9 @@ export function likesConditions(
  */
 export function wonOffHigherMark(
   todayOfr: number | null,
-  history: PastRun[]
+  history: PastRun[],
+  today: string,
+  withinMonths: number = MARK_LOOKBACK_MONTHS
 ): { found: boolean; lbsBelow: number; lastWinningMark: number | null; when: string | null } {
   if (todayOfr === null) {
     return { found: false, lbsBelow: 0, lastWinningMark: null, when: null };
@@ -237,6 +289,8 @@ export function wonOffHigherMark(
   let when: string | null = null;
   for (const r of winningRuns(history)) {
     if (r.ofr === null) continue;
+    // Only wins inside the lookback window count. See MARK_LOOKBACK_MONTHS.
+    if (monthsBetween(r.raceDate, today) > withinMonths) continue;
     if (bestMark === null || r.ofr > bestMark) {
       bestMark = r.ofr;
       when = r.raceDate;
@@ -363,7 +417,8 @@ export function scoreHorse(
   today: HorseToday,
   race: RaceToday,
   history: PastRun[],
-  jockeyStrikeRate: (jockeyId: string) => number | null = () => null
+  jockeyStrikeRate: (jockeyId: string) => number | null = () => null,
+  raceDate: string = new Date().toISOString().slice(0, 10)
 ): HorseScore {
   const signals: Signal[] = [];
 
@@ -378,7 +433,7 @@ export function scoreHorse(
       detail: `won here ${cond.courseWins} time${cond.courseWins === 1 ? "" : "s"}`,
     });
 
-  const mark = wonOffHigherMark(today.ofr, history);
+  const mark = wonOffHigherMark(today.ofr, history, raceDate);
   if (mark.found)
     signals.push({
       key: "mark",
@@ -386,7 +441,7 @@ export function scoreHorse(
       // The bigger the drop the stronger the case, capped so a freak old mark
       // cannot dominate the score on its own.
       weight: Math.min(4, 1 + Math.floor(mark.lbsBelow / 4)),
-      detail: `${mark.lbsBelow}lb below its last winning mark of ${mark.lastWinningMark}`,
+      detail: `${mark.lbsBelow}lb below its winning mark of ${mark.lastWinningMark} (${mark.when})`,
     });
 
   const plot = campaignedImpossibly(history);

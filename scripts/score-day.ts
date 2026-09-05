@@ -26,6 +26,7 @@ import {
   type RaceToday,
 } from "../lib/selection";
 import { excuseUnproven, readComment, racePaceShape } from "../lib/form-reading";
+import { markDecline } from "../lib/selection";
 import type { GoingBand } from "../lib/going";
 
 const client = postgres(process.env.DATABASE_URL!, { max: 4, ssl: "require" });
@@ -126,14 +127,15 @@ async function main() {
       };
 
       const raceForHorse: RaceToday = { ...raceToday, courseSlug: courseSlugOf(race.course_name) };
-      const s = scoreHorse(today, raceForHorse, history, jockeyStrikeRate);
+      const s = scoreHorse(today, raceForHorse, history, jockeyStrikeRate, date);
+      const decline = markDecline(history, date);
 
       // Dan's override: unproven is not fatal if it was staying on or blocked.
       const excuse = excuseUnproven(history.slice(0, 4).map((h) => h.comment));
       const lastStyle = history[0] ? readComment(history[0].comment).runStyle : null;
       styles.push(lastStyle);
 
-      scored.push({ ...s, runs: history.length, excuse, odds: r.best_odds_frac, trainer: r.trainer_name, jockey: r.jockey_name, claim: r.jockey_claim_lbs, ofr: r.ofr });
+      scored.push({ ...s, runs: history.length, excuse, decline, odds: r.best_odds_frac, trainer: r.trainer_name, jockey: r.jockey_name, claim: r.jockey_claim_lbs, ofr: r.ofr });
     }
 
     const shape = racePaceShape(styles);
@@ -152,6 +154,8 @@ async function main() {
         console.log(`      + ${sig.label}: ${sig.detail}`);
       if (s.excuse.excused)
         console.log(`      ~ excused (${s.excuse.reason}): ${s.excuse.evidence.slice(0, 2).join(", ")}`);
+      if (s.decline?.declining)
+        console.log(`      ! long-term decline: ${s.decline.lbsLost}lb lost over ${s.decline.overMonths} months, no win in ${18} months`);
       if (!s.signals.length && !s.excuse.excused) console.log(`      (nothing fired)`);
     }
   }
