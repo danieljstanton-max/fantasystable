@@ -287,6 +287,30 @@ export interface Signal {
   detail: string;
 }
 
+/**
+ * Signal weights.
+ *
+ * These began as my judgement and are being replaced by measured lift. Any
+ * refit MUST be validated out of sample — fitting weights on a period and then
+ * reporting performance on that same period measures memorisation, not skill.
+ * `npm run backtest -- --split=DATE` does the honest version.
+ */
+export type Weights = Partial<Record<string, number>>;
+
+let ACTIVE_WEIGHTS: Weights = {};
+
+/** Override the default weights, e.g. from a fitted set. Returns the previous. */
+export function setWeights(w: Weights): Weights {
+  const prev = ACTIVE_WEIGHTS;
+  ACTIVE_WEIGHTS = w;
+  return prev;
+}
+
+function weightFor(key: string, fallback: number): number {
+  const w = ACTIVE_WEIGHTS[key];
+  return w === undefined ? fallback : w;
+}
+
 export interface HorseScore {
   horseId: string;
   horseName: string;
@@ -599,7 +623,7 @@ export function lastRunReading(
           read.nonCompletionType === "brought-down"
             ? "Brought down last time"
             : "Fell when going well",
-        weight: 3,
+        weight: weightFor("fell-going-well", 3),
         detail: `last time: ${read.evidence.slice(0, 2).join(", ") || read.nonCompletionType}`,
       },
       evidence: read.evidence,
@@ -621,7 +645,7 @@ export function lastRunReading(
       signal: {
         key: "last-run-positive",
         label: young ? "Finishing well, and young enough to improve" : "Finishing well last time",
-        weight: (young ? 3 : 2) + bonus,
+        weight: weightFor("last-run-positive", (young ? 3 : 2) + bonus),
         detail: `last time: ${[...read.evidence.slice(0, 2), ...extras].join(", ")}`,
       },
       evidence: read.evidence,
@@ -634,7 +658,7 @@ export function lastRunReading(
       signal: {
         key: "last-run-easy",
         label: read.easyRide ? "Not given a hard ride last time" : "Travelled well last time",
-        weight: bonus,
+        weight: weightFor("last-run-easy", bonus),
         detail: `last time: ${extras.join(", ")}`,
       },
       evidence: read.evidence,
@@ -646,7 +670,7 @@ export function lastRunReading(
       signal: {
         key: "last-run-trouble",
         label: "Run compromised last time",
-        weight: 2,
+        weight: weightFor("last-run-trouble", 2),
         detail: `last time: ${read.evidence.slice(0, 2).join(", ")}`,
       },
       evidence: read.evidence,
@@ -658,7 +682,7 @@ export function lastRunReading(
       signal: {
         key: "last-run-negative",
         label: "Weakened last time",
-        weight: -1,
+        weight: weightFor("last-run-negative", -1),
         detail: `last time: ${read.evidence.slice(0, 2).join(", ")}`,
       },
       evidence: read.evidence,
@@ -767,21 +791,21 @@ export function winDrought(
     signal = {
       key: "never-won",
       label: "Has never won",
-      weight: -3,
+      weight: weightFor("never-won", -3),
       detail: `${history.length} runs, no win`,
     };
   } else if (monthsSinceWin !== null && monthsSinceWin >= 24 && !excused) {
     signal = {
       key: "drought",
       label: "Long time without a win",
-      weight: -3,
+      weight: weightFor("drought", -3),
       detail: `${runsSinceWin} runs and ${monthsSinceWin} months since it won`,
     };
   } else if (monthsSinceWin !== null && monthsSinceWin >= 24 && excused) {
     signal = {
       key: "drought-excused",
       label: "Winless, but off its ground",
-      weight: 1,
+      weight: weightFor("drought-excused", 1),
       detail: `${offOptimalGoing} of ${since.length} runs since its win on going it has never won on`,
     };
   }
@@ -881,9 +905,9 @@ export function trainerFormSignal(
   const record = `${wins ?? "?"} from ${runs} in 14 days`;
 
   if (percent >= TRAINER_HOT_PCT)
-    return { key: "trainer-hot", label: "Yard in form", weight: 2, detail: `${percent}% — ${record}` };
+    return { key: "trainer-hot", label: "Yard in form", weight: weightFor("trainer-hot", 2), detail: `${percent}% — ${record}` };
   if (percent <= TRAINER_COLD_PCT)
-    return { key: "trainer-cold", label: "Yard out of form", weight: -2, detail: `${percent}% — ${record}` };
+    return { key: "trainer-cold", label: "Yard out of form", weight: weightFor("trainer-cold", -2), detail: `${percent}% — ${record}` };
   return null;
 }
 
@@ -903,13 +927,13 @@ export function layoffPenalty(days: number | null | undefined): Signal | null {
   if (days === null || days === undefined) return null;
 
   if (days >= 365)
-    return { key: "layoff", label: "Long absence", weight: -4, detail: `${days} days off — over a year` };
+    return { key: "layoff", label: "Long absence", weight: weightFor("layoff", -4), detail: `${days} days off — over a year` };
   if (days >= 180)
-    return { key: "layoff", label: "Long absence", weight: -3, detail: `${days} days off` };
+    return { key: "layoff", label: "Long absence", weight: weightFor("layoff", -3), detail: `${days} days off` };
   if (days >= 120)
-    return { key: "layoff", label: "Off the track a while", weight: -1, detail: `${days} days off` };
+    return { key: "layoff", label: "Off the track a while", weight: weightFor("layoff", -1), detail: `${days} days off` };
   if (days <= 5)
-    return { key: "quick-turnaround", label: "Quick turnaround", weight: 0, detail: `ran ${days} days ago` };
+    return { key: "quick-turnaround", label: "Quick turnaround", weight: weightFor("quick-turnaround", 0), detail: `ran ${days} days ago` };
   return null;
 }
 
@@ -930,13 +954,13 @@ export function scoreHorse(
   const signals: Signal[] = [];
 
   const cond = likesConditions(race, history);
-  if (cond.going) signals.push({ key: "going", label: "Proven on the ground", weight: 2, detail: `won on ${race.goingBand}` });
-  if (cond.trip) signals.push({ key: "trip", label: "Proven at the trip", weight: 2, detail: `won over ${race.distanceF}f` });
+  if (cond.going) signals.push({ key: "going", label: "Proven on the ground", weight: weightFor("going", 2), detail: `won on ${race.goingBand}` });
+  if (cond.trip) signals.push({ key: "trip", label: "Proven at the trip", weight: weightFor("trip", 2), detail: `won over ${race.distanceF}f` });
   if (cond.course)
     signals.push({
       key: "course",
       label: "Course winner",
-      weight: cond.courseWins >= 3 ? 3 : 2,
+      weight: weightFor("course", cond.courseWins >= 3 ? 3 : 2),
       detail: `won here ${cond.courseWins} time${cond.courseWins === 1 ? "" : "s"}`,
     });
 
@@ -947,7 +971,7 @@ export function scoreHorse(
       label: "Well handicapped",
       // The bigger the drop the stronger the case, capped so a freak old mark
       // cannot dominate the score on its own.
-      weight: Math.min(4, 1 + Math.floor(mark.lbsBelow / 4)),
+      weight: weightFor("mark", Math.min(4, 1 + Math.floor(mark.lbsBelow / 4))),
       detail:
         `${mark.lbsBelow}lb below its ${mark.discipline ?? ""} winning mark of ` +
         `${mark.lastWinningMark} (${mark.when})`,
@@ -955,7 +979,7 @@ export function scoreHorse(
 
   const plot = campaignedImpossibly(history, 4, race.raceType);
   if (plot.found)
-    signals.push({ key: "plot", label: "Mark being dropped", weight: 3, detail: plot.detail });
+    signals.push({ key: "plot", label: "Mark being dropped", weight: weightFor("plot", 3), detail: plot.detail });
 
   // A big run off today's mark. Only counted when the mark signal did not
   // already fire, so a horse is not paid twice for the same evidence.
@@ -965,7 +989,7 @@ export function scoreHorse(
       signals.push({
         key: "went-close",
         label: "Went close off this mark",
-        weight: close.lengths <= 1 ? 3 : 2,
+        weight: weightFor("went-close", close.lengths <= 1 ? 3 : 2),
         detail:
           `beaten ${close.lengths}L off ${close.best.ofr}` +
           `${close.markDiff > 0 ? ` (${close.markDiff}lb higher than today)` : ""} on ${close.best.raceDate}`,
@@ -978,7 +1002,7 @@ export function scoreHorse(
     signals.push({
       key: "won-easily",
       label: "Won by more than the handicapper took",
-      weight: easy.surplus >= 8 ? 3 : 2,
+      weight: weightFor("won-easily", easy.surplus >= 8 ? 3 : 2),
       detail:
         `won by ${easy.margin}L (~${easy.marginLbs}lb) on ${easy.when}, ` +
         `raised only ${easy.rise}lb — ${easy.surplus}lb in hand`,
@@ -990,12 +1014,12 @@ export function scoreHorse(
 
   const booking = significantBooking(today, history, jockeyStrikeRate);
   if (booking.found)
-    signals.push({ key: "jockey", label: "Significant booking", weight: 2, detail: booking.detail });
+    signals.push({ key: "jockey", label: "Significant booking", weight: weightFor("jockey", 2), detail: booking.detail });
 
   if (today.headgearFirstTime)
-    signals.push({ key: "headgear", label: "First-time headgear", weight: 1, detail: "yard trying something" });
+    signals.push({ key: "headgear", label: "First-time headgear", weight: weightFor("headgear", 1), detail: "yard trying something" });
   if (today.windSurgeryFirstTime)
-    signals.push({ key: "wind", label: "First run after wind surgery", weight: 1, detail: "" });
+    signals.push({ key: "wind", label: "First run after wind surgery", weight: weightFor("wind", 1), detail: "" });
 
   const trainer = trainerFormSignal(
     today.trainer14Runs,

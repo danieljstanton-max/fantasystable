@@ -25,6 +25,8 @@ import {
   filterRace,
   scoreHorse,
   starsFromScore,
+  setWeights,
+  type Weights,
   type PastRun,
   type HorseToday,
   type RaceToday,
@@ -41,6 +43,14 @@ const FROM = arg("from", "2025-08-27");
 const TO = arg("to", new Date().toISOString().slice(0, 10));
 /** A horse needs at least this many prior runs to be scoreable. */
 const MIN_RUNS = parseInt(arg("min-runs", "3"), 10);
+/**
+ * Fit weights on races before this date, then report on races after it.
+ *
+ * Without a split, "refit the weights and the ROI improved" measures nothing
+ * but memorisation — the weights were derived from the very outcomes being
+ * scored. The out-of-sample half is the only number worth quoting.
+ */
+const SPLIT = arg("split", "");
 
 interface Row {
   raceId: string;
@@ -160,7 +170,18 @@ async function main() {
 
   /* ------------------------------------------------------------- run it */
 
-  interface Bet { score: number; stars: number; won: boolean; placed: boolean; spDec: number | null; signals: string[]; }
+
+  interface Bet {
+  score: number; stars: number; won: boolean; placed: boolean;
+  spDec: number | null; signals: string[];
+  /** Was this also the market favourite in its race? */
+  wasFav?: boolean;
+  /** Rank by price in its race: 1 = favourite. */
+  priceRank?: number;
+  }
+
+  /** Score every qualifying race whose date falls inside [lo, hi). */
+  function runPeriod(lo: string, hi: string) {
   const topPicks: Bet[] = [];
   const allScored: Bet[] = [];
   const favourites: Bet[] = [];
@@ -169,9 +190,9 @@ async function main() {
 
   for (const [raceId, runners] of byRace) {
     n++;
-    if (n % 250 === 0) process.stdout.write(`\r  scoring ${n}/${byRace.size}...   `);
-
     const first = runners[0];
+    if (first.raceDate < lo || first.raceDate >= hi) continue;
+    if (n % 500 === 0) process.stdout.write(`\r  scoring... ${racesUsed.toLocaleString()} races   `);
     const live = runners.filter((r) => !r.isNonRunner);
 
     const verdict = filterRace(
@@ -223,19 +244,87 @@ async function main() {
     if (scored.length < Math.max(4, Math.floor(live.length * 0.6))) { racesSkipped++; continue; }
 
     racesUsed++;
+
+    // Rank every runner by price so "did we disagree with the market" is
+    // answerable, not just "did we pick a winner".
+    const priced = scored.filter((s) => s.spDec !== null)
+      .sort((a, b) => (a.spDec as number) - (b.spDec as number));
+    priced.forEach((b, i) => { b.priceRank = i + 1; b.wasFav = i === 0; });
+
     allScored.push(...scored);
     scored.sort((a, b) => b.score - a.score);
     topPicks.push(scored[0]);
-
-    // Baseline: the market's favourite in the same race.
-    const priced = scored.filter((s) => s.spDec !== null);
-    if (priced.length) {
-      priced.sort((a, b) => (a.spDec as number) - (b.spDec as number));
-      favourites.push(priced[0]);
-    }
+    if (priced.length) favourites.push(priced[0]);
   }
 
-  console.log(`\r  ${racesUsed.toLocaleString()} races scored, ${racesSkipped.toLocaleString()} skipped for thin form        `);
+    console.log(`\r  ${racesUsed.toLocaleString()} races scored, ${racesSkipped.toLocaleString()} skipped for thin form        `);
+    return { topPicks, allScored, favourites };
+  }
+
+  const FAR = "9999-12-31";
+
+  /** Lift per signal, measured on a set of scored runners. */
+  function fitWeights(scored: Bet[]): { weights: Weights; base: number } {
+    const base = scored.filter((b) => b.won).length / (scored.length || 1);
+    const keys = [...new Set(scored.flatMap((b) => b.signals))];
+    const weights: Weights = {};
+    for (const k of keys) {
+      const band = scored.filter((b) => b.signals.includes(k));
+      if (band.length < 100) continue; // too thin to fit anything to
+      const sr = band.filter((b) => b.won).length / band.length;
+      const lift = (sr - base) * 100;
+      // One point per 1.5pp of lift, clamped. Deliberately coarse: a finer
+      // mapping would only fit the fitting period more tightly.
+      weights[k] = Math.max(-4, Math.min(4, Math.round(lift / 1.5)));
+    }
+    return { weights, base };
+  }
+
+  if (SPLIT) {
+    console.log(`\n${"=".repeat(70)}`);
+    console.log(`TRAIN / TEST SPLIT at ${SPLIT}\n`);
+
+    console.log(`  FIT period  ${FROM} .. ${SPLIT}`);
+    const train = runPeriod(FROM, SPLIT);
+    const { weights, base } = fitWeights(train.allScored);
+    console.log(`  baseline strike ${(base * 100).toFixed(1)}%, fitted ${Object.keys(weights).length} weights`);
+    const shown = Object.entries(weights).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0));
+    console.log(`  ${shown.map(([k, v]) => `${k}:${v}`).join("  ")}`);
+
+    console.log(`\n  TEST period ${SPLIT} .. ${TO}   (weights above, never fitted to this data)`);
+
+    // Baseline: the hand-picked weights, on the same test races.
+    const beforeW = setWeights({});
+    const testDefault = runPeriod(SPLIT, FAR);
+    setWeights(weights);
+    const testFitted = runPeriod(SPLIT, FAR);
+    setWeights(beforeW);
+
+    const roiOf = (bets: Bet[]) => {
+      const w = bets.filter((b) => b.spDec !== null && (b.spDec as number) > 1);
+      if (!w.length) return { n: 0, sr: "-", roi: "-" };
+      const ret = w.reduce((a, b) => a + (b.won ? (b.spDec as number) : 0), 0);
+      return {
+        n: w.length,
+        sr: pct(w.filter((b) => b.won).length, w.length),
+        roi: `${(((ret - w.length) / w.length) * 100).toFixed(1)}%`,
+      };
+    };
+
+    const a = roiOf(testDefault.topPicks);
+    const b = roiOf(testFitted.topPicks);
+    const f = roiOf(testFitted.favourites);
+
+    console.log(`\n  ${"".padEnd(24)}${"bets".padStart(8)}${"strike".padStart(9)}${"ROI".padStart(10)}`);
+    console.log(`  ${"hand-picked weights".padEnd(24)}${a.n.toLocaleString().padStart(8)}${a.sr.padStart(9)}${a.roi.padStart(10)}`);
+    console.log(`  ${"fitted weights".padEnd(24)}${b.n.toLocaleString().padStart(8)}${b.sr.padStart(9)}${b.roi.padStart(10)}`);
+    console.log(`  ${"market favourite".padEnd(24)}${f.n.toLocaleString().padStart(8)}${f.sr.padStart(9)}${f.roi.padStart(10)}`);
+    console.log(`\n${"=".repeat(70)}\n`);
+    await client.end();
+    return;
+  }
+
+  let { topPicks, allScored, favourites } = runPeriod(FROM, FAR);
 
   /* --------------------------------------------------------- reporting */
 
@@ -297,6 +386,71 @@ async function main() {
       `  ${k.padEnd(26)}${band.length.toLocaleString().padStart(8)}${String(r.wins).padStart(7)}` +
         `${r.sr.padStart(9)}${(arrow + (lift * 100).toFixed(1) + "pp").padStart(10)}${r.roi.padStart(9)}`
     );
+  }
+
+  /* ------------------------------------------------- price band analysis */
+
+  const PRICE_BANDS: Array<[string, number, number]> = [
+    ["odds-on",      1.0,  2.0],
+    ["evens - 3/1",  2.0,  4.0],
+    ["7/2 - 6/1",    4.0,  7.0],
+    ["13/2 - 12/1",  7.0, 13.0],
+    ["14/1 - 25/1", 13.0, 26.0],
+    ["over 25/1",   26.0, 1000],
+  ];
+
+  console.log(`\n${"-".repeat(70)}`);
+  console.log(`ROI BY PRICE  (all scored runners — where does the money actually live?)\n`);
+  console.log(`  ${"price".padEnd(14)}${"runners".padStart(9)}${"wins".padStart(7)}${"strike".padStart(9)}${"ROI".padStart(10)}`);
+  for (const [label, lo, hi] of PRICE_BANDS) {
+    const band = allScored.filter((b) => b.spDec !== null && (b.spDec as number) >= lo && (b.spDec as number) < hi);
+    const r = roi(band);
+    console.log(`  ${label.padEnd(14)}${r.n.toLocaleString().padStart(9)}${String(r.wins).padStart(7)}${r.sr.padStart(9)}${r.roi.padStart(10)}`);
+  }
+
+  console.log(`\n${"-".repeat(70)}`);
+  console.log(`STARS x PRICE  (ROI; blank means fewer than 50 runners)\n`);
+  process.stdout.write(`  ${"".padEnd(7)}`);
+  for (const [label] of PRICE_BANDS) process.stdout.write(label.padStart(13));
+  console.log("");
+  for (let st = 5; st >= 3; st--) {
+    process.stdout.write(`  ${("*".repeat(st)).padEnd(7)}`);
+    for (const [, lo, hi] of PRICE_BANDS) {
+      const band = allScored.filter(
+        (b) => b.stars === st && b.spDec !== null && (b.spDec as number) >= lo && (b.spDec as number) < hi
+      );
+      const r = roi(band);
+      process.stdout.write((band.length < 50 ? "-" : `${r.roi} (${band.length})`).padStart(13));
+    }
+    console.log("");
+  }
+
+  console.log(`\n${"-".repeat(70)}`);
+  console.log(`DO WE ADD ANYTHING TO THE MARKET?\n`);
+
+  const agreed = topPicks.filter((b) => b.wasFav);
+  const disagreed = topPicks.filter((b) => b.wasFav === false);
+  const ra = roi(agreed), rd = roi(disagreed);
+  console.log(`  top pick WAS the favourite     ${ra.n.toLocaleString().padStart(6)} bets  ${ra.sr.padStart(7)}  ROI ${ra.roi}`);
+  console.log(`  top pick was NOT the favourite ${rd.n.toLocaleString().padStart(6)} bets  ${rd.sr.padStart(7)}  ROI ${rd.roi}`);
+
+  console.log(`\n  by the price rank of our selection:\n`);
+  console.log(`  ${"our pick was".padEnd(20)}${"bets".padStart(8)}${"strike".padStart(9)}${"ROI".padStart(10)}`);
+  for (const [label, lo, hi] of [["favourite",1,1],["2nd favourite",2,2],["3rd favourite",3,3],["4th-6th in market",4,6],["7th or bigger",7,99]] as Array<[string,number,number]>) {
+    const band = topPicks.filter((b) => (b.priceRank ?? 99) >= lo && (b.priceRank ?? 99) <= hi);
+    const r = roi(band);
+    if (r.n < 30) continue;
+    console.log(`  ${label.padEnd(20)}${r.n.toLocaleString().padStart(8)}${r.sr.padStart(9)}${r.roi.padStart(10)}`);
+  }
+
+  console.log(`\n${"-".repeat(70)}`);
+  console.log(`SUGGESTED WEIGHTS from measured lift (hypothesis, not a result)\n`);
+  console.log(`  ${"signal".padEnd(26)}${"lift".padStart(9)}${"suggested".padStart(11)}`);
+  for (const { k, band, lift } of perSignal) {
+    if (band.length < 100) continue;
+    // One point per 1.5pp of lift, clamped, rounded — deliberately crude.
+    const w = Math.max(-4, Math.min(4, Math.round((lift * 100) / 1.5)));
+    console.log(`  ${k.padEnd(26)}${((lift * 100).toFixed(1) + "pp").padStart(9)}${String(w).padStart(11)}`);
   }
 
   console.log(`\n${"=".repeat(70)}\n`);
