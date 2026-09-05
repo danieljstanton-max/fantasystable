@@ -142,6 +142,76 @@ async function loadStore() {
   return { db: drizzle(client, { schema }), schema, client };
 }
 
+/**
+ * Write many races and runners in as few round trips as possible.
+ *
+ * The original wrote race-by-race: an 18-run career meant ~36 separate trips
+ * to London at 37ms each. Batched, a whole career is two statements.
+ *
+ * Chunked because Postgres caps a statement at 65,535 bind parameters and
+ * these tables are wide -- a race row carries ~35 columns, a runner ~40.
+ */
+async function persistBatch(store: Store | null, raceRows: any[], runnerRows: any[]) {
+  if (!store || (!raceRows.length && !runnerRows.length)) return;
+  const { db, schema } = store;
+  const { sql } = await import("drizzle-orm");
+
+  for (let i = 0; i < raceRows.length; i += 400) {
+    const chunk = raceRows.slice(i, i + 400);
+    await db
+      .insert(schema.races)
+      .values(chunk)
+      .onConflictDoUpdate({
+        target: schema.races.id,
+        set: {
+          going: sql`excluded.going`,
+          status: sql`excluded.status`,
+          resultAt: sql`excluded.result_at`,
+          raw: sql`excluded.raw`,
+        },
+      });
+  }
+
+  for (let i = 0; i < runnerRows.length; i += 600) {
+    const chunk = runnerRows.slice(i, i + 600);
+    await db
+      .insert(schema.runners)
+      .values(chunk)
+      .onConflictDoUpdate({
+        target: [schema.runners.raceId, schema.runners.horseId],
+        set: {
+          position: sql`excluded.position`,
+          positionNum: sql`excluded.position_num`,
+          beatenBy: sql`excluded.beaten_by`,
+          ovrBtn: sql`excluded.ovr_btn`,
+          sp: sql`excluded.sp`,
+          spDec: sql`excluded.sp_dec`,
+          bsp: sql`excluded.bsp`,
+          ofr: sql`excluded.ofr`,
+          effectiveMark: sql`excluded.effective_mark`,
+          rpr: sql`excluded.rpr`,
+          ts: sql`excluded.ts`,
+          weightLbs: sql`excluded.weight_lbs`,
+          jockeyClaimLbs: sql`excluded.jockey_claim_lbs`,
+          comment: sql`excluded.comment`,
+        },
+      });
+  }
+}
+
+/**
+ * Load every race id already stored, so a restart skips them instead of
+ * re-upserting thousands of rows it has seen before. One query, and it makes
+ * resumption nearly free.
+ */
+async function preloadSeen(store: Store | null) {
+  if (!store) return;
+  const { sql } = await import("drizzle-orm");
+  const rows: any[] = await store.db.execute(sql`select id from races`);
+  for (const r of rows) seenRaces.add(r.id);
+  console.log(`  ${seenRaces.size.toLocaleString()} races already stored — these will be skipped`);
+}
+
 async function persistRace(store: Store | null, race: any, runnerRows: any[]) {
   if (!store) return; // dry run
   const { db, schema } = store;
@@ -267,6 +337,56 @@ async function bulkResults(store: Store | null) {
  * fields, so a race row is assembled from what a result actually has rather
  * than by pretending it is a racecard.
  */
+/** Build the race and runner rows for one historical race, without writing. */
+async function buildHistoricalRace(raw: any): Promise<{ race: any; runners: any[] } | null> {
+  const result = mapResultRace(raw);
+  const runnerRows = (raw.runners ?? []).map((h: any) => mapResultRunner(result.id, h));
+
+  const offDt = raw.off_dt ? new Date(raw.off_dt) : null;
+  if (!offDt || Number.isNaN(offDt.getTime())) return null;
+
+  const { slugify, raceSlug } = await import("../lib/slug");
+  const { normaliseGoing } = await import("../lib/going");
+  const { offTime24, raceDateFromOffDt, stripCourseSuffix } = await import("../lib/mappers");
+
+  const courseName = stripCourseSuffix(raw.course ?? "Unknown");
+  const offTime = offTime24(offDt);
+
+  return {
+    race: {
+      id: result.id,
+      courseId: null, // historical courses may not be in our reference table
+      courseName,
+      courseSlug: slugify(courseName),
+      raceDate: raceDateFromOffDt(offDt),
+      offTime,
+      offDt,
+      name: raw.race_name ?? "Race",
+      slug: raceSlug(offTime, raw.race_name ?? "Race"),
+      distance: raw.dist ?? null,
+      distanceF: raw.dist_f ? parseFloat(String(raw.dist_f)) : null,
+      going: raw.going ?? null,
+      goingBand: normaliseGoing(raw.going),
+      surface: /aw|polytrack|tapeta|fibresand/i.test(raw.surface ?? "") ? "aw" : "turf",
+      raceType: raw.type ?? null,
+      raceClass: raw.class ?? null,
+      pattern: raw.pattern ?? null,
+      ageBand: raw.age_band ?? null,
+      ratingBand: raw.rating_band ?? null,
+      sexRestriction: raw.sex_rest ?? null,
+      region: raw.region ?? null,
+      fieldSize: (raw.runners ?? []).length,
+      status: "result",
+      resultAt: new Date(),
+      winningTimeDetail: raw.winning_time_detail ?? null,
+      nonRunnersText: raw.non_runners ?? null,
+      comments: raw.comments ?? null,
+      raw,
+    },
+    runners: runnerRows,
+  };
+}
+
 async function storeHistoricalRace(store: Store | null, raw: any) {
   const result = mapResultRace(raw);
   const runnerRows = (raw.runners ?? []).map((h: any) => mapResultRunner(result.id, h));
@@ -441,15 +561,23 @@ async function horseCareers(store: Store | null) {
           where id = ${h.id}`);
       }
 
+      // Collect this horse's whole career, then write it in two statements
+      // rather than two per race.
+      const raceRows: any[] = [];
+      const runnerRows: any[] = [];
       for (const raw of rs) {
         const id = raw.race_id;
         if (!id || seenRaces.has(id)) continue;
         seenRaces.add(id);
-        await storeHistoricalRace(store, raw);
+        const built = await buildHistoricalRace(raw);
+        if (!built) continue;
+        raceRows.push(built.race);
+        runnerRows.push(...built.runners);
         stats.harvestedRaces++;
-        stats.harvestedRunners += (raw.runners ?? []).length;
+        stats.harvestedRunners += built.runners.length;
         if (raw.date && raw.date < stats.oldestSeen) stats.oldestSeen = raw.date;
       }
+      await persistBatch(store, raceRows, runnerRows);
     } catch (e) {
       stats.errors++;
       if (stats.errors === 1) console.error(`\n  FIRST ERROR (${h.name}): ${(e as Error).message}\n`);
@@ -483,6 +611,7 @@ async function main() {
     store = await loadStore();
   }
 
+  if (store) await preloadSeen(store);
   if (MONTHS) await bulkResults(store);
   if (DO_HORSES) await horseCareers(store);
 
