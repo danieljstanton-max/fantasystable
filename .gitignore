@@ -15,3 +15,7 @@ probe-output/
 *.tsbuildinfo
 next-env.d.ts
 model/
+
+# Local tooling / session directories
+.agents/
+.claude/

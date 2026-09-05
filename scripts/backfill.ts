@@ -341,103 +341,19 @@ async function bulkResults(store: Store | null) {
  * than by pretending it is a racecard.
  */
 /** Build the race and runner rows for one historical race, without writing. */
-async function buildHistoricalRace(raw: any): Promise<{ race: any; runners: any[] } | null> {
-  const result = mapResultRace(raw);
-  const runnerRows = (raw.runners ?? []).map((h: any) => mapResultRunner(result.id, h));
-
-  const offDt = raw.off_dt ? new Date(raw.off_dt) : null;
-  if (!offDt || Number.isNaN(offDt.getTime())) return null;
-
-  const { slugify, raceSlug } = await import("../lib/slug");
-  const { normaliseGoing } = await import("../lib/going");
-  const { offTime24, raceDateFromOffDt, stripCourseSuffix } = await import("../lib/mappers");
-
-  const courseName = stripCourseSuffix(raw.course ?? "Unknown");
-  const offTime = offTime24(offDt);
-
-  return {
-    race: {
-      id: result.id,
-      courseId: null, // historical courses may not be in our reference table
-      courseName,
-      courseSlug: slugify(courseName),
-      raceDate: raceDateFromOffDt(offDt),
-      offTime,
-      offDt,
-      name: raw.race_name ?? "Race",
-      slug: raceSlug(offTime, raw.race_name ?? "Race"),
-      distance: raw.dist ?? null,
-      distanceF: raw.dist_f ? parseFloat(String(raw.dist_f)) : null,
-      going: raw.going ?? null,
-      goingBand: normaliseGoing(raw.going),
-      surface: /aw|polytrack|tapeta|fibresand/i.test(raw.surface ?? "") ? "aw" : "turf",
-      raceType: raw.type ?? null,
-      raceClass: raw.class ?? null,
-      pattern: raw.pattern ?? null,
-      ageBand: raw.age_band ?? null,
-      ratingBand: raw.rating_band ?? null,
-      sexRestriction: raw.sex_rest ?? null,
-      region: raw.region ?? null,
-      fieldSize: (raw.runners ?? []).length,
-      status: "result",
-      resultAt: new Date(),
-      winningTimeDetail: raw.winning_time_detail ?? null,
-      nonRunnersText: raw.non_runners ?? null,
-      comments: raw.comments ?? null,
-      raw,
-    },
-    runners: runnerRows,
-  };
+async function buildHistoricalRace(raw: any) {
+  const { buildResultRows } = await import("../lib/result-rows");
+  return buildResultRows(raw);
 }
 
 async function storeHistoricalRace(store: Store | null, raw: any) {
-  const result = mapResultRace(raw);
-  const runnerRows = (raw.runners ?? []).map((h: any) => mapResultRunner(result.id, h));
-
   if (!store) return;
 
-  const offDt = raw.off_dt ? new Date(raw.off_dt) : null;
-  const { slugify, raceSlug } = await import("../lib/slug");
-  const { normaliseGoing } = await import("../lib/going");
-  const { offTime24, raceDateFromOffDt, stripCourseSuffix } = await import("../lib/mappers");
+  const { buildResultRows } = await import("../lib/result-rows");
+  const rows = buildResultRows(raw);
+  if (!rows) return;
 
-  if (!offDt || Number.isNaN(offDt.getTime())) return;
-
-  const courseName = stripCourseSuffix(raw.course ?? "Unknown");
-  const offTime = offTime24(offDt);
-
-  const race = {
-    id: result.id,
-    courseId: raw.course_id ?? null,
-    courseName,
-    courseSlug: slugify(courseName),
-    raceDate: raceDateFromOffDt(offDt),
-    offTime,
-    offDt,
-    name: raw.race_name ?? "Race",
-    slug: raceSlug(offTime, raw.race_name ?? "Race"),
-    distance: raw.dist ?? null,
-    distanceF: raw.dist_f ? parseFloat(String(raw.dist_f)) : null,
-    going: raw.going ?? null,
-    goingBand: normaliseGoing(raw.going),
-    surface: /aw|polytrack|tapeta|fibresand/i.test(raw.surface ?? "") ? "aw" : "turf",
-    raceType: raw.type ?? null,
-    raceClass: raw.class ?? null,
-    pattern: raw.pattern ?? null,
-    ageBand: raw.age_band ?? null,
-    ratingBand: raw.rating_band ?? null,
-    sexRestriction: raw.sex_rest ?? null,
-    region: raw.region ?? null,
-    fieldSize: (raw.runners ?? []).length,
-    status: "result",
-    resultAt: new Date(),
-    winningTimeDetail: raw.winning_time_detail ?? null,
-    nonRunnersText: raw.non_runners ?? null,
-    comments: raw.comments ?? null,
-    raw,
-  };
-
-  await persistRace(store, race, runnerRows);
+  await persistRace(store, rows.race, rows.runners);
 }
 
 /* -------------------------------------------------- phase 2: horse careers */

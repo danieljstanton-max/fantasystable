@@ -1,0 +1,57 @@
+# Ingest is the heavy job — pulling every runner from The Racing API and
+# writing them into Postgres. It runs frequently and its timing matters more
+# to correctness than to the site's response time, so it lives here on
+# GitHub Actions rather than on Vercel Cron.
+#
+# Reasons for this split:
+#   • Vercel serverless functions have a 60s ceiling on the Pro plan and
+#     10s on Hobby. A big ingest can push that.
+#   • Free tier of GitHub Actions gives 2000 minutes/month on private repos.
+#     A 30-second ingest run every 15 minutes is ~3000 seconds/day, well
+#     inside that budget.
+#   • Ingest failures deserve a per-run log — GitHub gives that; a fanned-out
+#     serverless invocation buries it.
+name: ingest
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Racecards: hourly through the day. Cheap; upserts what has changed.
+    - cron: "5 * * * *"
+    # Results: every 15 minutes during racing hours (UTC — no BST/GMT switch).
+    - cron: "*/15 12-22 * * *"
+
+jobs:
+  racecards:
+    if: github.event.schedule == '5 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: Ingest racecards
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RACING_API_USERNAME: ${{ secrets.RACING_API_USERNAME }}
+          RACING_API_PASSWORD: ${{ secrets.RACING_API_PASSWORD }}
+        run: npx tsx scripts/ingest-racecards.ts
+
+  results:
+    if: startsWith(github.event.schedule, '*/15') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: Ingest results
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RACING_API_USERNAME: ${{ secrets.RACING_API_USERNAME }}
+          RACING_API_PASSWORD: ${{ secrets.RACING_API_PASSWORD }}
+        run: npx tsx scripts/ingest-results.ts

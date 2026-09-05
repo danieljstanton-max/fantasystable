@@ -78,6 +78,27 @@ out. Use `toOffInstant()`; never construct race times by hand.
 ten minutes. IDs are The Racing API's own; never invent our own primary keys for
 entities the API already identifies.
 
+## Ground and course
+
+Two hard gates sit outside the score, in `lib/selection.ts`:
+
+**The ground rule.** On soft or heavy a horse must have won or placed on soft or
+heavy. If every one of its wins came on soft or heavy it cannot be picked on
+good, good-to-firm or firm. All-weather is off the turf scale and untouched.
+This is Dan's editorial line, taken with the backtest in front of him — it does
+not improve ROI and must not be sold as though it does. Do not relax it on
+measurement grounds.
+
+**Every selection prints its ground record**, flattering or not. A signal with
+weight zero is never printed, which is how a 0-from-4-on-soft NAP once reached
+the site with nothing said about it. `groundRecord` is always populated.
+
+`data/course-guide.json` is Dan's course and going cheat sheet — 85 UK and Irish
+courses, refreshed with `python3 scripts/import-course-guide.py <workbook>`.
+It is prose and never enters the score. Its draw figures are a cross-check
+against our own computed IV, not a replacement, and surface is matched by kind
+(turf vs aw) so a turf draw bias can never be applied to Tapeta.
+
 ## Design system
 
 Colours and fonts are CSS custom properties in `app/globals.css` ("Claret &

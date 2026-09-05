@@ -1,0 +1,403 @@
+<title>Horse Racing Tips</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Roboto+Mono:wght@500&display=swap">
+<style>
+
+/* ====================================================================
+   Horse Racing Tips — a working prototype.
+
+   Red is already the brand (#E30118, used more than any other colour on
+   the live site). It stays, but it stops being decoration and becomes a
+   signal: it marks the verdict and nothing else, so the eye finds the
+   opinion on a page full of data.
+
+   The competing sites are colour-coded to the point of noise. This is
+   deliberately quiet — near-black on paper, one red, one green for a
+   result. The tips are the product; the chrome should get out of the way.
+   ==================================================================== */
+:root{
+  --paper:#FFFFFF; --sink:#F4F6FA; --line:#E3E7EF;
+  --ink:#0E1116; --muted:#5B6472;
+  --red:#E30118; --red-dk:#B00113;
+  --win:#0B8457; --lose:#8A94A6; --gold:#B8860B;
+  --fd:"Bricolage Grotesque",system-ui,sans-serif;
+  --fb:"Public Sans",-apple-system,BlinkMacSystemFont,sans-serif;
+  --fm:"Roboto Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--sink);color:var(--ink);font-family:var(--fb);
+  font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px;}
+h1,h2,h3{margin:0;font-family:var(--fd);font-weight:800;letter-spacing:-.02em;
+  line-height:1.08;text-wrap:balance;}
+h1{font-size:clamp(30px,4.4vw,46px);}
+h2{font-size:clamp(22px,3vw,30px);}
+h3{font-size:clamp(17px,2vw,20px);}
+p{margin:0 0 14px;}
+a{color:var(--red);}
+.mono{font-family:var(--fm);font-variant-numeric:tabular-nums;}
+
+.mock{background:var(--ink);color:#fff;text-align:center;font-family:var(--fm);
+  font-size:9px;letter-spacing:.14em;text-transform:uppercase;padding:6px;}
+
+nav{background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40;}
+.nav-in{max-width:1120px;margin:0 auto;padding:11px 20px;display:flex;align-items:center;gap:16px;}
+.brand{font-family:var(--fd);font-weight:800;font-size:17px;letter-spacing:-.03em;
+  text-decoration:none;color:var(--ink);}
+.brand em{font-style:normal;color:var(--red);}
+.nav-in .links{margin-left:auto;display:flex;gap:18px;font-size:14px;font-weight:600;}
+.links a{color:var(--muted);text-decoration:none;}
+.links a:hover,.links a.on{color:var(--red);}
+@media(max-width:800px){.links{gap:12px;font-size:12.5px;}}
+
+.screen{display:none;} .screen.live{display:block;}
+section{padding:26px 0;}
+.eyebrow{font-family:var(--fm);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--red);margin:0 0 10px;}
+.lede{color:var(--muted);max-width:62ch;margin:8px 0 0;}
+
+/* --- the verdict: the one thing that is ours --- */
+.verdict{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--red);
+  border-radius:0 10px 10px 0;padding:20px 22px;margin:18px 0;
+  box-shadow:0 1px 2px rgba(14,17,22,.05);}
+.verdict__tag{display:flex;align-items:center;gap:9px;font-family:var(--fm);font-size:10px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--red);margin-bottom:12px;}
+.verdict__tag::before{content:"";width:22px;height:2px;background:var(--red);}
+.verdict p{margin:0 0 12px;line-height:1.7;}
+.verdict p:last-of-type{margin-bottom:0;}
+.verdict__bet{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+  display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+.verdict__horse{font-family:var(--fd);font-weight:800;font-size:20px;letter-spacing:-.02em;}
+.verdict__price{font-family:var(--fm);font-size:19px;font-weight:500;color:var(--red);}
+.verdict__stake{margin-left:auto;font-size:12px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--win);}
+
+/* --- race card --- */
+.race{background:var(--paper);border:1px solid var(--line);border-radius:10px;
+  margin-bottom:14px;overflow:hidden;box-shadow:0 1px 2px rgba(14,17,22,.05);}
+.race__head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;
+  align-items:baseline;gap:12px;flex-wrap:wrap;}
+.race__time{font-family:var(--fm);font-weight:500;font-size:17px;}
+.race__name{font-family:var(--fd);font-weight:600;font-size:16px;letter-spacing:-.01em;}
+.race__cond{width:100%;font-size:12.5px;color:var(--muted);font-family:var(--fm);}
+.race__body{padding:16px 18px;}
+.race__body p{margin:0 0 10px;}
+.race__body p:last-child{margin:0;}
+
+/* --- podium --- */
+.podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0;}
+.pod{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;
+  text-align:center;position:relative;border-top:3px solid var(--lose);}
+.pod--1{border-top-color:var(--gold);}
+.pod--2{border-top-color:#94A3B8;}
+.pod--3{border-top-color:#B45309;}
+.pod__pos{font-family:var(--fm);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);}
+.pod--1 .pod__pos{color:var(--gold);}
+.pod__horse{font-family:var(--fd);font-weight:800;font-size:17px;margin:6px 0 2px;letter-spacing:-.02em;}
+.pod__price{font-family:var(--fm);color:var(--red);font-size:15px;}
+.pod__jockey{font-size:12.5px;color:var(--muted);margin-top:4px;}
+.pod__ours{margin-top:9px;font-size:10px;font-family:var(--fm);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--win);}
+@media(max-width:640px){.podium{grid-template-columns:1fr;}}
+
+/* --- tabs --- */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:20px 0 0;}
+.tabs button{font-family:var(--fb);font-weight:700;font-size:14px;background:none;border:none;
+  padding:12px 16px;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;}
+.tabs button[aria-selected="true"]{color:var(--red);border-bottom-color:var(--red);}
+.panel{display:none;padding-top:18px;} .panel.on{display:block;}
+
+/* --- best bets --- */
+.bets{display:flex;flex-direction:column;gap:10px;}
+.bet{background:var(--paper);border:1px solid var(--line);border-radius:10px;
+  display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:center;
+  padding:14px 18px 14px 0;overflow:hidden;box-shadow:0 1px 2px rgba(14,17,22,.05);}
+.bet__pos{align-self:stretch;background:var(--sink);display:flex;align-items:center;
+  justify-content:center;font-family:var(--fd);font-weight:800;font-size:17px;color:var(--muted);
+  margin:-14px 0;}
+.bet:first-child .bet__pos{background:var(--red);color:#fff;}
+.bet__horse{font-family:var(--fd);font-weight:800;font-size:18px;letter-spacing:-.02em;}
+.bet__where{font-family:var(--fm);font-size:11.5px;color:var(--muted);margin-top:2px;}
+.bet__why{font-size:14px;color:var(--muted);margin-top:6px;}
+.bet__right{text-align:right;}
+.bet__price{font-family:var(--fm);font-size:18px;color:var(--red);}
+.bet__stake{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--win);margin-top:3px;}
+@media(max-width:620px){.bet{grid-template-columns:34px 1fr;}.bet__right{grid-column:2;text-align:left;}}
+
+.going{background:#FFF8E1;border-left:3px solid #E8A700;padding:13px 16px;
+  border-radius:0 8px 8px 0;margin:16px 0;color:#6B5200;font-size:14.5px;}
+.going b{color:#4A3800;}
+.meeting{font-family:var(--fd);font-weight:800;font-size:20px;margin:26px 0 12px;
+  padding-bottom:6px;border-bottom:2px solid var(--ink);letter-spacing:-.02em;}
+.disc{font-family:var(--fm);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);margin-top:16px;}
+footer{border-top:1px solid var(--line);margin-top:36px;padding:22px 0 0;
+  font-size:13px;color:var(--muted);}
+:focus-visible{outline:2px solid var(--red);outline-offset:3px;}
+</style>
+
+<div class="mock">Prototype &middot; real tips from Saturday 29 August &middot; ratings and results illustrative</div>
+
+<nav><div class="nav-in">
+  <a class="brand" href="#/">HORSE RACING <em>TIPS</em></a>
+  <div class="links">
+    <a href="#/" data-nav="/">Today's Tips</a>
+    <a href="#/race" data-nav="/race">A Race</a>
+    <a href="#/results" data-nav="/results">Results</a>
+  </div>
+</div></nav>
+
+<!-- ═══════════════ TODAY'S TIPS ═══════════════ -->
+<div class="screen" data-screen="/">
+<div class="wrap">
+  <section>
+    <p class="eyebrow">Saturday 29 August &middot; 47 races &middot; 7 meetings</p>
+    <h1>Today's Horse Racing Tips</h1>
+    <p class="lede">Every race on the card previewed, with a selection and the reasoning behind
+    it. Checked against the form book before it is published &mdash; nineteen automated checks
+    have to pass or it does not go out.</p>
+
+    <div class="going">
+      <b>Going watch.</b> Rain has moved the ground at Beverley (Soft, reading it as heavy),
+      Windsor, Sandown and Cartmel. Selections are made on the projected going, not the
+      declared. The clerk's own update is the authority.
+    </div>
+  </section>
+
+  <section>
+    <h2>The NAP</h2>
+    <div class="verdict">
+      <div class="verdict__tag">Dan's verdict</div>
+      <p>Supreme King has already run to within touching distance off this sort of figure,
+      beaten a quarter of a length off 83 &mdash; a pound higher than he runs off today &mdash;
+      and he was staying on at the finish last time.</p>
+      <p>He also has the right side of the draw here, which at Windsor over six furlongs is
+      worth having. The dangers are Amazonian Dream at 12/1 and Lequinto at 11/2, both course
+      winners, but neither is as well treated on this sort of mark.</p>
+      <div class="verdict__bet">
+        <span class="verdict__horse">SUPREME KING</span>
+        <span class="verdict__price">10/3</span>
+        <span class="verdict__stake">1pt win &middot; 17:00 Windsor</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Best Bets</h2>
+    <div class="bets">
+      <div class="bet">
+        <div class="bet__pos">1</div>
+        <div>
+          <div class="bet__horse">SUPREME KING</div>
+          <div class="bet__where">17:00 WINDSOR &middot; 6f &middot; GOOD &rarr; GOOD TO SOFT</div>
+          <div class="bet__why">Beaten a quarter of a length off a mark a pound higher, staying on
+          at the finish last time, and favoured by the draw.</div>
+        </div>
+        <div class="bet__right"><div class="bet__price">10/3</div><div class="bet__stake">1pt win</div></div>
+      </div>
+      <div class="bet">
+        <div class="bet__pos">2</div>
+        <div>
+          <div class="bet__horse">DEFENCE MINISTER</div>
+          <div class="bet__where">16:05 SANDOWN &middot; 7f &middot; GOOD &rarr; GOOD TO SOFT</div>
+          <div class="bet__why">Beaten under two lengths off 93, and the only confirmed
+          front-runner in the race.</div>
+        </div>
+        <div class="bet__right"><div class="bet__price">7/1</div><div class="bet__stake">0.5pt e/w &middot; 3 places</div></div>
+      </div>
+      <div class="bet">
+        <div class="bet__pos">3</div>
+        <div>
+          <div class="bet__horse">DREAM COMPOSER</div>
+          <div class="bet__where">16:55 GOODWOOD &middot; 5f &middot; GOOD TO FIRM &rarr; GOOD</div>
+          <div class="bet__why">Has won here twice and handles the ground, with three wins from
+          twenty-one starts on it.</div>
+        </div>
+        <div class="bet__right"><div class="bet__price">9/2</div><div class="bet__stake">1pt win</div></div>
+      </div>
+      <div class="bet">
+        <div class="bet__pos">4</div>
+        <div>
+          <div class="bet__horse">MUDAMER</div>
+          <div class="bet__where">16:10 BEVERLEY &middot; 7&frac12;f &middot; SOFT &rarr; HEAVY</div>
+          <div class="bet__why">Big price on ground that has moved two bands &mdash; worth checking
+          the clerk before you back it.</div>
+        </div>
+        <div class="bet__right"><div class="bet__price">22/1</div><div class="bet__stake">0.5pt e/w &middot; 3 places</div></div>
+      </div>
+    </div>
+    <p class="disc">18+ &middot; Please gamble responsibly &middot; BeGambleAware.org</p>
+  </section>
+
+  <section>
+    <h2>Every race, previewed</h2>
+    <p class="lede">This is the part that is ours. Forty-seven races, each with a selection and
+    the case for it.</p>
+
+    <div class="meeting">Windsor</div>
+    <div class="race">
+      <div class="race__head">
+        <span class="race__time">17:00</span>
+        <span class="race__name">Total Task Consultancy Take The Reins Handicap (Div I)</span>
+        <span class="race__cond">6f &middot; Class 4 &middot; 3yo+ &middot; Good &rarr; good to soft &middot; 9 runners &middot; &pound;5,653</span>
+      </div>
+      <div class="race__body">
+        <p><strong>SUPREME KING</strong> at 10/3, David Evans and Billy Loughnane, makes most
+        appeal. He has already run to within touching distance off this sort of figure, beaten
+        a quarter of a length off 83 &mdash; a pound higher than today &mdash; was staying on at
+        the finish last time and has the right side of the draw.</p>
+        <p>The dangers are <strong>AMAZONIAN DREAM</strong> at 12/1 and <strong>LEQUINTO</strong>
+        at 11/2, both course winners.</p>
+        <div class="verdict" style="margin:14px 0 0">
+          <div class="verdict__tag">Verdict</div>
+          <div class="verdict__bet" style="margin:0;padding:0;border:none">
+            <span class="verdict__horse">SUPREME KING</span>
+            <span class="verdict__price">10/3</span>
+            <span class="verdict__stake">1pt win</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="meeting">Goodwood</div>
+    <div class="race">
+      <div class="race__head">
+        <span class="race__time">16:55</span>
+        <span class="race__name">Virgin Bet Supports Safe Gambling Handicap</span>
+        <span class="race__cond">5f &middot; Class 2 &middot; 3yo+ &middot; Good to firm &rarr; good &middot; 8 runners &middot; &pound;13,085</span>
+      </div>
+      <div class="race__body">
+        <p><strong>DREAM COMPOSER</strong> at 9/2, Tony Carroll and Dougie Costello, makes most
+        appeal. He has won here twice, handles the ground with three wins from twenty-one on it,
+        and gets a trip he has won over.</p>
+        <p>The dangers are <strong>LEXINGTON BLITZ</strong> at 11/2 and
+        <strong>DEMOCRACY DILEMMA</strong> at 16/1.</p>
+        <div class="verdict" style="margin:14px 0 0">
+          <div class="verdict__tag">Verdict</div>
+          <div class="verdict__bet" style="margin:0;padding:0;border:none">
+            <span class="verdict__horse">DREAM COMPOSER</span>
+            <span class="verdict__price">9/2</span>
+            <span class="verdict__stake">1pt win</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div></div>
+
+<!-- ═══════════════ A RACE PAGE ═══════════════ -->
+<div class="screen" data-screen="/race">
+<div class="wrap">
+  <section>
+    <p class="eyebrow">Windsor &middot; Saturday 29 August</p>
+    <h1>17:00 Take The Reins Handicap</h1>
+    <p class="lede">6f &middot; Class 4 &middot; 3yo+ &middot; Good, reading as good to soft &middot; 9 runners &middot; &pound;5,653</p>
+
+    <div class="tabs" id="tabs">
+      <button data-p="verdict" aria-selected="true">Our Verdict</button>
+      <button data-p="runners" aria-selected="false">Runners (9)</button>
+      <button data-p="info" aria-selected="false">Race Info</button>
+    </div>
+
+    <div class="panel on" data-panel="verdict">
+      <div class="verdict">
+        <div class="verdict__tag">Dan's verdict</div>
+        <p>Supreme King has already run to within touching distance off this sort of figure,
+        beaten a quarter of a length off 83 &mdash; a pound higher than he runs off today.
+        He was staying on at the finish last time, and he has the right side of the draw.</p>
+        <p>Amazonian Dream at 12/1 and Lequinto at 11/2 are both course winners and will have
+        their say, but neither is as favourably treated on this sort of mark.</p>
+        <div class="verdict__bet">
+          <span class="verdict__horse">SUPREME KING</span>
+          <span class="verdict__price">10/3</span>
+          <span class="verdict__stake">1pt win</span>
+        </div>
+      </div>
+      <p class="disc">Our verdict only. No other publisher's opinion appears on this page.</p>
+    </div>
+
+    <div class="panel" data-panel="runners">
+      <p class="lede">The full field, form and prices &mdash; rendered by the racing data widget
+      exactly as it is now.</p>
+    </div>
+
+    <div class="panel" data-panel="info">
+      <p class="lede">Distance, class, prize money, going and the draw bias for this course and
+      trip.</p>
+    </div>
+  </section>
+</div></div>
+
+<!-- ═══════════════ RESULTS ═══════════════ -->
+<div class="screen" data-screen="/results">
+<div class="wrap">
+  <section>
+    <p class="eyebrow">Windsor &middot; 17:00 &middot; settled</p>
+    <h1>Take The Reins Handicap</h1>
+
+    <div class="podium">
+      <div class="pod pod--2"><div class="pod__pos">2nd</div>
+        <div class="pod__horse">MANTON BAY</div><div class="pod__price">8/1</div>
+        <div class="pod__jockey">Luke McAteer</div></div>
+      <div class="pod pod--1"><div class="pod__pos">1st</div>
+        <div class="pod__horse">SUPREME KING</div><div class="pod__price">10/3</div>
+        <div class="pod__jockey">Billy Loughnane</div>
+        <div class="pod__ours">Our selection &middot; +3.33pts</div></div>
+      <div class="pod pod--3"><div class="pod__pos">3rd</div>
+        <div class="pod__horse">PIERRE ROYAL</div><div class="pod__price">4/1F</div>
+        <div class="pod__jockey">Adam Caffrey</div></div>
+    </div>
+
+    <div class="verdict">
+      <div class="verdict__tag">What we said beforehand</div>
+      <p>Supreme King has already run to within touching distance off this sort of figure,
+      beaten a quarter of a length off 83, was staying on at the finish last time and has the
+      right side of the draw.</p>
+      <div class="verdict__bet">
+        <span class="verdict__horse">SUPREME KING</span>
+        <span class="verdict__price">10/3</span>
+        <span class="verdict__stake">Won &middot; +3.33pts</span>
+      </div>
+    </div>
+    <p class="lede">Keeping the pre-race verdict on the settled page is the whole record. It is
+    also the thing almost no tipping site does, because it makes the misses as visible as
+    the winners.</p>
+  </section>
+</div></div>
+
+<div class="wrap"><footer>
+  Tips by Dan Stanton. Published daily and checked against the form book before release.
+  18+ &middot; Please gamble responsibly &middot; BeGambleAware.org
+</footer></div>
+
+<script>
+(function(){
+  "use strict";
+  function route(){
+    var p = (location.hash || "#/").slice(1) || "/";
+    var t = document.querySelector('[data-screen="' + p + '"]') ||
+            document.querySelector('[data-screen="/"]');
+    document.querySelectorAll(".screen").forEach(function(s){ s.classList.toggle("live", s === t); });
+    document.querySelectorAll("[data-nav]").forEach(function(a){
+      a.classList.toggle("on", a.getAttribute("data-nav") === p);
+    });
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", route);
+  route();
+
+  var tabs = document.getElementById("tabs");
+  if (tabs) tabs.addEventListener("click", function(e){
+    var b = e.target.closest("button[data-p]");
+    if (!b) return;
+    this.querySelectorAll("button").forEach(function(x){
+      x.setAttribute("aria-selected", String(x === b));
+    });
+    document.querySelectorAll("[data-panel]").forEach(function(p){
+      p.classList.toggle("on", p.dataset.panel === b.dataset.p);
+    });
+  });
+}());
+</script>

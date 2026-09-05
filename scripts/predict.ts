@@ -114,6 +114,7 @@ async function main() {
         goingBand: (h.goingBand ?? "unknown") as GoingBand, positionNum: h.positionNum,
         ofr: h.ofr, fieldSize: h.fieldSize, jockeyId: h.jockeyId, comment: h.comment,
         raceType: h.raceType, ovrBtn: h.ovrBtn, age: h.age, winMargin: null,
+        raceClass: (h as any).raceClass ?? null,
       });
   }
 

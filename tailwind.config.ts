@@ -33,6 +33,7 @@ const config: Config = {
         display: ["var(--font-display)"],
         body: ["var(--font-body)"],
         data: ["var(--font-data)"],
+        game: ["var(--font-game)"],
       },
     },
   },

@@ -85,6 +85,71 @@ const STAYED_ON = [
 ];
 
 /**
+ * Phrases that cancel a staying-on read.
+ *
+ * Two separate faults were firing here, both found by reading the comments the
+ * signal had matched:
+ *
+ *   1. Substring collisions. "finished well held" contains "finished well", so
+ *      a horse beaten out of sight was being read as staying on. So did
+ *      "stayed on same gear" and "kept on at one gear", which are the standard
+ *      way of saying a horse did not quicken.
+ *
+ *   2. Trailing qualifiers. "stayed on late but never a threat" says the
+ *      opposite of what the match claims.
+ *
+ * Checked before STAYED_ON, and anywhere in the comment: a horse that dropped
+ * back at any point did not finish strongly.
+ */
+const NOT_STAYING = [
+  "well held", "finished well held", "never a threat", "never threatened",
+  "never a factor", "never dangerous", "same gear", "one gear", "no impression",
+  "made no impression", "dropped back", "dropped away", "weakened", "faded",
+  "no extra", "found little", "without threatening", "eased", "no real progress",
+  "beaten a long way", "tailed off", "soon beaten", "always behind",
+  // Trailing qualifiers: the horse stayed on, and it still made no difference.
+  "unable to find more", "could not find more", "couldn't find more",
+  "could not match", "couldn't match", "unable to match", "unable to challenge",
+  "never able to challenge", "did not quicken", "found nothing", "no response",
+  "one pace", "one-paced", "kept on at the same pace", "no impression on the leaders",
+  "unable to close", "well beaten", "finished well beaten", "beaten off",
+  "not trouble the leaders", "no danger", "outpaced",
+  // Dan, 2026-08-30, on Rock of England: "said it was staying on but was it?"
+  //
+  // No. The comment read "stayed on same speed to finish 4th", and the only
+  // one-paced idioms cancelled here were "one pace" and "same gear". The
+  // comment writers' actual house style is speed/level/effort, not pace/gear:
+  // 1,137 comments say "at one speed", 342 "same speed", 89 "same pace".
+  // All of them describe a horse making no impression, and all of them were
+  // being read as the opposite.
+  "no threat", "never got competitive", "never landed a blow", "no more",
+  "nothing left", "laboured", "toiled",
+];
+
+/**
+ * One-paced running, as a pattern rather than a phrase list.
+ *
+ * The comment writers cycle a synonym set for "at the same speed" and the list
+ * only ever held two of them. Counted across 120,000 comments the tail is:
+ * gear 1124, speed 693, rate 558, gait 454+463, effort 305+85, tempo 136+269,
+ * pace 236, level 227, gallop, gauge, rhythm, stride, tone. Every one means
+ * the horse made no impression. "same position" and "at one fence" are
+ * deliberately absent — those are placings and obstacles, not efforts.
+ *
+ * The qualifier list grew the same way, by counting rather than guessing:
+ * "at an unchanged effort" (135), "at an even effort" (238), "steady effort"
+ * (91), "unchanged tempo" (37), "even gallop" (27), "steady gallop" (48) all
+ * read as staying on and all mean the opposite.
+ *
+ * "steady progress" is deliberately NOT here. It is the one phrase in that
+ * family that is genuinely positive — "made steady progress approaching the
+ * final furlong, closed on the winner" — and cancelling it would throw away a
+ * real signal to fix a fake one.
+ */
+const ONE_PACED =
+  /\b(?:at\s+)?(?:an?\s+)?(?:one|same|unchanged|even|steady)\s+(?:pace|speed|gear|level|effort|gait|tempo|gallop|gauge|rate|rhythm|tone|stride)\b/;
+
+/**
  * A compromised run. "Run blocked" in Dan's words.
  */
 const TROUBLE = [
@@ -93,6 +158,13 @@ const TROUBLE = [
   "badly hampered", "checked", "squeezed out", "squeezed up", "snatched up",
   "blocked", "impeded", "carried wide", "forced wide", "short of a clear run",
   "had to switch", "switched to find room",
+  // Dan, 2026-09-04, reading Look Back Smiling's Chepstow run himself:
+  // "squeezed for space and lost ground inside the last" was scoring as a
+  // plain beaten run. "squeezed out" and "squeezed up" were listed; the far
+  // commoner "squeezed for space" was not, so the horse took no credit for an
+  // excuse a human could see at a glance.
+  "squeezed for space", "squeezed for room", "short of space",
+  "unable to obtain a clear run", "never able to challenge for room",
 ];
 
 /**
@@ -234,7 +306,10 @@ export function readComment(comment: string | null | undefined): FormRead {
     }
   }
 
-  const stayed = hits(t, STAYED_ON);
+  // A staying-on phrase only counts when nothing in the comment contradicts it.
+  const notStaying = hits(t, NOT_STAYING);
+  if (ONE_PACED.test(t)) notStaying.push("one-paced");
+  const stayed = notStaying.length ? [] : hits(t, STAYED_ON);
   const failed = hits(t, FAILED_TO_STAY);
   const trouble = hits(t, TROUBLE);
   // Ambiguous phrases only count when the comment does not also say it stopped.
@@ -344,6 +419,46 @@ export interface PaceShape {
   heldUp: number;
   /** "lone-leader" | "contested" | "collapse-likely" | "unknown" */
   verdict: "lone-leader" | "contested" | "collapse-likely" | "unknown";
+}
+
+/**
+ * How a horse habitually runs, across its recent form.
+ *
+ * Dan, 2026-09-02: "the front-runner comments are not looking at the data.
+ * ROGUE REBELLION — how is he the only confirmed front-runner? He has front-run
+ * once in 13 races. And HONOUR YOUR DREAMS front-ran last time out."
+ *
+ * The race shape was built from ONE comment — the most recent run — so a horse
+ * that made the running once was "confirmed", and a horse that has led all its
+ * life but was held up last time was not. Rogue Rebellion had led 0 times in
+ * 13 and was still described as the lone front-runner in a note arguing that
+ * an uncontested lead could be decisive.
+ *
+ * A habit needs repetition: the most common readable style across the last six
+ * runs, and only when it appears at least twice AND in at least a third of the
+ * runs we can read. One run is an incident, not a habit — and "confirmed" is
+ * the wrong word for an incident.
+ */
+export function runStyleHabit(
+  comments: Array<string | null | undefined>,
+  look = 6
+): { style: RunStyle | null; seen: number; readable: number } {
+  const styles = comments
+    .slice(0, look)
+    .map((c) => readComment(c).runStyle)
+    .filter((s): s is RunStyle => s !== null);
+
+  if (!styles.length) return { style: null, seen: 0, readable: 0 };
+
+  const count = new Map<RunStyle, number>();
+  for (const s of styles) count.set(s, (count.get(s) ?? 0) + 1);
+
+  let best: RunStyle | null = null;
+  let seen = 0;
+  for (const [k, n] of count) if (n > seen) { best = k; seen = n; }
+
+  const enough = seen >= 2 && seen / styles.length >= 1 / 3;
+  return { style: enough ? best : null, seen, readable: styles.length };
 }
 
 export function racePaceShape(styles: Array<RunStyle | null>): PaceShape {

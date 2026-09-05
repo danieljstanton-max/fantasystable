@@ -1,0 +1,2373 @@
+{
+  "source": "UK_Ireland_Racecourse_Cheat_Sheet.xlsx",
+  "note": "Dan's cheat sheet. Converted by scripts/import-course-guide.py — edit the workbook, not this file.",
+  "courses": [
+    {
+      "course": "Aintree",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Large, flat galloping Mildmay course plus the unique Grand National course",
+      "pace": "Handy, fluent jumpers are favoured; National fences demand rhythm and bravery",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Upgrade economical jumpers with Aintree or similar flat-track form",
+      "trap": "Do not treat Mildmay and Grand National courses as the same test",
+      "groundNote": "National course can ride much more exacting than its flat topography suggests.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon. On quick ground, efficient jumping and tactical speed are valuable without a strong universal pace bias.",
+        "good": "Generally fair. Efficient jumping, rhythm and race shape matter more than one fixed run style.",
+        "soft": "A stronger stamina test; mistakes become more costly. Horses can still come from off the pace if they travel.",
+        "heavy": "Deep-ground stamina and jumping under fatigue dominate. Be wary of doubtful stayers and fragile jumpers."
+      },
+      "draw": []
+    },
+    {
+      "course": "Ascot",
+      "nation": "England",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Galloping; stiff uphill finish; straight course to 1m and round course",
+      "pace": "Round course rewards a handy position; straight races are often decided by pace groups and lane",
+      "drawHeadline": "Recent straight-course data leans high at 5–8f; highly meeting- and ground-dependent",
+      "angle": "On straight course, map pace by side before judging the stall",
+      "trap": "Assuming a permanent high/low bias without watching earlier races",
+      "groundNote": "Soft ground and the uphill finish can make every distance ride longer.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast early but still demanding late. Leaders must ration speed; jumpers need to stay efficient.",
+        "good": "A fair but stamina-aware test under both codes. Save enough for the finish.",
+        "soft": "Becomes strongly stamina-led, especially over jumps. Upgrade proven soft-ground stayers.",
+        "heavy": "Can be gruelling. Deep-ground stamina and jumping under pressure dominate tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "350",
+          "sprint": "High 1.19",
+          "mile": "High 1.16",
+          "middle": "Middle 1.18",
+          "staying": "Low 1.18",
+          "confidence": "High",
+          "reading": "Moderate only; straight-course pace/ground can override."
+        }
+      ]
+    },
+    {
+      "course": "Ayr",
+      "nation": "Scotland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Galloping oval with mild undulations and downhill sweep into straight",
+      "pace": "Fast ground can help front-runners; softer ground brings closers and stamina into play",
+      "drawHeadline": "Recent 5–6f sample favours low; longer trips are more variable",
+      "angle": "Pair a low sprint draw with early pace, especially on quick ground",
+      "trap": "Using the sprint bias automatically at 1m2f+",
+      "groundNote": "Western weather can change the surface quickly; re-check wind and rain.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but generally fair. Flat races reward sustained speed; jumps races reward efficiency and rhythm.",
+        "good": "Usually fair under both codes, with pace and jumping execution more important than a rigid track bias.",
+        "soft": "Stamina becomes more influential. Watch where riders seek better ground and how earlier races unfold.",
+        "heavy": "Testing under both codes. Proven mud form, stamina and efficient jumping should be prioritised."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "348",
+          "sprint": "Low 1.24",
+          "mile": "Low 1.06",
+          "middle": "High 1.20",
+          "staying": "Middle 1.14",
+          "confidence": "High",
+          "reading": "Low sprint angle; longer trips mixed."
+        }
+      ]
+    },
+    {
+      "course": "Bangor-on-Dee",
+      "nation": "Wales",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Sharp, mostly flat track with no grandstand and tight turns",
+      "pace": "Handy, accurate jumpers; difficult for horses off the bridle early",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Upgrade prominent travellers and course experience",
+      "trap": "Backing slow, galloping types that need a long straight",
+      "groundNote": "On deep ground the sharp layout still demands stamina because there is little recovery time.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Bath",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "High, exposed, sharp track with an uphill finish; no watering historically makes extremes possible",
+      "pace": "Prominent racers can be hard to peg back on quick ground",
+      "drawHeadline": "Recent data leans low at 5–8f; middle strongest in small 13f+ sample",
+      "angle": "Upgrade tactical speed and fast-ground form",
+      "trap": "Ignoring wind exposure or assuming soft ground is common",
+      "groundNote": "Often among the quickest turf surfaces; rain response can be uneven after dry spells.",
+      "confidence": "High",
+      "going": {
+        "firm": "Quick early, but the finish still asks a stamina question. Leaders who over-race can be vulnerable late.",
+        "good": "A fair test with a demanding finish. Travel smoothly and keep something for the final climb or long run-in.",
+        "soft": "Becomes strongly stamina-led. Conserve energy and favour horses that stay beyond the bare trip.",
+        "heavy": "Very testing. Deep-ground stamina, efficient action and measured pace are more important than tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "421",
+          "sprint": "Low 1.12",
+          "mile": "Low 1.18",
+          "middle": "Middle 1.08",
+          "staying": "Middle 1.36",
+          "confidence": "High",
+          "reading": "Low helpful at 5–8f; staying result may be sample-sensitive."
+        }
+      ]
+    },
+    {
+      "course": "Beverley",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Turning, undulating course with stiff uphill finish; sharp 5f start",
+      "pace": "Pace is important in sprints; round-course races allow more recovery",
+      "drawHeadline": "Low is the key recent 5–6f angle, strongest when paired with early speed",
+      "angle": "Low-drawn front-runners at 5f are the classic setup",
+      "trap": "A slow starter drawn low can lose the entire advantage",
+      "groundNote": "Soft ground weakens the pure speed/draw edge and makes the climb more demanding.",
+      "confidence": "High",
+      "going": {
+        "firm": "Quick early, but the finish still asks a stamina question. Leaders who over-race can be vulnerable late.",
+        "good": "A fair test with a demanding finish. Travel smoothly and keep something for the final climb or long run-in.",
+        "soft": "Becomes strongly stamina-led. Conserve energy and favour horses that stay beyond the bare trip.",
+        "heavy": "Very testing. Deep-ground stamina, efficient action and measured pace are more important than tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "371",
+          "sprint": "Low 1.19",
+          "mile": "High 1.09",
+          "middle": "Low 1.10",
+          "staying": "—",
+          "confidence": "High",
+          "reading": "Low + pace remains the sprint angle."
+        }
+      ]
+    },
+    {
+      "course": "Brighton",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Left / horseshoe",
+      "profile": "Switchback, steeply undulating specialist track; no full circuit",
+      "pace": "Balanced, handy course specialists; front-runners can steal ground downhill",
+      "drawHeadline": "Generally weak; recent 9–12f sample leans high",
+      "angle": "Prior Brighton form and balance outweigh small statistical edges",
+      "trap": "Long-striding or unbalanced horses, especially in big fields",
+      "groundNote": "Rain exaggerates the gradients and balance test.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast conditions exaggerate the track's quirks. Course craft, balance and tactical speed are major positives.",
+        "good": "Course suitability matters more than at a conventional oval. Repeat course form deserves extra weight.",
+        "soft": "The quirks remain but stamina rises sharply in value. Horses that lose balance or momentum are difficult to rescue.",
+        "heavy": "A severe specialist test. Upgrade proven course form, balance and stamina; downgrade inexperienced or awkward movers."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "349",
+          "sprint": "Low 1.06",
+          "mile": "High 1.09",
+          "middle": "High 1.15",
+          "staying": "—",
+          "confidence": "High",
+          "reading": "Mostly weak; course craft matters more."
+        }
+      ]
+    },
+    {
+      "course": "Carlisle",
+      "nation": "England",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Pear-shaped, galloping and undulating with a stiff uphill finish",
+      "pace": "No fixed pace rule; stamina and timing matter, especially from a steady pace",
+      "drawHeadline": "Recent 9–12f data favours low; 7–8f leans high",
+      "angle": "Upgrade strong finishers and horses proven on stiff tracks",
+      "trap": "Confusing a steadily run race with an easy stamina test",
+      "groundNote": "Soft/heavy conditions make the long climb a severe test.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast early but still demanding late. Leaders must ration speed; jumpers need to stay efficient.",
+        "good": "A fair but stamina-aware test under both codes. Save enough for the finish.",
+        "soft": "Becomes strongly stamina-led, especially over jumps. Upgrade proven soft-ground stayers.",
+        "heavy": "Can be gruelling. Deep-ground stamina and jumping under pressure dominate tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "247",
+          "sprint": "Middle 1.10",
+          "mile": "High 1.16",
+          "middle": "Low 1.31",
+          "staying": "—",
+          "confidence": "Medium",
+          "reading": "Strongest recent signal is low at 9–12f."
+        }
+      ]
+    },
+    {
+      "course": "Cartmel",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Very sharp, tight and unusual; exceptionally long chase run-in",
+      "pace": "Travel and tactical speed matter, but leaders can be caught on the long run-in",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Course form, agility and a jockey who judges the final move",
+      "trap": "Going too soon after the last fence in chases",
+      "groundNote": "Wet ground adds stamina to an already unusual rhythm test.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Catterick",
+      "nation": "England",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Sharp, undulating and turning with downhill momentum into straight",
+      "pace": "Strong front-running/handy bias on quick ground; specialists prosper",
+      "drawHeadline": "Recent 5–6f low bias is strong; longer-trip signals vary by start",
+      "angle": "Low draw plus pace in sprints; upgrade nimble course types",
+      "trap": "Applying the 5f rule to every distance",
+      "groundNote": "Soft ground reduces the speed edge but the track remains position-sensitive.",
+      "confidence": "High",
+      "going": {
+        "firm": "On turf, speed and position are magnified; accurate jumping matters in jumps races. Avoid covering extra ground.",
+        "good": "Tactical under both codes. Handy, balanced runners and slick jumpers are usually well served.",
+        "soft": "The positional edge weakens and stamina increases in value. Course balance remains important.",
+        "heavy": "A specialist stamina test, particularly over jumps. Proven course and ground form is a major asset."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "321",
+          "sprint": "Low 1.36",
+          "mile": "Middle 1.13",
+          "middle": "High 1.40",
+          "staying": "Low 1.27",
+          "confidence": "High",
+          "reading": "Start-specific: strong low sprint edge; do not generalise."
+        }
+      ]
+    },
+    {
+      "course": "Chelmsford City",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Polytrack (AW)",
+      "direction": "Left",
+      "profile": "Flat, tight oval with sweeping bends and a short-to-medium straight",
+      "pace": "Prominent racers often gain a small edge; kickback can inconvenience hold-ups",
+      "drawHeadline": "Recent data strongly favours low at 5–6f and 9–12f",
+      "angle": "Low draw plus enough speed to hold the rail",
+      "trap": "Assuming a low draw helps a habitual slow starter",
+      "groundNote": "Standard/Standard-to-Slow and maintenance pattern matter more than weather labels.",
+      "confidence": "High",
+      "going": {
+        "firm": "N/A – synthetic course. Use Standard/Fast/Slow descriptions, not turf going labels.",
+        "good": "N/A – synthetic course. Baseline is usually Standard; track position and kickback matter more than turf going.",
+        "soft": "N/A – synthetic course. Rain can affect times and kickback, but the official surface remains an AW description.",
+        "heavy": "N/A – synthetic course. There is no Heavy turf classification."
+      },
+      "draw": [
+        {
+          "surface": "Polytrack",
+          "races": "865",
+          "sprint": "Low 1.24",
+          "mile": "Low/Mid 1.11",
+          "middle": "Low 1.28",
+          "staying": "Low 1.08",
+          "confidence": "High",
+          "reading": "Low draw is a recurring edge, especially with pace."
+        }
+      ]
+    },
+    {
+      "course": "Cheltenham",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Undulating, galloping and stiff; Old, New and Cross Country courses differ",
+      "pace": "Old course is speedier; New course places greater emphasis on stamina and timing",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Match the horse to Old/New course and prioritise efficient downhill jumping",
+      "trap": "Treating all Cheltenham races as the same configuration",
+      "groundNote": "Soft/heavy ground magnifies the climb and the long jumping test.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon. Quick ground reduces the stamina premium but accurate jumping remains vital.",
+        "good": "Still a proper test. Conserve enough for the stiff finish and favour horses that jump economically.",
+        "soft": "Strong stamina test. Patient energy use and proven soft-ground jumping are major positives.",
+        "heavy": "Potentially gruelling. Upgrade relentless stayers and downgrade keen racers or horses whose jumping deteriorates when tired."
+      },
+      "draw": []
+    },
+    {
+      "course": "Chepstow",
+      "nation": "Wales",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Undulating, galloping; long straight with a downhill element late",
+      "pace": "Quick ground can help prominent speed; soft ground turns it into a stamina track",
+      "drawHeadline": "Recent 9–12f flat sample favours low; sprints more neutral",
+      "angle": "On soft/heavy, upgrade proven Chepstow stamina and strong travellers",
+      "trap": "Using fast-ground pace conclusions after sustained rain",
+      "groundNote": "Frequently becomes attritional in autumn/winter; the same distance can ride very differently.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast early but still demanding late. Leaders must ration speed; jumpers need to stay efficient.",
+        "good": "A fair but stamina-aware test under both codes. Save enough for the finish.",
+        "soft": "Becomes strongly stamina-led, especially over jumps. Upgrade proven soft-ground stayers.",
+        "heavy": "Can be gruelling. Deep-ground stamina and jumping under pressure dominate tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "257",
+          "sprint": "High 1.08",
+          "mile": "Low 1.06",
+          "middle": "Low 1.21",
+          "staying": "—",
+          "confidence": "Medium",
+          "reading": "Main recent call is low at 9–12f."
+        }
+      ]
+    },
+    {
+      "course": "Chester",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Very tight, flat oval with short straight and immediate bends",
+      "pace": "Early pace and an inside position are powerful; wide runners cover extra ground",
+      "drawHeadline": "Strong low bias at 5–6f and useful low bias across most round-course trips",
+      "angle": "Low draw + early speed is one of racing's strongest combinations",
+      "trap": "Prices already reflect the famous bias; pace burn-ups can collapse",
+      "groundNote": "Soft ground can reduce the speed edge but wide trips remain inefficient.",
+      "confidence": "High",
+      "going": {
+        "firm": "Speed and early position are magnified. Upgrade balance, tactical pace and runners likely to avoid racing wide.",
+        "good": "Usually sharp and tactical. Secure a position before the bends; handy, balanced runners are well suited.",
+        "soft": "The speed edge weakens. Balance still matters, but stamina and the ability to hold position in slower ground rise in importance.",
+        "heavy": "Can turn into a specialist stamina test. Expect pace to collapse more often; proven mud form and balance are essential."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "297",
+          "sprint": "Low 1.38",
+          "mile": "Low/High 1.11",
+          "middle": "Low 1.23",
+          "staying": "Low 1.36",
+          "confidence": "Medium",
+          "reading": "Low is strongest and most persistent; early speed amplifies it."
+        }
+      ]
+    },
+    {
+      "course": "Doncaster",
+      "nation": "England",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Wide, flat, galloping course with long straight; straight sprint/mile tracks",
+      "pace": "Generally fair; straight-course races depend on where the pace and best strip develop",
+      "drawHeadline": "Recent data is mostly fair; low leads at 9–12f, while sprint side can change",
+      "angle": "Watch the first straight-course race before committing to a side",
+      "trap": "Following an old high/low mantra without current evidence",
+      "groundNote": "Soft ground can create a lane bias even when the geometry is fair.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but generally fair. Flat races reward sustained speed; jumps races reward efficiency and rhythm.",
+        "good": "Usually fair under both codes, with pace and jumping execution more important than a rigid track bias.",
+        "soft": "Stamina becomes more influential. Watch where riders seek better ground and how earlier races unfold.",
+        "heavy": "Testing under both codes. Proven mud form, stamina and efficient jumping should be prioritised."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "505",
+          "sprint": "High 1.11",
+          "mile": "Low 1.10",
+          "middle": "Low 1.20",
+          "staying": "Low 1.45",
+          "confidence": "High",
+          "reading": "Mostly fair; straight-race lane and pace matter."
+        }
+      ]
+    },
+    {
+      "course": "Epsom",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Severely undulating switchback with cambers, downhill Tattenham Corner and stiff sections",
+      "pace": "Handy, well-balanced runners; difficult to recover after losing position or balance",
+      "drawHeadline": "No strong recent sprint bias; 7–12f sample leans high, but Derby starts are unique",
+      "angle": "Upgrade course form, balance and tactical adaptability",
+      "trap": "Treating Derby draw statistics as relevant to ordinary starts",
+      "groundNote": "Rain makes the cambers and downhill turns more demanding.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast conditions exaggerate the track's quirks. Course craft, balance and tactical speed are major positives.",
+        "good": "Course suitability matters more than at a conventional oval. Repeat course form deserves extra weight.",
+        "soft": "The quirks remain but stamina rises sharply in value. Horses that lose balance or momentum are difficult to rescue.",
+        "heavy": "A severe specialist test. Upgrade proven course form, balance and stamina; downgrade inexperienced or awkward movers."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "208",
+          "sprint": "Low 1.02",
+          "mile": "High 1.14",
+          "middle": "High 1.14",
+          "staying": "—",
+          "confidence": "Medium",
+          "reading": "Moderate longer-trip high lean; specialist layout dominates."
+        }
+      ]
+    },
+    {
+      "course": "Exeter",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Large, galloping, undulating and stiff National Hunt track",
+      "pace": "Fair to run styles; stamina and jumping are the main filters",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Upgrade proven galloping-track stayers and sound jumpers",
+      "trap": "Backing a doubtful stayer because the race is tactically small",
+      "groundNote": "Soft/heavy conditions produce a searching test, particularly uphill.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon. Quick ground reduces the stamina premium but accurate jumping remains vital.",
+        "good": "Still a proper test. Conserve enough for the stiff finish and favour horses that jump economically.",
+        "soft": "Strong stamina test. Patient energy use and proven soft-ground jumping are major positives.",
+        "heavy": "Potentially gruelling. Upgrade relentless stayers and downgrade keen racers or horses whose jumping deteriorates when tired."
+      },
+      "draw": []
+    },
+    {
+      "course": "Fakenham",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Extremely tight, square and sharp with frequent turns",
+      "pace": "Specialist speed track, though prolonged mid-race pressure can set up closers",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Nimble, accurate jumpers with proven sharp-track form",
+      "trap": "Assuming every leader will be impossible to catch",
+      "groundNote": "Deep ground adds stamina but never removes the need for agility.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Ffos Las",
+      "nation": "Wales",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Wide, modern, galloping and generally fair",
+      "pace": "Little inherent pace bias; stamina becomes key in wet weather",
+      "drawHeadline": "Limited recent flat sample; middle strongest at 5–6f, otherwise broadly fair",
+      "angle": "Use it as a fair-course form test and respect wet-ground stamina",
+      "trap": "Overreacting to a small draw sample",
+      "groundNote": "Can become extremely testing in winter rain despite the fair layout.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast early but still demanding late. Leaders must ration speed; jumpers need to stay efficient.",
+        "good": "A fair but stamina-aware test under both codes. Save enough for the finish.",
+        "soft": "Becomes strongly stamina-led, especially over jumps. Upgrade proven soft-ground stayers.",
+        "heavy": "Can be gruelling. Deep-ground stamina and jumping under pressure dominate tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "139",
+          "sprint": "Middle 1.27",
+          "mile": "Middle 1.08",
+          "middle": "High 1.04",
+          "staying": "—",
+          "confidence": "Low",
+          "reading": "Low evidence: treat as a hint only."
+        }
+      ]
+    },
+    {
+      "course": "Fontwell",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Mixed / figure-eight",
+      "profile": "Sharp figure-eight chase course; hurdles course conventional; stiff finish",
+      "pace": "Strong travellers and rhythm; course experience helps around the unusual turns",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Upgrade agile, accurate course specialists",
+      "trap": "Ignoring the difference between chase and hurdle layouts",
+      "groundNote": "Soft ground makes the finish more demanding but the course remains tactical.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Goodwood",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Undulating, turning and highly configuration-dependent; downhill runs and stiff late sections",
+      "pace": "Prominent, balanced runners stay out of trouble; big-field straight races are pace-side contests",
+      "drawHeadline": "Recent data favours low at 5–8f, but straight sprints are highly lane/pace dependent",
+      "angle": "Use draw with the pace cluster, not in isolation",
+      "trap": "Applying one Goodwood draw rule across all trips",
+      "groundNote": "Watering and rain can move the quickest strip from meeting to meeting.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast conditions exaggerate the track's quirks. Course craft, balance and tactical speed are major positives.",
+        "good": "Course suitability matters more than at a conventional oval. Repeat course form deserves extra weight.",
+        "soft": "The quirks remain but stamina rises sharply in value. Horses that lose balance or momentum are difficult to rescue.",
+        "heavy": "A severe specialist test. Upgrade proven course form, balance and stamina; downgrade inexperienced or awkward movers."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "367",
+          "sprint": "Low 1.33",
+          "mile": "Low 1.15",
+          "middle": "Middle 1.19",
+          "staying": "Middle 1.29",
+          "confidence": "High",
+          "reading": "Recent low numbers strong at 5–8f; pace-side remains vital."
+        }
+      ]
+    },
+    {
+      "course": "Hamilton",
+      "nation": "Scotland",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Sharp and undulating with downhill move before a stiff uphill finish",
+      "pace": "Prominent racers can steal ground, but over-racing is punished late",
+      "drawHeadline": "Recent 5–6f sample favours low; longer races look fair",
+      "angle": "Low, handy sprinters that also finish strongly",
+      "trap": "Equating an early lead with an easy finish",
+      "groundNote": "Soft ground makes the uphill finish notably more severe.",
+      "confidence": "High",
+      "going": {
+        "firm": "Quick early, but the finish still asks a stamina question. Leaders who over-race can be vulnerable late.",
+        "good": "A fair test with a demanding finish. Travel smoothly and keep something for the final climb or long run-in.",
+        "soft": "Becomes strongly stamina-led. Conserve energy and favour horses that stay beyond the bare trip.",
+        "heavy": "Very testing. Deep-ground stamina, efficient action and measured pace are more important than tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "308",
+          "sprint": "Low 1.19",
+          "mile": "—",
+          "middle": "High 1.04",
+          "staying": "—",
+          "confidence": "High",
+          "reading": "Useful low sprint lean; otherwise fair."
+        }
+      ]
+    },
+    {
+      "course": "Haydock",
+      "nation": "England",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Galloping with sharp bends; broad straights; can hold moisture",
+      "pace": "Front-runners do well when quick; softer ground gives stamina and closers more influence",
+      "drawHeadline": "Recent data favours low across 5–12f, but straight-course lanes can change",
+      "angle": "On quick ground combine low draw and pace; on soft prioritise stamina/current strip",
+      "trap": "Assuming the fast-ground pace bias survives deep ground",
+      "groundNote": "Rain can transform Haydock rapidly into a much more attritional test.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast early but still demanding late. Leaders must ration speed; jumpers need to stay efficient.",
+        "good": "A fair but stamina-aware test under both codes. Save enough for the finish.",
+        "soft": "Becomes strongly stamina-led, especially over jumps. Upgrade proven soft-ground stayers.",
+        "heavy": "Can be gruelling. Deep-ground stamina and jumping under pressure dominate tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "411",
+          "sprint": "Low 1.22",
+          "mile": "Low 1.24",
+          "middle": "Low 1.20",
+          "staying": "Low 1.16",
+          "confidence": "High",
+          "reading": "Recent low pattern broad, but lane changes with going."
+        }
+      ]
+    },
+    {
+      "course": "Hereford",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Fairly flat, relatively sharp with tight bends and short straight",
+      "pace": "Handy position useful; stamina still matters in midwinter",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Accurate jumpers able to hold a position",
+      "trap": "Giving a deep-ground race the same speed rating as a good-ground race",
+      "groundNote": "Testing winter ground can override the normally speed-oriented shape.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Hexham",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Very undulating with a long, stiff uphill finish",
+      "pace": "No cheap lead: stamina and jumping under fatigue are decisive",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Upgrade relentless stayers and previous Hexham form",
+      "trap": "Doubtful stayers or horses that jump poorly when tired",
+      "groundNote": "Soft/heavy ground can make Hexham one of the strongest stamina tests.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon. Quick ground reduces the stamina premium but accurate jumping remains vital.",
+        "good": "Still a proper test. Conserve enough for the stiff finish and favour horses that jump economically.",
+        "soft": "Strong stamina test. Patient energy use and proven soft-ground jumping are major positives.",
+        "heavy": "Potentially gruelling. Upgrade relentless stayers and downgrade keen racers or horses whose jumping deteriorates when tired."
+      },
+      "draw": []
+    },
+    {
+      "course": "Huntingdon",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Flat, fast, sharp oval with easy turns",
+      "pace": "Strong travellers and quick, accurate jumpers; tactical speed is valuable",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Nippy types with speed for the run-in",
+      "trap": "Slow gallopers needing a severe stamina test",
+      "groundNote": "Soft ground tempers the speed but does not turn it into a truly stiff track.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Kempton",
+      "nation": "England",
+      "code": "Flat AW & Jumps",
+      "surfaces": "Polytrack + turf",
+      "direction": "Right",
+      "profile": "Flat, fair AW oval; sharp turf jumps circuit",
+      "pace": "AW is broadly fair but low/handy matters in sprints; jumps can reward position on quick turf",
+      "drawHeadline": "Recent AW: strong low at 5–6f and 13f+; middle at 7–12f",
+      "angle": "Separate AW evidence from turf-jumps form",
+      "trap": "Using turf going descriptions for the Polytrack",
+      "groundNote": "Turf-going columns apply to jumps course; AW should be judged by Standard/Slow, pace and kickback.",
+      "confidence": "High",
+      "going": {
+        "firm": "On turf, speed and position are magnified; accurate jumping matters in jumps races. Avoid covering extra ground.",
+        "good": "Tactical under both codes. Handy, balanced runners and slick jumpers are usually well served.",
+        "soft": "The positional edge weakens and stamina increases in value. Course balance remains important.",
+        "heavy": "A specialist stamina test, particularly over jumps. Proven course and ground form is a major asset."
+      },
+      "draw": [
+        {
+          "surface": "Polytrack",
+          "races": "1227",
+          "sprint": "Low 1.33",
+          "mile": "Middle 1.17",
+          "middle": "Middle 1.21",
+          "staying": "Low 1.35",
+          "confidence": "High",
+          "reading": "Strong low in sprints; middle at 7–12f."
+        }
+      ]
+    },
+    {
+      "course": "Kelso",
+      "nation": "Scotland",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Generally flat and sharp, with an uphill run for home; separate hurdle/chase tracks",
+      "pace": "Travel and tactical speed on good ground; stamina reserves needed when soft",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Upgrade adaptable travellers that also finish",
+      "trap": "Calling it a pure speed track in midwinter ground",
+      "groundNote": "Soft/heavy conditions can change the character from sharp to gruelling.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Leicester",
+      "nation": "England",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Galloping with a long, stiff uphill finish; straight and round courses",
+      "pace": "Generally fair; straight races can tempt leaders to go too hard before the climb",
+      "drawHeadline": "Recent 5–6f low and 7–8f middle lean; no major fixed bias",
+      "angle": "Look for horses that settle and sustain uphill",
+      "trap": "Backing free-going front-runners into a stiff finish",
+      "groundNote": "Soft ground makes the final climb a strong stamina filter.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast early but still demanding late. Leaders must ration speed; jumpers need to stay efficient.",
+        "good": "A fair but stamina-aware test under both codes. Save enough for the finish.",
+        "soft": "Becomes strongly stamina-led, especially over jumps. Upgrade proven soft-ground stayers.",
+        "heavy": "Can be gruelling. Deep-ground stamina and jumping under pressure dominate tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "349",
+          "sprint": "Low 1.13",
+          "mile": "Middle 1.17",
+          "middle": "Middle 1.07",
+          "staying": "—",
+          "confidence": "High",
+          "reading": "Moderate leans only."
+        }
+      ]
+    },
+    {
+      "course": "Lingfield",
+      "nation": "England",
+      "code": "Flat turf/AW & Jumps",
+      "surfaces": "Polytrack + turf",
+      "direction": "Left",
+      "profile": "Sharp AW oval; undulating turf with steep downhill run into straight",
+      "pace": "Turf: handy runners can slingshot downhill; AW often rewards a well-timed move off the final bend",
+      "drawHeadline": "AW recent data leans high at 7–8f and middle at 9f+; turf middle at 5–8f",
+      "angle": "Course experience and turn-of-foot are valuable on both surfaces",
+      "trap": "Combining AW and turf statistics",
+      "groundNote": "Turf-going columns do not apply to Polytrack; wet turf magnifies the downhill balance test.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast conditions exaggerate the track's quirks. Course craft, balance and tactical speed are major positives.",
+        "good": "Course suitability matters more than at a conventional oval. Repeat course form deserves extra weight.",
+        "soft": "The quirks remain but stamina rises sharply in value. Horses that lose balance or momentum are difficult to rescue.",
+        "heavy": "A severe specialist test. Upgrade proven course form, balance and stamina; downgrade inexperienced or awkward movers."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "232",
+          "sprint": "Middle 1.21",
+          "mile": "Middle 1.14",
+          "middle": "Low 1.14",
+          "staying": "—",
+          "confidence": "Medium",
+          "reading": "Moderate and trip-specific."
+        },
+        {
+          "surface": "Polytrack",
+          "races": "1010",
+          "sprint": "Middle 1.03",
+          "mile": "High 1.15",
+          "middle": "Middle 1.25",
+          "staying": "Middle 1.23",
+          "confidence": "High",
+          "reading": "High 7–8f; middle at 9f+. Pace/turn remain important."
+        }
+      ]
+    },
+    {
+      "course": "Ludlow",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Sharp, flat speed track with fences arriving quickly",
+      "pace": "Prominent, quick and accurate jumpers are favoured",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Upgrade slick jumpers with tactical speed",
+      "trap": "Big, slow jumpers that need time between obstacles",
+      "groundNote": "Soft ground raises stamina needs but accuracy remains non-negotiable.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Market Rasen",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Flat-to-gently undulating, sharp speed track with slight downhill run into straight",
+      "pace": "Forward-going strong travellers can be difficult to catch",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Accurate jumpers able to quicken off the bend",
+      "trap": "Hold-up horses in slowly run races",
+      "groundNote": "On deep ground the normally sharp track asks a much bigger stamina question.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Musselburgh",
+      "nation": "Scotland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Flat, sharp oval with tight turns and a longish run-in",
+      "pace": "Prominent racers and agile types; difficult to make up ground when quick",
+      "drawHeadline": "Recent flat data favours high at 5–8f; low is useful in some staying starts",
+      "angle": "At sprints, pair high draw with pace and a clean route",
+      "trap": "Assuming 'inside must be low' without checking stalls placement",
+      "groundNote": "Soft ground gives closers more chance but track position remains important.",
+      "confidence": "High",
+      "going": {
+        "firm": "On turf, speed and position are magnified; accurate jumping matters in jumps races. Avoid covering extra ground.",
+        "good": "Tactical under both codes. Handy, balanced runners and slick jumpers are usually well served.",
+        "soft": "The positional edge weakens and stamina increases in value. Course balance remains important.",
+        "heavy": "A specialist stamina test, particularly over jumps. Proven course and ground form is a major asset."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "299",
+          "sprint": "High 1.25",
+          "mile": "High 1.20",
+          "middle": "Middle 1.19",
+          "staying": "Low 1.17",
+          "confidence": "Medium",
+          "reading": "Recent sprint/7f data favours high; confirm stalls position."
+        }
+      ]
+    },
+    {
+      "course": "Newbury",
+      "nation": "England",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Wide, flat, galloping and very fair with long straight",
+      "pace": "Fair to most styles; long-striding horses get time to build momentum",
+      "drawHeadline": "Recent draw evidence mostly neutral; middle strongest at 7–8f",
+      "angle": "Use class, pace and stamina ahead of small draw effects",
+      "trap": "Inventing a draw bias on a fundamentally fair course",
+      "groundNote": "Soft/heavy ground creates a genuine stamina test but the layout remains fair.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but generally fair. Flat races reward sustained speed; jumps races reward efficiency and rhythm.",
+        "good": "Usually fair under both codes, with pace and jumping execution more important than a rigid track bias.",
+        "soft": "Stamina becomes more influential. Watch where riders seek better ground and how earlier races unfold.",
+        "heavy": "Testing under both codes. Proven mud form, stamina and efficient jumping should be prioritised."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "381",
+          "sprint": "High 1.07",
+          "mile": "Middle 1.16",
+          "middle": "Low 1.15",
+          "staying": "Middle 1.08",
+          "confidence": "High",
+          "reading": "Mostly fair; only moderate leans."
+        }
+      ]
+    },
+    {
+      "course": "Newcastle",
+      "nation": "England",
+      "code": "Flat AW & Jumps",
+      "surfaces": "Tapeta + turf",
+      "direction": "Left",
+      "profile": "Straight-mile AW with gradual climb; separate galloping jumps course",
+      "pace": "AW is fair and exposes pace distribution; jumps can become tactical off the home turn",
+      "drawHeadline": "Recent AW draw data is close to neutral across all bands",
+      "angle": "Prioritise pace location and ability to finish uphill",
+      "trap": "Using old turf-flat Newcastle draw assumptions on Tapeta",
+      "groundNote": "Turf-going columns apply to jumps only; Tapeta requires AW-specific assessment.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but generally fair. Flat races reward sustained speed; jumps races reward efficiency and rhythm.",
+        "good": "Usually fair under both codes, with pace and jumping execution more important than a rigid track bias.",
+        "soft": "Stamina becomes more influential. Watch where riders seek better ground and how earlier races unfold.",
+        "heavy": "Testing under both codes. Proven mud form, stamina and efficient jumping should be prioritised."
+      },
+      "draw": [
+        {
+          "surface": "Tapeta",
+          "races": "1518",
+          "sprint": "High 1.09",
+          "mile": "Middle 1.06",
+          "middle": "Middle 1.07",
+          "staying": "Low 1.06",
+          "confidence": "High",
+          "reading": "No strong recent draw call."
+        }
+      ]
+    },
+    {
+      "course": "Newmarket",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf – Rowley & July",
+      "direction": "Right / straight",
+      "profile": "Two distinct galloping courses; Rowley has the Dip and uphill finish, July is rolling with rising finish",
+      "pace": "Generally fair; July can reward forward momentum, while straight races depend on pace-side",
+      "drawHeadline": "Recent data: high strongest at 5–6f on both; middle at 9–12f",
+      "angle": "Always identify Rowley versus July and map the straight-course pace",
+      "trap": "Blending statistics from the two courses",
+      "groundNote": "Rain and headwinds can make the rising finishes much more stamina-demanding.",
+      "confidence": "High",
+      "going": {
+        "firm": "Quick early, but the finish still asks a stamina question. Leaders who over-race can be vulnerable late.",
+        "good": "A fair test with a demanding finish. Travel smoothly and keep something for the final climb or long run-in.",
+        "soft": "Becomes strongly stamina-led. Conserve energy and favour horses that stay beyond the bare trip.",
+        "heavy": "Very testing. Deep-ground stamina, efficient action and measured pace are more important than tactical speed."
+      },
+      "draw": []
+    },
+    {
+      "course": "Newton Abbot",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Tight, flat, sharp summer-jumps circuit",
+      "pace": "Strong travellers and prominent runners are strongly favoured",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Upgrade tactical speed, accuracy and course form",
+      "trap": "Slow stayers caught out by repeated turns",
+      "groundNote": "Wet ground reduces the speed edge but the tight geometry still matters.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Nottingham",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Two oval circuits; sharp bends with a long straight and generally flat profile",
+      "pace": "Fair overall; leaders can kick off the tight turn but closers have time",
+      "drawHeadline": "Recent data mostly neutral; high strongest at 13f+",
+      "angle": "Use the long straight to favour sustained finishers unless pace is weak",
+      "trap": "Assuming the bend guarantees a front-running win",
+      "groundNote": "Soft ground can make the long straight feel much more testing.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but broadly fair. Sustained speed and efficiency matter more than a single early position.",
+        "good": "Usually fair to most run styles. Rhythm, class and the pace shape tend to decide the race.",
+        "soft": "Stamina becomes more important and the field may seek the freshest strip. Patient rides get more chance if the pace is honest.",
+        "heavy": "A true stamina test. Upgrade proven heavy-ground action and downgrade horses that need a fast surface to quicken."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "386",
+          "sprint": "High 1.08",
+          "mile": "—",
+          "middle": "High 1.11",
+          "staying": "High 1.26",
+          "confidence": "High",
+          "reading": "Main recent signal is high at 13f+."
+        }
+      ]
+    },
+    {
+      "course": "Perth",
+      "nation": "Scotland",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Flat, relatively sharp with sweeping bends and long straight",
+      "pace": "Sharpness helps front-runners, but early pressure can set up restraint",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Upgrade rhythmic travellers and tactically versatile jumpers",
+      "trap": "Assuming a forward position is enough after a pace battle",
+      "groundNote": "Soft ground increases stamina demands on a course usually associated with speed.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Plumpton",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Tight, undulating track with uphill finish",
+      "pace": "Good jumpers ridden positively; strong travellers handle repeated turns",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Course form, agility and accurate jumping",
+      "trap": "Large, slow types unable to hold position",
+      "groundNote": "Deep ground makes the uphill finish severe and heightens the specialist angle.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Pontefract",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Very stiff, turning course with short, sharp uphill finish",
+      "pace": "Stamina is central; can win from front or rear if the trip is truly within range",
+      "drawHeadline": "Recent low bias is strong at 7–12f; middle leads 5–6f",
+      "angle": "Low-drawn stayers able to hold an economical position",
+      "trap": "Backing a doubtful stayer because it is well drawn",
+      "groundNote": "Soft/heavy ground makes races ride markedly longer than the advertised trip.",
+      "confidence": "High",
+      "going": {
+        "firm": "Quick early, but the finish still asks a stamina question. Leaders who over-race can be vulnerable late.",
+        "good": "A fair test with a demanding finish. Travel smoothly and keep something for the final climb or long run-in.",
+        "soft": "Becomes strongly stamina-led. Conserve energy and favour horses that stay beyond the bare trip.",
+        "heavy": "Very testing. Deep-ground stamina, efficient action and measured pace are more important than tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "280",
+          "sprint": "Middle 1.19",
+          "mile": "Low 1.29",
+          "middle": "Low 1.50",
+          "staying": "—",
+          "confidence": "Medium",
+          "reading": "Low is a strong 7–12f angle; stamina still comes first."
+        }
+      ]
+    },
+    {
+      "course": "Redcar",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Flat, narrow, long straights with sharper bends; straight mile",
+      "pace": "Generally fair, though a forward position can help in weakly run races",
+      "drawHeadline": "Recent evidence is close to neutral",
+      "angle": "Let pace and current lane evidence lead",
+      "trap": "Forcing a draw angle where none is persistent",
+      "groundNote": "Wind and rain can create a temporary side bias on the straight course.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but broadly fair. Sustained speed and efficiency matter more than a single early position.",
+        "good": "Usually fair to most run styles. Rhythm, class and the pace shape tend to decide the race.",
+        "soft": "Stamina becomes more important and the field may seek the freshest strip. Patient rides get more chance if the pace is honest.",
+        "heavy": "A true stamina test. Upgrade proven heavy-ground action and downgrade horses that need a fast surface to quicken."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "308",
+          "sprint": "Low 1.02",
+          "mile": "Low 1.06",
+          "middle": "Low 1.12",
+          "staying": "—",
+          "confidence": "High",
+          "reading": "No strong recent draw call."
+        }
+      ]
+    },
+    {
+      "course": "Ripon",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Turning track with cramped bends and undulations in the straight",
+      "pace": "Prominent, handy horses are favoured; course specialists often outperform",
+      "drawHeadline": "Recent sample is fairly neutral, despite older high-draw lore in sprints",
+      "angle": "Use pace and track craft ahead of a blind draw rule",
+      "trap": "Following the historic high-draw mantra without current card evidence",
+      "groundNote": "Soft ground reduces speed but increases the value of balance through the undulations.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast conditions exaggerate the track's quirks. Course craft, balance and tactical speed are major positives.",
+        "good": "Course suitability matters more than at a conventional oval. Repeat course form deserves extra weight.",
+        "soft": "The quirks remain but stamina rises sharply in value. Horses that lose balance or momentum are difficult to rescue.",
+        "heavy": "A severe specialist test. Upgrade proven course form, balance and stamina; downgrade inexperienced or awkward movers."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "301",
+          "sprint": "Middle 1.15",
+          "mile": "High 1.08",
+          "middle": "Low 1.08",
+          "staying": "—",
+          "confidence": "High",
+          "reading": "Recent sample does not support a strong fixed bias."
+        }
+      ]
+    },
+    {
+      "course": "Salisbury",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Galloping, undulating course with steady uphill finish and long straight",
+      "pace": "Prominent racers can gain an edge but the finish tests stamina",
+      "drawHeadline": "Recent data leans high at 5–6f and strongly high at 9–12f",
+      "angle": "High draw plus tactical position where the start makes it relevant",
+      "trap": "Treating all distances as equally draw-sensitive",
+      "groundNote": "Soft ground makes the rising finish a significant stamina test.",
+      "confidence": "High",
+      "going": {
+        "firm": "Quick early, but the finish still asks a stamina question. Leaders who over-race can be vulnerable late.",
+        "good": "A fair test with a demanding finish. Travel smoothly and keep something for the final climb or long run-in.",
+        "soft": "Becomes strongly stamina-led. Conserve energy and favour horses that stay beyond the bare trip.",
+        "heavy": "Very testing. Deep-ground stamina, efficient action and measured pace are more important than tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "245",
+          "sprint": "High 1.14",
+          "mile": "Middle 1.16",
+          "middle": "High 1.39",
+          "staying": "—",
+          "confidence": "Medium",
+          "reading": "High is strongest, particularly at 9–12f."
+        }
+      ]
+    },
+    {
+      "course": "Sandown",
+      "nation": "England",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Galloping oval with long uphill straight; stiff railway fences over jumps; separate 5f chute",
+      "pace": "Front-runners can do well if rationed; soft ground often sends flat runners toward stands side",
+      "drawHeadline": "Recent: low at 5–8f, high at 9–12f; course/distance is crucial",
+      "angle": "At 5f favour pace and stamina for the climb; watch lane on soft",
+      "trap": "Using the 5f chute bias for round-course races",
+      "groundNote": "On soft ground riders often seek the stands side in the straight.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast early but still demanding late. Leaders must ration speed; jumpers need to stay efficient.",
+        "good": "A fair but stamina-aware test under both codes. Save enough for the finish.",
+        "soft": "Becomes strongly stamina-led, especially over jumps. Upgrade proven soft-ground stayers.",
+        "heavy": "Can be gruelling. Deep-ground stamina and jumping under pressure dominate tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "240",
+          "sprint": "Low 1.18",
+          "mile": "Low 1.10",
+          "middle": "High 1.35",
+          "staying": "—",
+          "confidence": "Medium",
+          "reading": "Opposite directions by trip; separate the 5f chute."
+        }
+      ]
+    },
+    {
+      "course": "Sedgefield",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Tight, undulating and sharp with downhill momentum before short uphill finish",
+      "pace": "Be close enough turning in; accurate, agile jumpers prosper",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Upgrade prominent course specialists",
+      "trap": "Deep hold-up rides on a short run-in",
+      "groundNote": "Soft/heavy ground adds stamina but position before the final turn remains critical.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Southwell",
+      "nation": "England",
+      "code": "Flat AW & Jumps",
+      "surfaces": "Tapeta + turf",
+      "direction": "Left",
+      "profile": "Wide Tapeta oval with long straight; separate sharp turf jumps track",
+      "pace": "AW often rewards pace and avoiding kickback; jumps favours handy strong travellers",
+      "drawHeadline": "Recent AW data broadly neutral; only a mild middle lean at 13f+",
+      "angle": "Separate Tapeta form from the old Fibresand era and from turf jumps",
+      "trap": "Using historic Fibresand biases after the surface change",
+      "groundNote": "Turf-going columns apply to jumps only; Tapeta has a distinct modern evidence base.",
+      "confidence": "High",
+      "going": {
+        "firm": "On turf, speed and position are magnified; accurate jumping matters in jumps races. Avoid covering extra ground.",
+        "good": "Tactical under both codes. Handy, balanced runners and slick jumpers are usually well served.",
+        "soft": "The positional edge weakens and stamina increases in value. Course balance remains important.",
+        "heavy": "A specialist stamina test, particularly over jumps. Proven course and ground form is a major asset."
+      },
+      "draw": [
+        {
+          "surface": "Tapeta",
+          "races": "1348",
+          "sprint": "Low 1.09",
+          "mile": "Middle 1.04",
+          "middle": "Middle 1.08",
+          "staying": "Middle 1.16",
+          "confidence": "High",
+          "reading": "Broadly neutral on Tapeta; ignore old Fibresand lore."
+        }
+      ]
+    },
+    {
+      "course": "Stratford",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Flat, sharp speed track with quick turns and a short run-in",
+      "pace": "Speed, neat jumping and a forward position are major assets",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Ex-Flat pace and accurate jumping",
+      "trap": "Slow, heavy-topped stayers needing a galloping track",
+      "groundNote": "Wet ground reduces speed but the course still demands agility.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Taunton",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Sharp, fast track with fair fences and downhill move before straight",
+      "pace": "Front-runners can steal ground, but mid-race pressure makes the finish longer",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Tactical speed plus the ability to settle",
+      "trap": "Leaders dragged into a long battle too early",
+      "groundNote": "Soft ground makes the long-speed duel more punishing.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Thirsk",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Flat oval with sharp bends and straight 6f course",
+      "pace": "Round course favours balanced, handy horses; straight races depend on pace side",
+      "drawHeadline": "Recent data favours high at 5–8f; 9–12f middle signal may be sample-sensitive",
+      "angle": "High draw with pace in sprints/7f; verify stalls side",
+      "trap": "Backing high without checking where the speed is",
+      "groundNote": "Soft ground can move the best lane and reduce the front-running edge.",
+      "confidence": "High",
+      "going": {
+        "firm": "Speed and early position are magnified. Upgrade balance, tactical pace and runners likely to avoid racing wide.",
+        "good": "Usually sharp and tactical. Secure a position before the bends; handy, balanced runners are well suited.",
+        "soft": "The speed edge weakens. Balance still matters, but stamina and the ability to hold position in slower ground rise in importance.",
+        "heavy": "Can turn into a specialist stamina test. Expect pace to collapse more often; proven mud form and balance are essential."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "327",
+          "sprint": "High 1.22",
+          "mile": "High 1.16",
+          "middle": "Middle 1.49",
+          "staying": "—",
+          "confidence": "High",
+          "reading": "High useful at 5–8f; longer sample needs caution."
+        }
+      ]
+    },
+    {
+      "course": "Uttoxeter",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Turning, relatively sharp track that can become extremely testing",
+      "pace": "Front-runners favoured when quick; on soft/heavy stamina dominates",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Change your model with the going: speed when quick, stamina when deep",
+      "trap": "Using summer-jumps pace logic in winter mud",
+      "groundNote": "Heavy ground can produce attritional races and large finishing distances.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon. Quick ground reduces the stamina premium but accurate jumping remains vital.",
+        "good": "Still a proper test. Conserve enough for the stiff finish and favour horses that jump economically.",
+        "soft": "Strong stamina test. Patient energy use and proven soft-ground jumping are major positives.",
+        "heavy": "Potentially gruelling. Upgrade relentless stayers and downgrade keen racers or horses whose jumping deteriorates when tired."
+      },
+      "draw": []
+    },
+    {
+      "course": "Warwick",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Flat, relatively sharp speed track; demanding sequence of chase fences down back",
+      "pace": "Prominent, accurate jumpers; speed and rhythm are rewarded",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Upgrade slick chasers that hold a position",
+      "trap": "Slow jumpers losing ground down the back",
+      "groundNote": "Soft conditions increase stamina needs but clean jumping remains the edge.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Wetherby",
+      "nation": "England",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Flat, galloping course with long bends and a fair straight",
+      "pace": "Often rewards a forward position, particularly in tactical races",
+      "drawHeadline": "Recent flat sample is small; 5–6f low signal should be treated cautiously",
+      "angle": "Pace and race shape before draw; forward, efficient jumpers",
+      "trap": "Overconfidence from a small recent flat sample",
+      "groundNote": "Soft winter ground makes the jumps course much more stamina-led.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but generally fair. Flat races reward sustained speed; jumps races reward efficiency and rhythm.",
+        "good": "Usually fair under both codes, with pace and jumping execution more important than a rigid track bias.",
+        "soft": "Stamina becomes more influential. Watch where riders seek better ground and how earlier races unfold.",
+        "heavy": "Testing under both codes. Proven mud form, stamina and efficient jumping should be prioritised."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "56",
+          "sprint": "Low 1.44",
+          "mile": "Low/Mid 1.04",
+          "middle": "—",
+          "staying": "—",
+          "confidence": "Low",
+          "reading": "Very small recent flat sample: low confidence."
+        }
+      ]
+    },
+    {
+      "course": "Wincanton",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Flat, sharp course; fences arrive quickly",
+      "pace": "Prominent, accurate jumpers with tactical speed",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Slick jumping and a position near the pace",
+      "trap": "Big, slow horses unable to find a rhythm",
+      "groundNote": "Soft ground adds stamina but errors remain difficult to recover from.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Windsor",
+      "nation": "England",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Figure-eight / left turns",
+      "profile": "Flat, sharp figure-eight with long run from final bend; jumps returned on separate configuration",
+      "pace": "Prominent racers can kick off the bend, but the run-in gives closers time",
+      "drawHeadline": "Recent data mostly neutral; middle strongest at 9–12f",
+      "angle": "Use tactical position plus ability to sustain the run home",
+      "trap": "Assuming an uncontested leader cannot be caught",
+      "groundNote": "River-side rain can alter the surface; inspect current rail and configuration.",
+      "confidence": "High",
+      "going": {
+        "firm": "On turf, speed and position are magnified; accurate jumping matters in jumps races. Avoid covering extra ground.",
+        "good": "Tactical under both codes. Handy, balanced runners and slick jumpers are usually well served.",
+        "soft": "The positional edge weakens and stamina increases in value. Course balance remains important.",
+        "heavy": "A specialist stamina test, particularly over jumps. Proven course and ground form is a major asset."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "501",
+          "sprint": "High 1.09",
+          "mile": "Middle 1.05",
+          "middle": "Middle 1.21",
+          "staying": "—",
+          "confidence": "High",
+          "reading": "Mostly mild; middle strongest at 9–12f."
+        }
+      ]
+    },
+    {
+      "course": "Wolverhampton",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Tapeta (AW)",
+      "direction": "Left",
+      "profile": "Tight oval with short straight and frequent bends",
+      "pace": "Handy racers are favoured; wide trips and kickback are negatives",
+      "drawHeadline": "Recent data favours low at 5–6f; longer trips only mild middle leans",
+      "angle": "Low draw plus early position, especially in sprints",
+      "trap": "Hold-up horses needing luck through traffic",
+      "groundNote": "Track maintenance and pace are more relevant than turf weather labels.",
+      "confidence": "High",
+      "going": {
+        "firm": "N/A – synthetic course. Use Standard/Fast/Slow descriptions, not turf going labels.",
+        "good": "N/A – synthetic course. Baseline is usually Standard; track position and kickback matter more than turf going.",
+        "soft": "N/A – synthetic course. Rain can affect times and kickback, but the official surface remains an AW description.",
+        "heavy": "N/A – synthetic course. There is no Heavy turf classification."
+      },
+      "draw": [
+        {
+          "surface": "Tapeta",
+          "races": "1923",
+          "sprint": "Low 1.24",
+          "mile": "Middle 1.09",
+          "middle": "Middle 1.12",
+          "staying": "Middle 1.11",
+          "confidence": "High",
+          "reading": "Low sprint edge is the clearest signal."
+        }
+      ]
+    },
+    {
+      "course": "Worcester",
+      "nation": "England",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Flat, galloping summer-jumps track with easy turns and long run-in",
+      "pace": "Fair, but pace can be protected on quick ground",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Forward, efficient jumpers on good ground; stamina if rain arrives",
+      "trap": "Assuming summer going when the river-side track turns soft",
+      "groundNote": "Rain can change the test substantially; long run-in gives closers a chance.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon. On quick ground, efficient jumping and tactical speed are valuable without a strong universal pace bias.",
+        "good": "Generally fair. Efficient jumping, rhythm and race shape matter more than one fixed run style.",
+        "soft": "A stronger stamina test; mistakes become more costly. Horses can still come from off the pace if they travel.",
+        "heavy": "Deep-ground stamina and jumping under fatigue dominate. Be wary of doubtful stayers and fragile jumpers."
+      },
+      "draw": []
+    },
+    {
+      "course": "Yarmouth",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Flat, narrow oval with long 5f straight and straight mile",
+      "pace": "Generally fair with time to build momentum; pace-side matters in straight races",
+      "drawHeadline": "Recent data strongly favours low at 5–6f and leans low at 9–12f",
+      "angle": "Low draw with pace in sprints, while still watching lane evidence",
+      "trap": "Ignoring crosswinds and temporary strip biases",
+      "groundNote": "Coastal wind and rain can matter as much as the nominal going.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but broadly fair. Sustained speed and efficiency matter more than a single early position.",
+        "good": "Usually fair to most run styles. Rhythm, class and the pace shape tend to decide the race.",
+        "soft": "Stamina becomes more important and the field may seek the freshest strip. Patient rides get more chance if the pace is honest.",
+        "heavy": "A true stamina test. Upgrade proven heavy-ground action and downgrade horses that need a fast surface to quicken."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "435",
+          "sprint": "Low 1.37",
+          "mile": "Low 1.08",
+          "middle": "Low 1.18",
+          "staying": "—",
+          "confidence": "High",
+          "reading": "Strong recent low sprint bias."
+        }
+      ]
+    },
+    {
+      "course": "York",
+      "nation": "England",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Wide, flat, galloping course with long straight and sweeping turn",
+      "pace": "Fair but big fields make it hard to dominate; sustained gallopers thrive",
+      "drawHeadline": "Recent 2023–26 evidence favours low at 5–12f, contrary to some old stands-side lore",
+      "angle": "Respect recent low-draw evidence but map pace and current lane",
+      "trap": "Using a historic high-draw rule without checking current evidence",
+      "groundNote": "Soft ground increases stamina and may create lanes across the wide straight.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but broadly fair. Sustained speed and efficiency matter more than a single early position.",
+        "good": "Usually fair to most run styles. Rhythm, class and the pace shape tend to decide the race.",
+        "soft": "Stamina becomes more important and the field may seek the freshest strip. Patient rides get more chance if the pace is honest.",
+        "heavy": "A true stamina test. Upgrade proven heavy-ground action and downgrade horses that need a fast surface to quicken."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "346",
+          "sprint": "Low 1.37",
+          "mile": "Low 1.22",
+          "middle": "Low 1.38",
+          "staying": "High 1.21",
+          "confidence": "High",
+          "reading": "Recent evidence favours low at 5–12f; reassess old lore."
+        }
+      ]
+    },
+    {
+      "course": "Ballinrobe",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Sharp, turning course with downhill move to a short straight",
+      "pace": "Prominent, balanced runners are favoured",
+      "drawHeadline": "Recent flat sample is very small; no reliable call",
+      "angle": "Use pace/course craft; treat draw as secondary",
+      "trap": "Overreacting to tiny draw samples",
+      "groundNote": "Soft ground reduces speed but the short straight keeps position important.",
+      "confidence": "High",
+      "going": {
+        "firm": "On turf, speed and position are magnified; accurate jumping matters in jumps races. Avoid covering extra ground.",
+        "good": "Tactical under both codes. Handy, balanced runners and slick jumpers are usually well served.",
+        "soft": "The positional edge weakens and stamina increases in value. Course balance remains important.",
+        "heavy": "A specialist stamina test, particularly over jumps. Proven course and ground form is a major asset."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "38",
+          "sprint": "—",
+          "mile": "—",
+          "middle": "High 1.58",
+          "staying": "—",
+          "confidence": "Low",
+          "reading": "Too small for a reliable call."
+        }
+      ]
+    },
+    {
+      "course": "Bellewstown",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Sharp, undulating course with uphill run home",
+      "pace": "Well-balanced prominent racers",
+      "drawHeadline": "Recent 5–8f data broadly neutral on a limited sample",
+      "angle": "Course experience and tactical position",
+      "trap": "Backing an unbalanced long-strider on layout alone",
+      "groundNote": "Wet ground makes the undulations and climb more demanding.",
+      "confidence": "High",
+      "going": {
+        "firm": "On turf, speed and position are magnified; accurate jumping matters in jumps races. Avoid covering extra ground.",
+        "good": "Tactical under both codes. Handy, balanced runners and slick jumpers are usually well served.",
+        "soft": "The positional edge weakens and stamina increases in value. Course balance remains important.",
+        "heavy": "A specialist stamina test, particularly over jumps. Proven course and ground form is a major asset."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "88",
+          "sprint": "High 1.12",
+          "mile": "Low 1.08",
+          "middle": "—",
+          "staying": "—",
+          "confidence": "Low",
+          "reading": "Small and broadly neutral."
+        }
+      ]
+    },
+    {
+      "course": "Clonmel",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Sharp, undulating track with downhill approach to straight",
+      "pace": "Front-runners/handy types, especially when quick; closers gain on soft",
+      "drawHeadline": "Flat sample too limited for a robust recent draw call",
+      "angle": "Prominent on quick ground; stamina and patience when soft",
+      "trap": "Using fast-ground pace bias in deep conditions",
+      "groundNote": "Soft/heavy ground can reverse the strength of the early-speed edge.",
+      "confidence": "High",
+      "going": {
+        "firm": "On turf, speed and position are magnified; accurate jumping matters in jumps races. Avoid covering extra ground.",
+        "good": "Tactical under both codes. Handy, balanced runners and slick jumpers are usually well served.",
+        "soft": "The positional edge weakens and stamina increases in value. Course balance remains important.",
+        "heavy": "A specialist stamina test, particularly over jumps. Proven course and ground form is a major asset."
+      },
+      "draw": []
+    },
+    {
+      "course": "Cork",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Flat, galloping and fair; straight sprint chute",
+      "pace": "Prominent racers can be favoured, but the overall course is fair",
+      "drawHeadline": "Recent sample is near neutral in sprints; middle strongest at 9–12f",
+      "angle": "On straight course, map pace by side rather than assume high",
+      "trap": "Relying on older high-draw lore without current evidence",
+      "groundNote": "Soft ground raises stamina demands but the geometry stays fair.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but generally fair. Flat races reward sustained speed; jumps races reward efficiency and rhythm.",
+        "good": "Usually fair under both codes, with pace and jumping execution more important than a rigid track bias.",
+        "soft": "Stamina becomes more influential. Watch where riders seek better ground and how earlier races unfold.",
+        "heavy": "Testing under both codes. Proven mud form, stamina and efficient jumping should be prioritised."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "200",
+          "sprint": "Low 1.13",
+          "mile": "Middle 1.07",
+          "middle": "Middle 1.21",
+          "staying": "—",
+          "confidence": "Medium",
+          "reading": "Moderate middle lean at 9–12f; straight races pace-led."
+        }
+      ]
+    },
+    {
+      "course": "Curragh",
+      "nation": "Republic of Ireland",
+      "code": "Flat",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Very wide, galloping, undulating course with multiple straight/round starts",
+      "pace": "Fair to all styles; straight races are pace- and lane-dependent",
+      "drawHeadline": "Recent data mostly fair; high mild at 5–6f, middle mild at 9–12f",
+      "angle": "Use pace cluster and current meeting evidence",
+      "trap": "Treating a mild draw lean as a permanent rail bias",
+      "groundNote": "Wide course can develop different strips after rain or watering.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but broadly fair. Sustained speed and efficiency matter more than a single early position.",
+        "good": "Usually fair to most run styles. Rhythm, class and the pace shape tend to decide the race.",
+        "soft": "Stamina becomes more important and the field may seek the freshest strip. Patient rides get more chance if the pace is honest.",
+        "heavy": "A true stamina test. Upgrade proven heavy-ground action and downgrade horses that need a fast surface to quicken."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "544",
+          "sprint": "High 1.12",
+          "mile": "High 1.04",
+          "middle": "Middle 1.13",
+          "staying": "Low 1.14",
+          "confidence": "High",
+          "reading": "Mostly fair; pace-side is more important in big fields."
+        }
+      ]
+    },
+    {
+      "course": "Down Royal",
+      "nation": "Northern Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Sharp-to-galloping, undulating; uphill late; sprint chute",
+      "pace": "5f favours handy pace; round course and jumps are fairer",
+      "drawHeadline": "Recent sample small and volatile; no strong statistical call",
+      "angle": "In sprints favour pace/position; elsewhere use the fair track",
+      "trap": "Chasing extreme IVs from small samples",
+      "groundNote": "Soft ground makes the final undulations and rise more demanding.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but generally fair. Flat races reward sustained speed; jumps races reward efficiency and rhythm.",
+        "good": "Usually fair under both codes, with pace and jumping execution more important than a rigid track bias.",
+        "soft": "Stamina becomes more influential. Watch where riders seek better ground and how earlier races unfold.",
+        "heavy": "Testing under both codes. Proven mud form, stamina and efficient jumping should be prioritised."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "127",
+          "sprint": "Middle 1.33",
+          "mile": "Middle 1.36",
+          "middle": "High 1.52",
+          "staying": "Middle 1.31",
+          "confidence": "Low",
+          "reading": "Volatile small bands; no robust overall call."
+        }
+      ]
+    },
+    {
+      "course": "Downpatrick",
+      "nation": "Northern Ireland",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Very tight, undulating specialist jumps track",
+      "pace": "Handy, agile course types; prominent racers do best",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Course form, balance and accurate jumping",
+      "trap": "Big, slow jumpers or deep hold-up tactics",
+      "groundNote": "Wet ground adds stamina to an already specialist test.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Dundalk",
+      "nation": "Republic of Ireland",
+      "code": "Flat",
+      "surfaces": "Polytrack (AW)",
+      "direction": "Left",
+      "profile": "Flat, fair oval with sweeping bends",
+      "pace": "Generally fair; pace, draw to bends and kickback decide marginal edges",
+      "drawHeadline": "Recent data broadly neutral; mild middle lean at 7–8f",
+      "angle": "Use pace and likely trip more than a rigid draw rule",
+      "trap": "Assuming every inside draw is automatically positive",
+      "groundNote": "Surface maintenance and Standard/Slow description matter more than rain.",
+      "confidence": "High",
+      "going": {
+        "firm": "N/A – synthetic course. Use Standard/Fast/Slow descriptions, not turf going labels.",
+        "good": "N/A – synthetic course. Baseline is generally fair; pace, lane and kickback are the key variables.",
+        "soft": "N/A – synthetic course. Weather may alter speed/kickback without creating turf-style soft ground.",
+        "heavy": "N/A – synthetic course. There is no Heavy turf classification."
+      },
+      "draw": [
+        {
+          "surface": "Polytrack",
+          "races": "954",
+          "sprint": "Middle 1.06",
+          "mile": "Middle 1.11",
+          "middle": "Middle 1.09",
+          "staying": "Low 1.11",
+          "confidence": "High",
+          "reading": "Generally fair; mild middle lean."
+        }
+      ]
+    },
+    {
+      "course": "Fairyhouse",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Wide, galloping square course; shortish flat straight",
+      "pace": "Flat prominent racers can be favoured; jumps track is very fair",
+      "drawHeadline": "Recent flat data leans low at 9–12f; shorter trips weaker",
+      "angle": "Handy flat runners; let jumping/class lead over obstacles",
+      "trap": "Assuming the flat pace edge transfers directly to jumps",
+      "groundNote": "Soft ground makes the broad galloping course a stamina test.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but generally fair. Flat races reward sustained speed; jumps races reward efficiency and rhythm.",
+        "good": "Usually fair under both codes, with pace and jumping execution more important than a rigid track bias.",
+        "soft": "Stamina becomes more influential. Watch where riders seek better ground and how earlier races unfold.",
+        "heavy": "Testing under both codes. Proven mud form, stamina and efficient jumping should be prioritised."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "117",
+          "sprint": "High 1.10",
+          "mile": "Middle 1.16",
+          "middle": "Low 1.30",
+          "staying": "—",
+          "confidence": "Low",
+          "reading": "Small sample; low at 9–12f is the main hint."
+        }
+      ]
+    },
+    {
+      "course": "Galway",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Very sharp, turning and undulating with a steep uphill finish",
+      "pace": "Pace and position are crucial; course specialists thrive",
+      "drawHeadline": "Recent low bias is very strong at 7–12f",
+      "angle": "Low draw + tactical speed + Galway form",
+      "trap": "A well-drawn horse that lacks pace or balance",
+      "groundNote": "Soft/heavy ground makes the hill severe but does not remove the positional premium.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast conditions exaggerate the track's quirks. Course craft, balance and tactical speed are major positives.",
+        "good": "Course suitability matters more than at a conventional oval. Repeat course form deserves extra weight.",
+        "soft": "The quirks remain but stamina rises sharply in value. Horses that lose balance or momentum are difficult to rescue.",
+        "heavy": "A severe specialist test. Upgrade proven course form, balance and stamina; downgrade inexperienced or awkward movers."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "119",
+          "sprint": "—",
+          "mile": "Low 1.54",
+          "middle": "Low 1.34",
+          "staying": "—",
+          "confidence": "Low",
+          "reading": "Strong low bias, reinforced by short straight and sharp turns."
+        }
+      ]
+    },
+    {
+      "course": "Gowran Park",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Galloping but undulating; big fields and long sweeping sections",
+      "pace": "Handy runners avoid traffic; stamina matters late",
+      "drawHeadline": "Recent low bias strong at 7–8f; 9–12f leans high",
+      "angle": "Low and prominent at 7–8f; reassess by distance",
+      "trap": "Using one draw rule across every start",
+      "groundNote": "Soft ground emphasises stamina through the undulations.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast early but still demanding late. Leaders must ration speed; jumpers need to stay efficient.",
+        "good": "A fair but stamina-aware test under both codes. Save enough for the finish.",
+        "soft": "Becomes strongly stamina-led, especially over jumps. Upgrade proven soft-ground stayers.",
+        "heavy": "Can be gruelling. Deep-ground stamina and jumping under pressure dominate tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "240",
+          "sprint": "—",
+          "mile": "Low 1.38",
+          "middle": "High 1.13",
+          "staying": "—",
+          "confidence": "Medium",
+          "reading": "Strong low at 7–8f; longer trip differs."
+        }
+      ]
+    },
+    {
+      "course": "Kilbeggan",
+      "nation": "Republic of Ireland",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Very sharp, tight specialist course with short uphill run-in",
+      "pace": "Prominent, balanced horses and accurate jumpers",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Course form and tactical speed",
+      "trap": "Big gallopers unable to hold a position",
+      "groundNote": "Soft ground increases stamina, but track craft remains decisive.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Killarney",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Sharp oval; first bend particularly tight; curving straight",
+      "pace": "Prominent runners are favoured and wide trips are costly",
+      "drawHeadline": "Recent 7–8f data favours low; high has underperformed",
+      "angle": "Low draw with pace and balance",
+      "trap": "Runners posted wide without enough early speed",
+      "groundNote": "Soft ground reduces speed but tight turns still punish wide routes.",
+      "confidence": "High",
+      "going": {
+        "firm": "On turf, speed and position are magnified; accurate jumping matters in jumps races. Avoid covering extra ground.",
+        "good": "Tactical under both codes. Handy, balanced runners and slick jumpers are usually well served.",
+        "soft": "The positional edge weakens and stamina increases in value. Course balance remains important.",
+        "heavy": "A specialist stamina test, particularly over jumps. Proven course and ground form is a major asset."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "99",
+          "sprint": "—",
+          "mile": "Low 1.24",
+          "middle": "Low 1.22",
+          "staying": "—",
+          "confidence": "Low",
+          "reading": "Low useful; sample remains modest."
+        }
+      ]
+    },
+    {
+      "course": "Laytown",
+      "nation": "Republic of Ireland",
+      "code": "Flat",
+      "surfaces": "Tidal beach sand",
+      "direction": "Straight",
+      "profile": "Straight 7f temporary course on firm prepared sand",
+      "pace": "No fixed pace bias; surface experience, balance and race position matter",
+      "drawHeadline": "Treat stall evidence cautiously: one meeting and unusual surface",
+      "angle": "Upgrade previous Laytown/beach form and tactical adaptability",
+      "trap": "Applying ordinary turf or AW figures",
+      "groundNote": "Conditions depend on tide and preparation; read the official raceday report.",
+      "confidence": "High",
+      "going": {
+        "firm": "The tidal sand is normally prepared firm and fast. Surface familiarity and balance are more useful than turf-going form.",
+        "good": "N/A – beach racing does not use the normal turf Going scale in the same way.",
+        "soft": "N/A – judge the prepared sand, tide and official description on the day.",
+        "heavy": "N/A – there is no conventional Heavy turf classification."
+      },
+      "draw": []
+    },
+    {
+      "course": "Leopardstown",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Wide, galloping track with easy turns and relatively short straight",
+      "pace": "Fair overall; handy position helps in big fields, but making all is not easy",
+      "drawHeadline": "Recent low lean at 7–8f; middle strongest at 9–12f",
+      "angle": "Seek cover and a clean position before the straight",
+      "trap": "Assuming the wide track guarantees unlimited recovery time",
+      "groundNote": "Soft ground raises stamina needs but the turns remain forgiving.",
+      "confidence": "High",
+      "going": {
+        "firm": "Rides quick but generally fair. Flat races reward sustained speed; jumps races reward efficiency and rhythm.",
+        "good": "Usually fair under both codes, with pace and jumping execution more important than a rigid track bias.",
+        "soft": "Stamina becomes more influential. Watch where riders seek better ground and how earlier races unfold.",
+        "heavy": "Testing under both codes. Proven mud form, stamina and efficient jumping should be prioritised."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "326",
+          "sprint": "—",
+          "mile": "Low 1.16",
+          "middle": "Middle 1.24",
+          "staying": "Low 1.18",
+          "confidence": "High",
+          "reading": "Moderate and trip-specific on a generally fair track."
+        }
+      ]
+    },
+    {
+      "course": "Limerick",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Fairly galloping; downhill toward straight then rise to line",
+      "pace": "Front-runners can control on quick ground; climb catches them on soft",
+      "drawHeadline": "Recent 7–8f sample small; low strongest but low confidence",
+      "angle": "Quick ground: pace; soft ground: stamina and timing",
+      "trap": "Overconfidence from limited flat data",
+      "groundNote": "Soft/heavy ground makes the rise to the line a strong late test.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast early but still demanding late. Leaders must ration speed; jumpers need to stay efficient.",
+        "good": "A fair but stamina-aware test under both codes. Save enough for the finish.",
+        "soft": "Becomes strongly stamina-led, especially over jumps. Upgrade proven soft-ground stayers.",
+        "heavy": "Can be gruelling. Deep-ground stamina and jumping under pressure dominate tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "56",
+          "sprint": "—",
+          "mile": "Low 1.24",
+          "middle": "—",
+          "staying": "—",
+          "confidence": "Low",
+          "reading": "Small sample: hint only."
+        }
+      ]
+    },
+    {
+      "course": "Listowel",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Sharp, turning specialist track that can become very deep",
+      "pace": "Rhythm and forward position on quick ground; course specialists",
+      "drawHeadline": "Recent 7–8f sample leans low but is small",
+      "angle": "Course form, balance and ability to travel in ground",
+      "trap": "Treating a festival bias as permanent across conditions",
+      "groundNote": "Rain can transform Listowel into a deep stamina test.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast conditions exaggerate the track's quirks. Course craft, balance and tactical speed are major positives.",
+        "good": "Course suitability matters more than at a conventional oval. Repeat course form deserves extra weight.",
+        "soft": "The quirks remain but stamina rises sharply in value. Horses that lose balance or momentum are difficult to rescue.",
+        "heavy": "A severe specialist test. Upgrade proven course form, balance and stamina; downgrade inexperienced or awkward movers."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "51",
+          "sprint": "—",
+          "mile": "Low 1.20",
+          "middle": "—",
+          "staying": "—",
+          "confidence": "Low",
+          "reading": "Small sample; course form matters more."
+        }
+      ]
+    },
+    {
+      "course": "Naas",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Galloping, stiff course with long uphill straight and sprint chute",
+      "pace": "Fair; difficult to make up huge ground when deep",
+      "drawHeadline": "Recent 5–8f mostly neutral; small 9–12f sample leans high",
+      "angle": "Use stamina and pace before draw; beware deep-ground hold-ups",
+      "trap": "Overreacting to a single distance-band IV",
+      "groundNote": "Soft/heavy ground makes the long straight especially demanding.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast early but still demanding late. Leaders must ration speed; jumpers need to stay efficient.",
+        "good": "A fair but stamina-aware test under both codes. Save enough for the finish.",
+        "soft": "Becomes strongly stamina-led, especially over jumps. Upgrade proven soft-ground stayers.",
+        "heavy": "Can be gruelling. Deep-ground stamina and jumping under pressure dominate tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "258",
+          "sprint": "Low 1.10",
+          "mile": "Middle 1.14",
+          "middle": "High 1.28",
+          "staying": "—",
+          "confidence": "Medium",
+          "reading": "Mostly moderate; 9–12f result may be sample-sensitive."
+        }
+      ]
+    },
+    {
+      "course": "Navan",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Galloping, stiff and undulating with uphill finish; sprint chute",
+      "pace": "Fair to run styles; sustained stamina and timing matter",
+      "drawHeadline": "Recent 5–6f leans low; longer trips near neutral",
+      "angle": "Low-to-middle sprint draw with pace; elsewhere favour strong finishers",
+      "trap": "Using the sprint chute bias on round-course races",
+      "groundNote": "Soft/heavy conditions can make Navan a major stamina test.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast early but still demanding late. Leaders must ration speed; jumpers need to stay efficient.",
+        "good": "A fair but stamina-aware test under both codes. Save enough for the finish.",
+        "soft": "Becomes strongly stamina-led, especially over jumps. Upgrade proven soft-ground stayers.",
+        "heavy": "Can be gruelling. Deep-ground stamina and jumping under pressure dominate tactical speed."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "191",
+          "sprint": "Low 1.11",
+          "mile": "—",
+          "middle": "Middle 1.05",
+          "staying": "High 1.19",
+          "confidence": "Medium",
+          "reading": "Low sprint lean; longer distances close to neutral."
+        }
+      ]
+    },
+    {
+      "course": "Punchestown",
+      "nation": "Republic of Ireland",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Large, galloping and undulating; several hurdle/chase configurations",
+      "pace": "Outer tracks fair; inner hurdles track is tighter and can favour front-runners",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Identify the exact course and upgrade efficient galloping jumpers",
+      "trap": "Treating inner and outer tracks as identical",
+      "groundNote": "Soft/heavy ground exaggerates the long climb and stamina requirement.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon. Quick ground reduces the stamina premium but accurate jumping remains vital.",
+        "good": "Still a proper test. Conserve enough for the stiff finish and favour horses that jump economically.",
+        "soft": "Strong stamina test. Patient energy use and proven soft-ground jumping are major positives.",
+        "heavy": "Potentially gruelling. Upgrade relentless stayers and downgrade keen racers or horses whose jumping deteriorates when tired."
+      },
+      "draw": []
+    },
+    {
+      "course": "Roscommon",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Sharp, turning oval with short straight",
+      "pace": "Prominent racers usually hold an advantage",
+      "drawHeadline": "Recent low bias strong at 7–8f",
+      "angle": "Low draw plus pace at 7–8f",
+      "trap": "Hold-up horses requiring multiple gaps",
+      "groundNote": "Soft ground gives closers slightly more time but position remains important.",
+      "confidence": "High",
+      "going": {
+        "firm": "On turf, speed and position are magnified; accurate jumping matters in jumps races. Avoid covering extra ground.",
+        "good": "Tactical under both codes. Handy, balanced runners and slick jumpers are usually well served.",
+        "soft": "The positional edge weakens and stamina increases in value. Course balance remains important.",
+        "heavy": "A specialist stamina test, particularly over jumps. Proven course and ground form is a major asset."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "130",
+          "sprint": "—",
+          "mile": "Low 1.26",
+          "middle": "High 1.13",
+          "staying": "—",
+          "confidence": "Low",
+          "reading": "Strong low 7–8f angle, but modest sample."
+        }
+      ]
+    },
+    {
+      "course": "Sligo",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Sharp, undulating specialist course with uphill run-in",
+      "pace": "Front-runners do well if uncontested; pace battles help closers",
+      "drawHeadline": "Recent flat sample too limited for a robust call",
+      "angle": "Course form and a clear pace scenario",
+      "trap": "Backing a leader into a contested pace",
+      "groundNote": "Wet ground adds stamina to the uphill finish and tight turns.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast conditions exaggerate the track's quirks. Course craft, balance and tactical speed are major positives.",
+        "good": "Course suitability matters more than at a conventional oval. Repeat course form deserves extra weight.",
+        "soft": "The quirks remain but stamina rises sharply in value. Horses that lose balance or momentum are difficult to rescue.",
+        "heavy": "A severe specialist test. Upgrade proven course form, balance and stamina; downgrade inexperienced or awkward movers."
+      },
+      "draw": []
+    },
+    {
+      "course": "Thurles",
+      "nation": "Republic of Ireland",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Undulating with sharp bends, uphill back section and downhill move to straight",
+      "pace": "Well-judged front-runners can get away late",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Upgrade accurate jumpers able to change pace",
+      "trap": "Leaders committing too early before the downhill sweep",
+      "groundNote": "Soft/heavy ground raises stamina demands but momentum remains useful.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    },
+    {
+      "course": "Tipperary",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Relatively sharp, flat-to-gently undulating course",
+      "pace": "Handy racers are favoured, especially in sprints",
+      "drawHeadline": "Recent flat sample small; high strongest at 5–8f but no robust call",
+      "angle": "Use pace and position; treat draw as supporting evidence",
+      "trap": "Overconfidence from a small sample",
+      "groundNote": "Soft ground reduces the speed edge and makes late stamina more relevant.",
+      "confidence": "High",
+      "going": {
+        "firm": "On turf, speed and position are magnified; accurate jumping matters in jumps races. Avoid covering extra ground.",
+        "good": "Tactical under both codes. Handy, balanced runners and slick jumpers are usually well served.",
+        "soft": "The positional edge weakens and stamina increases in value. Course balance remains important.",
+        "heavy": "A specialist stamina test, particularly over jumps. Proven course and ground form is a major asset."
+      },
+      "draw": [
+        {
+          "surface": "Turf",
+          "races": "61",
+          "sprint": "High 1.30",
+          "mile": "High 1.19",
+          "middle": "—",
+          "staying": "—",
+          "confidence": "Low",
+          "reading": "Very small sample: no robust call."
+        }
+      ]
+    },
+    {
+      "course": "Tramore",
+      "nation": "Republic of Ireland",
+      "code": "Flat & Jumps",
+      "surfaces": "Turf",
+      "direction": "Right",
+      "profile": "Very sharp, tight and undulating specialist course",
+      "pace": "Difficult to make ground when quick; prominent course types thrive",
+      "drawHeadline": "Flat sample too limited for a robust recent draw call",
+      "angle": "Course form, balance and early position",
+      "trap": "Slow starters and long-striding gallopers",
+      "groundNote": "Soft/heavy ground makes the gradients testing but position remains valuable.",
+      "confidence": "High",
+      "going": {
+        "firm": "Fast conditions exaggerate the track's quirks. Course craft, balance and tactical speed are major positives.",
+        "good": "Course suitability matters more than at a conventional oval. Repeat course form deserves extra weight.",
+        "soft": "The quirks remain but stamina rises sharply in value. Horses that lose balance or momentum are difficult to rescue.",
+        "heavy": "A severe specialist test. Upgrade proven course form, balance and stamina; downgrade inexperienced or awkward movers."
+      },
+      "draw": []
+    },
+    {
+      "course": "Wexford",
+      "nation": "Republic of Ireland",
+      "code": "Jumps",
+      "surfaces": "Turf",
+      "direction": "Left",
+      "profile": "Fairly sharp and undulating; downhill move before uphill finish",
+      "pace": "Prominent runners can gain momentum into the straight",
+      "drawHeadline": "N/A – no stalls over jumps",
+      "angle": "Agile jumpers able to hold position and finish uphill",
+      "trap": "Waiting too long to challenge from the rear",
+      "groundNote": "Soft ground increases the stamina cost of the uphill finish.",
+      "confidence": "High",
+      "going": {
+        "firm": "Firm is uncommon and watering may be used. Speed, accurate jumping and a forward position can dominate.",
+        "good": "Speed and slick jumping are rewarded. Strong travellers racing near the pace often gain an edge.",
+        "soft": "The track remains tactical, but stamina and jumping rhythm matter more. The lead is less protected.",
+        "heavy": "Speed is largely neutralised. Proven stamina and safe jumping are essential, even around the sharp layout."
+      },
+      "draw": []
+    }
+  ]
+}

@@ -1,0 +1,227 @@
+/**
+ * The game's front door.
+ *
+ * Signed out, the pitch shows an optimiser-built example so the page is a
+ * demonstration of what the game IS rather than a form asking for an email.
+ * Signed in, the editor takes over.
+ *
+ * The whole design is scoped to /game — the tokens set on <main> below never
+ * reach the racecards. This is a distinct product with its own visual language,
+ * the way FPL looks nothing like a Premier League club site.
+ */
+
+import type { Metadata } from "next";
+import Link from "next/link";
+import { currentUser } from "@/lib/auth";
+import { pickStable, type GameCard } from "@/lib/game-card";
+import { loadCard, raceWeekFor, today } from "@/lib/game-data";
+import { cardLockTime, isLocked, lockLabel } from "@/lib/lock";
+import { loadStable } from "@/lib/stable";
+import { Bench, Pitch } from "@/components/game/pitch-view";
+import { Header, StatBar, TrophyMark } from "@/components/game/game-chrome";
+import { GameSidebar } from "@/components/game/game-sidebar";
+import { money } from "@/components/game/format";
+import { BUDGET } from "@/lib/game-pricing";
+import { saveStableAction, signOutAction } from "./actions";
+import { StableEditor } from "./stable-editor";
+
+export const metadata: Metadata = {
+  title: "Stable — Fantasy Racing",
+  description:
+    "Pick six horses and two jockeys from £100m. A new card every Saturday, priced off the overnight show.",
+};
+
+/** Never cached — the page depends on who is signed in. */
+export const dynamic = "force-dynamic";
+
+export default async function GamePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string; preview?: string }>;
+}) {
+  const { date: requested, preview } = await searchParams;
+  const date = requested ?? today();
+
+  const realUser = await currentUser();
+  // Design-time bypass: `?preview=1` renders the signed-in shell against a
+  // fake user so we can see the full UI (sidebar, action buttons, editor)
+  // without a real session cookie. NEVER read the stable table for a preview
+  // user — the row doesn't exist and would 404. Preview cannot save.
+  const user =
+    realUser ??
+    (preview
+      ? { id: "__preview__", email: "preview@fantasystable.co.uk", displayName: "Preview" }
+      : null);
+  const { card, offDtByRaceId } = await loadCard(date);
+  const saved = realUser ? await loadStable(realUser.id, date) : null;
+
+  if (!card.races.length) return <NoCard date={date} />;
+
+  const lockTime = cardLockTime(card, offDtByRaceId);
+  // Preview mode ignores the lock so we can test the picker/search flow at
+  // any hour. Real sessions still honour the deadline.
+  const locked = preview
+    ? false
+    : (saved?.lockedAt != null) || (lockTime ? isLocked(lockTime) : false);
+  const deadlineLabel = lockTime ? lockLabel(lockTime) : null;
+
+
+  return (
+    <main
+      className="relative min-h-screen bg-[#57b25a] px-3 py-3 sm:px-4 sm:py-4"
+      style={
+        {
+          backgroundColor: "#57b25a",
+          backgroundImage: "url(/img/track.png)",
+          backgroundSize: "100% auto",
+          backgroundPosition: "top center",
+          backgroundRepeat: "no-repeat",
+          // One typeface, one tabular numeral treatment, no monospace. Font
+          // mixing is the loudest AI tell in a UI.
+          fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif",
+          "--slate": "#17303c",
+          "--slate-soft": "#7d919c",
+          "--go": "#12d17c",
+          "--go-deep": "#04b56b",
+          "--pl-purple": "#37003c",
+        } as React.CSSProperties
+      }
+    >
+      <div className="mx-auto flex max-w-6xl flex-col gap-2.5">
+        <Header
+          date={date}
+          raceweekLabel={`Race Week ${raceWeekFor(date)}`}
+          deadlineLabel={deadlineLabel}
+          locked={locked}
+          session={
+            user
+              ? {
+                  kind: "signed-in",
+                  email: user.email,
+                  signOut: (
+                    <form action={signOutAction} className="hidden sm:block">
+                      <button
+                        type="submit"
+                        className="text-[11px] font-semibold text-[var(--slate-soft)] underline underline-offset-2"
+                      >
+                        Sign out
+                      </button>
+                    </form>
+                  ),
+                }
+              : { kind: "signed-out" }
+          }
+        />
+
+        {/* Two-column layout on desktop only when signed in — otherwise the
+            single column stays centred and the pitch keeps its width. Rendering
+            the grid with an empty sidebar slot would push the main content
+            into the 320px column and cramp it. */}
+        {user ? (
+          <div className="grid gap-3 lg:grid-cols-[320px_1fr]">
+            <GameSidebar
+              stableName={(user.displayName ?? user.email.split("@")[0]) + "’s Stable"}
+              ownerEmail={user.email}
+              bank={saved?.spendM != null ? Math.round((BUDGET - saved.spendM) * 10) / 10 : BUDGET}
+              spent={saved?.spendM ?? 0}
+              xPts={0}
+              budget={BUDGET}
+            />
+            <div className="flex min-w-0 flex-col gap-2.5">
+              <StableEditor
+                card={card}
+                initial={{
+                  horseIds: saved?.horseIds ?? [],
+                  jockeyIds: saved?.jockeyIds ?? [],
+                  napHorseId: saved?.napHorseId ?? null,
+                }}
+                locked={locked}
+                save={saveStableAction}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            <SignedOut card={card} />
+          </div>
+        )}
+
+      </div>
+    </main>
+  );
+}
+
+/* --------------------------------------------------------------- signed out */
+
+function SignedOut({ card }: { card: GameCard }) {
+  const example = pickStable(card);
+
+  return (
+    <>
+      <StatBar
+        cells={[
+          { label: "Sales", value: "0 / 2" },
+          { label: "Bank", value: money(0), tone: "go" },
+          { label: "xPts", value: example.expectedPoints.toFixed(1) },
+          {
+            label: "",
+            value: "",
+            slot: (
+              <div className="mx-auto mt-0.5 flex max-w-[140px] items-center gap-1.5">
+                <TrophyMark />
+                <span className="text-left text-[11.5px] font-semibold leading-tight text-[var(--slate-soft)]">
+                  Build Your
+                  <br />
+                  Winning Stable
+                </span>
+              </div>
+            ),
+          },
+        ]}
+      />
+
+      <Pitch horses={example.horses} napHorseId={example.nap?.horseId ?? null} />
+      <Bench jockeys={example.jockeys} />
+
+      {/* Same three action buttons the signed-in view has, so the layout is
+          honest about what the game offers before anyone signs in. They all
+          route to sign-in — you cannot sell, join a league or manage an
+          account without an account. */}
+      <div className="grid grid-cols-3 gap-2 rounded-[22px] bg-white p-2 shadow-[0_2px_8px_rgba(23,48,60,0.06)]">
+        <Link
+          href="/game/sign-in"
+          className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-[#eef2f6] py-2.5 text-[12px] font-extrabold text-[var(--slate)]"
+        >
+          <span className="text-[15px]">£</span>
+          Sell a Horse
+        </Link>
+        <Link
+          href="/game/sign-in"
+          className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-[#eef2f6] py-2.5 text-[12px] font-extrabold text-[var(--slate)]"
+        >
+          <span className="text-[15px]">🏆</span>
+          My Leagues
+        </Link>
+        <Link
+          href="/game/sign-in"
+          className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-[linear-gradient(180deg,#1adc86,#04b56b)] py-2.5 text-[12px] font-extrabold text-white shadow-[0_2px_6px_rgba(4,181,107,0.35)]"
+        >
+          <span className="text-[15px]">→</span>
+          Sign in
+        </Link>
+      </div>
+    </>
+  );
+}
+
+function NoCard({ date }: { date: string }) {
+  return (
+    <main className="mx-auto max-w-2xl px-4 py-16">
+      <h1 className="text-3xl font-extrabold text-[var(--pl-purple)]">No card for {date}</h1>
+      <p className="mt-3 text-[var(--slate-soft)]">
+        The game needs opening prices for nearly every runner in a race. Run the racecard ingest or
+        try another date with <code>?date=YYYY-MM-DD</code>.
+      </p>
+    </main>
+  );
+}

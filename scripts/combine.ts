@@ -124,6 +124,7 @@ async function main() {
         goingBand: (r.goingBand ?? "unknown") as GoingBand, positionNum: r.positionNum,
         ofr: r.ofr, fieldSize: r.fieldSize, jockeyId: r.jockeyId, comment: r.comment,
         raceType: r.raceType, ovrBtn: r.ovrBtn, age: r.age, winMargin: null,
+        raceClass: (r as any).raceClass ?? null,
       });
       if (out.length >= 30) break;
     }

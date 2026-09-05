@@ -32,6 +32,12 @@ const args = process.argv.slice(2);
 const arg = (k: string, d: string) => args.find((a) => a.startsWith(`--${k}=`))?.split("=")[1] ?? d;
 
 const SPLIT = arg("split", "2026-04-01");
+
+// The window of racing to load. Unbounded, this pulled all 1.68m settled runs
+// into the heap and died on an 8GB machine before a single feature was
+// extracted. A fit needs enough history to be stable, not all of it.
+const FROM = arg("from", "2024-09-01");
+const TO   = arg("to", new Date().toISOString().slice(0, 10));
 const HANDICAPS_ONLY = !args.includes("--all-races");
 const MIN_HISTORY = parseInt(arg("min-history", "3"), 10);
 
@@ -85,12 +91,13 @@ async function main() {
            r.horse_id "horseId", r.horse_name "horseName", r.age, r.draw,
            r.position_num "positionNum", r.ofr, r.sp_dec "spDec",
            r.jockey_id "jockeyId", r.jockey_claim_lbs "jockeyClaimLbs",
-           r.comment, r.ovr_btn "ovrBtn", r.is_non_runner "isNonRunner",
+           left(r.comment, 300) comment, r.ovr_btn "ovrBtn", r.is_non_runner "isNonRunner",
            r.trainer_14_percent "t14Pct", r.trainer_14_runs "t14Runs",
            coalesce(r.headgear_first_time,false) "headgearFirst",
            r.wind_surgery_run "windRun"
     from runners r join races ra on ra.id = r.race_id
     where ra.status = 'result' and r.position is not null
+      and ra.race_date between ${FROM} and ${TO}
     order by ra.race_date`) as any;
   console.log(`${rows.length.toLocaleString()}`);
 

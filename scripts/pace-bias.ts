@@ -33,6 +33,17 @@ const args = process.argv.slice(2);
 const arg = (k: string, d: string) => args.find((a) => a.startsWith(`--${k}=`))?.split("=")[1] ?? d;
 
 const MIN_RACES = parseInt(arg("min-races", "30"), 10);
+
+/** Runners a cell needs before it is worth a row at all. */
+const MIN_RUNNERS = parseInt(arg("min-runners", "60"), 10);
+
+/**
+ * Pseudo-runs at the baseline rate, mixed into every cell.
+ *
+ * Higher means more scepticism about small cells. 40 pulls a 36-run cell about
+ * half way back to no-bias while leaving a 400-run cell essentially untouched.
+ */
+const PRIOR = parseInt(arg("prior", "40"), 10);
 const COURSE = arg("course", "").toLowerCase();
 
 function distBand(f: number | null): string | null {
@@ -102,6 +113,37 @@ async function main() {
       const t = totals.get(`${c.slug}|${c.dist}|${c.code}`)!;
       const baseline = t.wins / t.runners;
       const rate = c.wins / c.runners;
+      // A hard floor, and a deliberately biased one. Read this before changing it.
+      //
+      // Dan, 2026-09-05, on whether Ascot favours front-runners over 1m4f:
+      // "can we run this against how we pick horses, because I think you made
+      // a mistake first time."
+      //
+      // He was right about the mistake. This floor IS structurally biased.
+      // Front-runners are the rarest style, so they field the fewest runners
+      // per cell and are culled hardest — 8.7% of `led` cells survived against
+      // 29.8% of `held-up` — and the surviving table skews negative, median IV
+      // 0.83 among kept cells against 1.01 among dropped. Ascot 1m1f-1m4f held
+      // rows for midfield and held-up and none for led, while the raw runs had
+      // leaders winning 2.4x their share.
+      //
+      // The fix was obvious and it does not pay. Replacing the floor with
+      // empirical-Bayes shrinkage — every cell kept, each trusted in
+      // proportion to its evidence — was measured on both windows:
+      //
+      //                        Mar-Jun    Sep-Feb
+      //   floor at 60 (live)     -2.7%      -4.6%
+      //   shrinkage, prior 40    -2.4%      -6.5%
+      //   shrinkage, prior 90    -2.6%      -5.8%
+      //
+      // Window A gains a little, window B loses far more, and B is the larger
+      // sample (3,207 bets against 2,299). Letting the model see more pace
+      // signal makes it worse, which says the extra cells are noise or already
+      // in the price — not that front-runners do not win.
+      //
+      // So the table stays biased on purpose, and the bias is now documented
+      // rather than accidental. Reproduce with:
+      //   npm run pace -- --prior=40 --min-runners=12
       return {
         ...c,
         raceCount: c.races.size,
@@ -111,7 +153,7 @@ async function main() {
         roi: c.staked ? ((c.returned - c.staked) / c.staked) * 100 : 0,
       };
     })
-    .filter((c) => c.raceCount >= MIN_RACES && c.runners >= 60);
+    .filter((c) => c.raceCount >= MIN_RACES && c.runners >= MIN_RUNNERS);
 
   await client`
     create table if not exists pace_bias (
