@@ -45,6 +45,7 @@ interface Run {
   trainer: string | null;
   comment: string | null;
   isHandicap: boolean;
+  raceType: string | null;
 }
 
 function pct(n: number, d: number): string {
@@ -104,7 +105,7 @@ async function main() {
            ra.distance_f dist_f, ra.distance_round dist_round, ra.going,
            ra.going_band, ra.race_class, ra.name race_name, ra.field_size,
            r.position_num pos, r.position pos_text, r.ofr, r.sp, r.sp_dec,
-           r.jockey_name jockey, r.trainer_name trainer, r.comment
+           ra.race_type, r.jockey_name jockey, r.trainer_name trainer, r.comment
     from runners r join races ra on ra.id = r.race_id
     where r.horse_id = ${horseId} and r.position is not null
     order by ra.race_date desc`);
@@ -116,6 +117,7 @@ async function main() {
     pos: x.pos, posText: x.pos_text, ofr: x.ofr, sp: x.sp, spDec: x.sp_dec,
     jockey: x.jockey, trainer: x.trainer, comment: x.comment,
     isHandicap: /handicap|nursery/i.test(x.race_name ?? ""),
+    raceType: x.race_type,
   }));
 
   const wins = runs.filter((r) => r.pos === 1);
@@ -155,10 +157,37 @@ async function main() {
   const winCourses = [...new Set(wins.map((w) => w.course))];
 
   /* ----------------------------------------------------------------- mark */
+  console.log(`\n  DISCIPLINE`);
+  for (const [k, t] of tally(runs, (r) => r.raceType)) console.log(bar(k, t));
+
   const marked = runs.filter((r) => r.ofr !== null);
   const winMarks = wins.map((w) => w.ofr).filter((o): o is number => o !== null);
   const current = marked[0]?.ofr ?? null;
-  console.log(`\n  HANDICAP MARK`);
+
+  // Ratings are set separately per code and are not comparable across them,
+  // so the mark section is reported one discipline at a time.
+  console.log(`\n  HANDICAP MARK  (per discipline — ratings do not cross codes)`);
+  const disciplines = [...new Set(runs.map((r) => r.raceType).filter(Boolean))] as string[];
+  for (const d of disciplines) {
+    const dr = runs.filter((r) => r.raceType === d && r.ofr !== null);
+    if (!dr.length) continue;
+    const dw = dr.filter((r) => r.pos === 1);
+    const cur = dr[0].ofr;
+    console.log(`    ${d}:`);
+    console.log(`      ran off        ${dr.map((r) => r.ofr).slice(0, 8).join(", ")}`);
+    console.log(`      most recent    ${cur}`);
+    if (dw.length) {
+      const best = Math.max(...(dw.map((r) => r.ofr) as number[]));
+      console.log(`      won off        ${dw.map((r) => r.ofr).join(", ")}   best ${best}`);
+      if (cur !== null) {
+        const gap = best - cur;
+        console.log(`      ${gap > 0 ? `${gap}lb BELOW` : gap === 0 ? `AT` : `${-gap}lb above`} its best winning ${d} mark`);
+      }
+    } else {
+      console.log(`      never won in this code`);
+    }
+  }
+  console.log(`\n  MARK TREND (all codes, for shape only)`);
   if (!marked.length) {
     console.log(`    no official ratings held`);
   } else {

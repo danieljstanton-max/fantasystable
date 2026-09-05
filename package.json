@@ -18,7 +18,8 @@
     "filter:today": "tsx scripts/filter-today.ts",
     "backfill": "tsx --env-file=.env.local scripts/backfill.ts",
     "score": "tsx --env-file=.env.local scripts/score-day.ts",
-    "horse": "tsx --env-file=.env.local scripts/horse-profile.ts"
+    "horse": "tsx --env-file=.env.local scripts/horse-profile.ts",
+    "fetch:horse": "tsx --env-file=.env.local scripts/fetch-horse.ts"
   },
   "dependencies": {
     "next": "^15.1.6",
