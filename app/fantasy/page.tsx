@@ -155,47 +155,52 @@ function Hero({ signedIn }: { signedIn: boolean }) {
         backgroundRepeat: "no-repeat",
       }}
     >
-      <div className="mx-auto flex max-w-3xl flex-col items-center px-4 text-center">
-        {/* Brand mark first — the logo is the anchor of the homepage
-            identity, not the wordmark in the H1. */}
+      <div className="mx-auto flex max-w-[560px] flex-col items-center px-4 text-center">
+        {/* Brand mark sits above the card, on the sky part of the image
+            where it reads clearly without any container behind it. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/img/logo.png"
           alt="Fantasy Stable"
-          className="mb-4 h-24 w-auto drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)] sm:mb-6 sm:h-32"
+          className="mb-4 h-24 w-auto sm:mb-5 sm:h-32"
         />
 
-        <div className="rounded-full bg-white px-4 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[var(--slate)] shadow-[0_2px_8px_rgba(23,48,60,0.08)]">
-          Free-to-play · A new card every Saturday
-        </div>
+        {/* All copy sits on ONE white card. The racecourse behind is
+            decoration; putting text directly on it fights the trees, the
+            fence and the ground stripes for contrast. */}
+        <div className="w-full rounded-[24px] bg-white/95 px-5 py-6 shadow-[0_8px_28px_rgba(23,48,60,0.18)] backdrop-blur-sm sm:px-8 sm:py-8">
+          <div className="inline-block rounded-full bg-[#eaf7f0] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--go-deep)]">
+            Free-to-play · New card every Saturday
+          </div>
 
-        <h1 className="mt-4 text-[26px] font-extrabold uppercase leading-[0.95] tracking-tight text-[var(--slate)] drop-shadow-[0_2px_2px_rgba(255,255,255,0.6)] sm:text-[40px]">
-          Build Your Stable.
-          <br />
-          Beat Your Mates.
-          <br />
-          Claim the BRR-Nagging Rights.
-        </h1>
+          <h1 className="mt-4 text-[24px] font-extrabold uppercase leading-[1.05] tracking-tight text-[var(--slate)] sm:text-[34px]">
+            Build Your Stable.
+            <br />
+            Beat Your Mates.
+            <br />
+            Claim the <span className="text-[var(--go-deep)]">BRR-Nagging Rights</span>.
+          </h1>
 
-        <p className="mt-4 max-w-[520px] text-[15px] font-semibold leading-snug text-[var(--slate)] drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)] sm:text-[17px]">
-          The free-to-play fantasy horse racing game. Pick your horses, join leagues with your
-          mates and compete for weekly bragging rights.
-        </p>
-
-        <Link
-          href={signedIn ? "/game" : "/game/sign-in"}
-          className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(180deg,#1adc86,#04b56b)] px-8 py-3.5 text-[15px] font-extrabold text-white shadow-[0_6px_16px_rgba(4,181,107,0.35)]"
-        >
-          {signedIn ? "Go to my stable" : "Build your stable"}
-          <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden>
-            <path d="M4 2.5 7.5 6 4 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </Link>
-        {!signedIn && (
-          <p className="mt-3 text-[12px] font-semibold text-[var(--slate)] opacity-70">
-            Sign in with Google or a one-time email link. No password.
+          <p className="mx-auto mt-4 max-w-[440px] text-[14px] leading-relaxed text-[var(--slate-soft)] sm:text-[15px]">
+            The free-to-play fantasy horse racing game. Pick your horses, join leagues with your
+            mates and compete for weekly bragging rights.
           </p>
-        )}
+
+          <Link
+            href={signedIn ? "/game" : "/game/sign-in"}
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(180deg,#1adc86,#04b56b)] px-7 py-3 text-[14.5px] font-extrabold text-white shadow-[0_4px_14px_rgba(4,181,107,0.35)]"
+          >
+            {signedIn ? "Go to my stable" : "Build your stable"}
+            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden>
+              <path d="M4 2.5 7.5 6 4 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </Link>
+          {!signedIn && (
+            <p className="mt-2.5 text-[11.5px] font-semibold text-[var(--slate-soft)]">
+              Sign in with Google or a one-time email link. No password.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* A gentle vignette at the foot so the illustration blends into the
