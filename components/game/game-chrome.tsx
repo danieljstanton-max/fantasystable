@@ -38,54 +38,65 @@ export function Header({ date, raceweekLabel, deadlineLabel, locked, onNextRace,
 
   return (
     <header
-      className="rounded-[22px] bg-white px-4 py-3.5 shadow-[0_2px_8px_rgba(23,48,60,0.06)]"
+      className="rounded-[22px] bg-white px-3 py-2 shadow-[0_2px_8px_rgba(23,48,60,0.06)] sm:px-4 sm:py-2.5"
       style={{ fontVariantNumeric: "tabular-nums" }}
     >
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-        {/* left — brand */}
-        <Link href="/game" className="flex items-center" aria-label="Fantasy Stable — home">
+      {/* One-line layout: brand on the left, nav on the right, everything
+          on the same row. Deadline moves under the row on mobile so it doesn't
+          steal horizontal space from the pills. */}
+      <div className="flex items-center gap-3">
+        <Link href="/game" className="flex items-center gap-2.5 min-w-0" aria-label="Fantasy Stable — home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/img/logo.png" alt="Fantasy Stable" className="h-11 w-auto sm:h-14" />
+          <img src="/img/logo.png" alt="Fantasy Stable" className="h-9 w-auto shrink-0 sm:h-11" />
+          {/* Desktop-only meta beside the logo: race week + deadline in one
+              tight column, tabular numerals so the deadline doesn't jitter as
+              the minute changes. */}
+          <span className="hidden min-w-0 flex-col leading-tight sm:flex">
+            <span className="truncate text-[12px] font-extrabold uppercase tracking-tight text-[var(--slate)]">
+              {centre}
+            </span>
+            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.09em]">
+              <span className="text-[var(--slate-soft)]">{day}</span>
+              {deadlineLabel && (
+                <>
+                  <span className="text-[#dbe0e6]">·</span>
+                  <span className={locked ? "text-[#c0392b]" : "text-[var(--go-deep)]"}>
+                    {deadlineLabel}
+                  </span>
+                </>
+              )}
+            </span>
+          </span>
         </Link>
 
-        {/* centre — always visible; a returning player wants to know which
-            race week they are on before anything else */}
-        <div className="hidden text-center sm:block">
-          <div className="text-[16px] font-extrabold uppercase tracking-tight text-[var(--slate)]">
-            {centre}
-          </div>
-          <div className="mt-0.5 flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.11em]">
-            <span className="text-[var(--slate-soft)]">{day}</span>
-            {deadlineLabel && (
-              <>
-                <span className="text-[#dbe0e6]">·</span>
-                <span className={locked ? "text-[#c0392b]" : "text-[var(--go-deep)]"}>
-                  {deadlineLabel}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
+        {/* Nav sits between brand and sign-out. Horizontal scroll on narrow
+            screens keeps the row height fixed rather than wrapping. */}
+        {session.kind === "signed-in" && (
+          <nav
+            aria-label="Game sections"
+            className="flex flex-1 items-center justify-end gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            <NavPill href="/game/leaderboard" label="Leaderboard" />
+            <NavPill href="/game/results" label="Results" />
+            <NavPill href="/game/rules" label="Rules" />
+          </nav>
+        )}
 
-        {/* right — session action */}
-        <div className="justify-self-end">
-          {session.kind === "signed-in" ? session.signOut : null}
-        </div>
+        {session.kind === "signed-in" ? session.signOut : null}
       </div>
 
-      {/* Secondary nav — the only place a signed-in player can reach the
-          rest of the game from the pitch. Kept as pills for consistency
-          with the Results button; scrolls horizontally on narrow screens
-          rather than wrapping so the row height stays fixed. */}
-      {session.kind === "signed-in" && (
-        <nav
-          aria-label="Game sections"
-          className="-mx-1 mt-3 flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          <NavPill href="/game/leaderboard" label="Leaderboard" />
-          <NavPill href="/game/results" label="Results" />
-          <NavPill href="/game/rules" label="Rules" />
-        </nav>
+      {/* Mobile-only strip beneath the row — a single line, no card of its own,
+          because the whole header is one card and the strip is just the ribbon
+          under the brand on this width. */}
+      {deadlineLabel && (
+        <div className="mt-1.5 flex items-center justify-between text-[10.5px] font-bold uppercase tracking-[0.09em] sm:hidden">
+          <span className="text-[var(--slate-soft)]">
+            {centre} · {day}
+          </span>
+          <span className={locked ? "text-[#c0392b]" : "text-[var(--go-deep)]"}>
+            {deadlineLabel}
+          </span>
+        </div>
       )}
     </header>
   );
