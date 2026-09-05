@@ -150,8 +150,26 @@ async function main() {
     // contest, so the card ranking compares each race's best against the rest.
     if (scored.length) {
       const clear = scored.length > 1 ? scored[0].score - scored[1].score : scored[0].score;
+      // Dangers: the next two in the same race, with what makes them
+      // dangerous. A write-up has to talk about the race, not just the pick.
+      const dangers = scored.slice(1, 3).map((d: any) => ({
+        name: d.horseName,
+        score: d.score,
+        odds: d.odds,
+        trainer: d.trainer,
+        jockey: d.jockey,
+        top: d.signals
+          .filter((x: any) => x.weight > 0)
+          .sort((a: any, b: any) => b.weight - a.weight)
+          .slice(0, 2)
+          .map((x: any) => x.label),
+        warnings: d.signals.filter((x: any) => x.weight < 0).map((x: any) => x.label),
+      }));
+
       cardBest.push({
         ...scored[0],
+        dangers,
+        fieldScores: scored.map((x: any) => x.score),
         course: race.course_name,
         offTime: race.off_time,
         raceName: race.name,
@@ -179,6 +197,14 @@ async function main() {
         console.log(`      ! long-term decline: ${s.decline.lbsLost}lb lost over ${s.decline.overMonths} months, no win in ${18} months`);
       if (!s.signals.length && !s.excuse.excused) console.log(`      (nothing fired)`);
     }
+
+    // Spread of scores across the whole field — how competitive is this race?
+    const all = scored.map((x: any) => x.score);
+    const clearOut = all.length > 1 ? all[0] - all[1] : all[0];
+    console.log(
+      `  field spread: ${all.join(" ")}   ` +
+        (clearOut >= 4 ? "one clear standout" : clearOut >= 2 ? "fairly clear" : "competitive")
+    );
   }
 
   /* ------------------------------ card summary ------------------------------ */
@@ -201,6 +227,16 @@ async function main() {
     for (const sig of s.signals) console.log(`     ${sig.weight < 0 ? "!" : "-"} ${sig.label}: ${sig.detail}`);
     if (s.excuse?.excused) console.log(`     - excused (${s.excuse.reason})`);
     if (s.decline?.declining) console.log(`     ! ${s.decline.lbsLost}lb decline over ${s.decline.overMonths} months`);
+    if (s.dangers?.length) {
+      console.log(`   DANGERS`);
+      for (const d of s.dangers) {
+        console.log(
+          `     ${String(d.name).padEnd(20)} ${String(d.score).padStart(2)}pt  ${String(d.odds ?? "-").padStart(6)}  ` +
+            `${d.top.join(", ") || "little to recommend it"}` +
+            (d.warnings.length ? `  [${d.warnings.join(", ")}]` : "")
+        );
+      }
+    }
     console.log("");
   });
 

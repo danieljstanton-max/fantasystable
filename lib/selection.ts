@@ -409,6 +409,82 @@ export function significantBooking(
 }
 
 /**
+ * How long since it last won — and whether that is its fault.
+ *
+ * Dan, 2026-08-27:
+ *   "if a horse hasnt won a race for 2 years then we need to mark this down,
+ *    if a horse hasnt won because its not running on optimal ground then
+ *    thats fine."
+ *
+ * So a long losing run is a caution, NOT a verdict. The exemption is the
+ * important half: a horse campaigned off its optimal ground has an explanation
+ * for not winning, and that is the same evidence that makes it interesting
+ * when the ground finally comes right. Penalising it would reject exactly the
+ * horses the method is built to find.
+ *
+ * The going check uses the horse's own winning bands, so "optimal" means what
+ * this horse has actually proved, not a general notion of good ground.
+ */
+export function winDrought(
+  history: PastRun[],
+  today: string
+): {
+  runsSinceWin: number;
+  monthsSinceWin: number | null;
+  everWon: boolean;
+  offOptimalGoing: number;
+  excused: boolean;
+  signal: Signal | null;
+} {
+  const wins = winningRuns(history);
+  const everWon = wins.length > 0;
+
+  const lastWinIdx = history.findIndex((r) => r.positionNum === 1);
+  const runsSinceWin = lastWinIdx === -1 ? history.length : lastWinIdx;
+  const monthsSinceWin = everWon ? monthsBetween(wins[0].raceDate, today) : null;
+
+  // Which of the runs since the win were on going this horse has never won on?
+  const provenGoing = wins.map((w) => w.goingBand);
+  const since = history.slice(0, runsSinceWin);
+  const offOptimalGoing = since.filter((r) => {
+    if (!provenGoing.length) return false;
+    return provenGoing.every((g) => {
+      const d = goingDistance(g, r.goingBand);
+      return d !== null ? d > GOING_TOLERANCE : g !== r.goingBand;
+    });
+  }).length;
+
+  // More than half the drought spent on unsuitable ground explains it.
+  const excused = since.length >= 3 && offOptimalGoing / since.length > 0.5;
+
+  let signal: Signal | null = null;
+  if (!everWon && history.length >= 8) {
+    signal = {
+      key: "never-won",
+      label: "Has never won",
+      weight: -3,
+      detail: `${history.length} runs, no win`,
+    };
+  } else if (monthsSinceWin !== null && monthsSinceWin >= 24 && !excused) {
+    signal = {
+      key: "drought",
+      label: "Long time without a win",
+      weight: -3,
+      detail: `${runsSinceWin} runs and ${monthsSinceWin} months since it won`,
+    };
+  } else if (monthsSinceWin !== null && monthsSinceWin >= 24 && excused) {
+    signal = {
+      key: "drought-excused",
+      label: "Winless, but off its ground",
+      weight: 1,
+      detail: `${offOptimalGoing} of ${since.length} runs since its win on going it has never won on`,
+    };
+  }
+
+  return { runsSinceWin, monthsSinceWin, everWon, offOptimalGoing, excused, signal };
+}
+
+/**
  * Time off, and what it costs.
  *
  * Added 2026-08-27 after Al Suil Eile scored five stars on tomorrow's card
@@ -487,6 +563,9 @@ export function scoreHorse(
 
   const layoff = layoffPenalty(today.daysSinceRun);
   if (layoff) signals.push(layoff);
+
+  const drought = winDrought(history, raceDate);
+  if (drought.signal) signals.push(drought.signal);
 
   // Negative signals can drag a score below zero; a tip is never a negative
   // number of points, it is simply not a tip.
