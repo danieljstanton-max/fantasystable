@@ -42,6 +42,19 @@ export function middleware(req: NextRequest) {
   }
 
   const url = req.nextUrl.clone();
+  // Root URL routing depends on session: signed-out visitors (Instagram
+  // traffic, mostly) land on the marketing homepage; signed-in players skip
+  // straight to the pitch. Middleware can only see cookie presence, not
+  // validity — good enough as a hint; /fantasy still bounces stale cookies
+  // to /game and vice versa via its own guard.
+  const hasSession = req.cookies.has("stable_session");
+  if (path === "/") {
+    url.pathname = hasSession ? "/game" : "/fantasy";
+    url.search = "";
+    // 307 (not 308) — the target flips when a visitor signs in, and a 308
+    // gets cached by browsers so a stale /→/fantasy would stick after sign-in.
+    return NextResponse.redirect(url, 307);
+  }
   url.pathname = "/game";
   url.search = "";
   return NextResponse.redirect(url, 308);
