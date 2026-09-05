@@ -157,11 +157,47 @@ export interface PastRun {
   distanceF: number | null;
   goingBand: GoingBand;
   positionNum: number | null;
-  /** Official rating the horse ran off that day. */
+  /** Official rating the horse ran off that day, IN THAT DISCIPLINE. */
   ofr: number | null;
   fieldSize: number | null;
   jockeyId: string | null;
   comment: string | null;
+  /** "Flat" | "Hurdle" | "Chase" | "NH Flat" */
+  raceType: string | null;
+}
+
+/**
+ * Handicap marks are per discipline and are NOT comparable across them.
+ *
+ * A jumps horse carries a separate rating over hurdles and over fences, set by
+ * different assessments, and its Flat mark is on a different scale again.
+ * Final Orders on 2026-08-26:
+ *
+ *   Chase   26 runs, marks 120-150, 5 wins
+ *   Hurdle  16 runs, marks  93-122, 2 wins
+ *   Flat     8 runs, marks  56- 68, 1 win
+ *
+ * It ran in a HURDLE off 122 — the top of its hurdle range. The model compared
+ * that against a chase win off 147 at Cheltenham, announced "25lb below its
+ * winning mark", and made it the strongest selection on the card. The horse was
+ * not well treated at all.
+ *
+ * So the mark comparison is strictly same-discipline. Going, course and run
+ * style still transfer across codes — a horse that acts on soft acts on soft
+ * whatever it is jumping — but a rating never does.
+ */
+export function sameDiscipline(a: string | null, b: string | null): boolean {
+  if (!a || !b) return false;
+  return normaliseDiscipline(a) === normaliseDiscipline(b);
+}
+
+export function normaliseDiscipline(t: string | null): string {
+  const s = (t ?? "").toLowerCase();
+  if (s.includes("chase")) return "chase";
+  if (s.includes("hurdle")) return "hurdle";
+  if (s.includes("nh flat") || s.includes("bumper")) return "nh-flat";
+  if (s.includes("flat")) return "flat";
+  return "unknown";
 }
 
 export interface HorseToday {
@@ -180,6 +216,8 @@ export interface RaceToday {
   courseSlug: string;
   distanceF: number | null;
   goingBand: GoingBand;
+  /** Today's discipline. Marks only compare within it. */
+  raceType: string | null;
 }
 
 export interface Signal {
@@ -306,10 +344,17 @@ export function wonOffHigherMark(
   todayOfr: number | null,
   history: PastRun[],
   today: string,
+  todayType: string | null = null,
   withinMonths: number = MARK_LOOKBACK_MONTHS
-): { found: boolean; lbsBelow: number; lastWinningMark: number | null; when: string | null } {
+): {
+  found: boolean;
+  lbsBelow: number;
+  lastWinningMark: number | null;
+  when: string | null;
+  discipline: string | null;
+} {
   if (todayOfr === null) {
-    return { found: false, lbsBelow: 0, lastWinningMark: null, when: null };
+    return { found: false, lbsBelow: 0, lastWinningMark: null, when: null, discipline: null };
   }
 
   let bestMark: number | null = null;
@@ -318,17 +363,27 @@ export function wonOffHigherMark(
     if (r.ofr === null) continue;
     // Only wins inside the lookback window count. See MARK_LOOKBACK_MONTHS.
     if (monthsBetween(r.raceDate, today) > withinMonths) continue;
+    // Marks never cross disciplines. See sameDiscipline().
+    if (todayType && !sameDiscipline(r.raceType, todayType)) continue;
     if (bestMark === null || r.ofr > bestMark) {
       bestMark = r.ofr;
       when = r.raceDate;
     }
   }
 
+  const discipline = todayType ? normaliseDiscipline(todayType) : null;
+
   if (bestMark === null || bestMark <= todayOfr) {
-    return { found: false, lbsBelow: 0, lastWinningMark: bestMark, when };
+    return { found: false, lbsBelow: 0, lastWinningMark: bestMark, when, discipline };
   }
 
-  return { found: true, lbsBelow: bestMark - todayOfr, lastWinningMark: bestMark, when };
+  return {
+    found: true,
+    lbsBelow: bestMark - todayOfr,
+    lastWinningMark: bestMark,
+    when,
+    discipline,
+  };
 }
 
 /**
@@ -343,10 +398,15 @@ export function wonOffHigherMark(
  */
 export function campaignedImpossibly(
   history: PastRun[],
-  lookback = 4
+  lookback = 4,
+  todayType: string | null = null
 ): { found: boolean; runsOutOfWindow: number; ofrDrop: number; detail: string } {
-  const wins = winningRuns(history);
-  const recent = history.slice(0, lookback);
+  // Same-discipline only: a mark moving in one code says nothing about another.
+  const scoped = todayType
+    ? history.filter((r) => sameDiscipline(r.raceType, todayType))
+    : history;
+  const wins = winningRuns(scoped);
+  const recent = scoped.slice(0, lookback);
 
   if (wins.length === 0 || recent.length < 2) {
     return { found: false, runsOutOfWindow: 0, ofrDrop: 0, detail: "" };
@@ -562,7 +622,7 @@ export function scoreHorse(
       detail: `won here ${cond.courseWins} time${cond.courseWins === 1 ? "" : "s"}`,
     });
 
-  const mark = wonOffHigherMark(today.ofr, history, raceDate);
+  const mark = wonOffHigherMark(today.ofr, history, raceDate, race.raceType);
   if (mark.found)
     signals.push({
       key: "mark",
@@ -570,10 +630,12 @@ export function scoreHorse(
       // The bigger the drop the stronger the case, capped so a freak old mark
       // cannot dominate the score on its own.
       weight: Math.min(4, 1 + Math.floor(mark.lbsBelow / 4)),
-      detail: `${mark.lbsBelow}lb below its winning mark of ${mark.lastWinningMark} (${mark.when})`,
+      detail:
+        `${mark.lbsBelow}lb below its ${mark.discipline ?? ""} winning mark of ` +
+        `${mark.lastWinningMark} (${mark.when})`,
     });
 
-  const plot = campaignedImpossibly(history);
+  const plot = campaignedImpossibly(history, 4, race.raceType);
   if (plot.found)
     signals.push({ key: "plot", label: "Mark being dropped", weight: 3, detail: plot.detail });
 

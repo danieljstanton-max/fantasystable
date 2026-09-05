@@ -52,6 +52,32 @@ Five conditions. All five firing is the five-star case.
 Steps 1–3: the horse is well treated. Step 4: today is the day. Step 5:
 confirmation.
 
+## Marks are per discipline
+
+Decided 2026-08-27, on Dan spotting it: "final orders and jumps horses we need
+to check against chase form and hurdles form".
+
+A jumps horse carries a **separate official rating over hurdles and over
+fences**, and its Flat mark is on a different scale again. They are not
+comparable. Final Orders on 2026-08-26:
+
+| Discipline | Runs | Mark range | Wins |
+|---|---|---|---|
+| Chase | 26 | 120–150 | 5 |
+| Hurdle | 16 | 93–122 | 2 |
+| Flat | 8 | 56–68 | 1 |
+
+It ran in a **hurdle** off 122 — the top of its hurdle range, so not well
+treated at all. The model compared that against a **chase** win off 147 at
+Cheltenham, reported "25lb below its winning mark", and made it the strongest
+selection on the card at five stars. With the fix it scores 8 and is not the
+selection.
+
+The mark comparison and the mark-drop detector are both strictly
+same-discipline. Going, course and run style still transfer across codes — a
+horse that acts on soft acts on soft whatever it is jumping — but a rating
+never does.
+
 ## Excluded: Arabian racing
 
 Decided 2026-08-27. Arabian races are a separate breed with their own form book

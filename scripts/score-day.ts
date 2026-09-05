@@ -46,7 +46,7 @@ async function main() {
 
   const raceRows: any[] = await db.execute(sql`
     select id, course_name, off_time, name, age_band, race_class,
-           going_band, distance_f, distance_round, going, field_size
+           going_band, distance_f, distance_round, going, field_size, race_type
     from races where race_date = ${date} order by off_time`);
 
   if (!raceRows.length) {
@@ -105,12 +105,13 @@ async function main() {
   for (const { race, runners } of eligible) {
     console.log(`\n${"-".repeat(64)}`);
     console.log(`${race.course_name} ${race.off_time}  ${String(race.name).slice(0, 44)}`);
-    console.log(`${race.distance_round ?? "?"}  ${race.going ?? "?"}  ${runners.length} runners  ${race.race_class ?? ""}`);
+    console.log(`${race.distance_round ?? "?"}  ${race.going ?? "?"}  ${race.race_type ?? "?"}  ${runners.length} runners  ${race.race_class ?? ""}`);
 
     const raceToday: RaceToday = {
       courseSlug: "",
       distanceF: race.distance_f,
       goingBand: race.going_band as GoingBand,
+      raceType: race.race_type,
     };
 
     const scored: any[] = [];
@@ -252,7 +253,7 @@ function courseSlugOf(name: string): string {
 async function loadHistory(horseId: string, before: string): Promise<PastRun[]> {
   const rows: any[] = await db.execute(sql`
     select ra.race_date::text race_date, ra.course_slug, ra.distance_f,
-           ra.going_band, ra.field_size, r.position_num, r.ofr,
+           ra.going_band, ra.field_size, ra.race_type, r.position_num, r.ofr,
            r.jockey_id, r.comment
     from runners r join races ra on ra.id = r.race_id
     where r.horse_id = ${horseId} and ra.race_date < ${before}
@@ -269,6 +270,7 @@ async function loadHistory(horseId: string, before: string): Promise<PastRun[]> 
     fieldSize: x.field_size,
     jockeyId: x.jockey_id,
     comment: x.comment,
+    raceType: x.race_type,
   }));
 }
 
