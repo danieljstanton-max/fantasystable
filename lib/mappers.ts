@@ -216,6 +216,8 @@ export function mapRunner(raceId: string, h: Raw) {
 
   const t14 = (h.trainer_14_days ?? {}) as Raw;
   const best = bestOdds(h.odds);
+  const jockey = parseJockeyClaim(str(h.jockey));
+  const ofr = int(h.ofr);
 
   return {
     raceId,
@@ -223,7 +225,8 @@ export function mapRunner(raceId: string, h: Raw) {
     horseName: stripHorseCountry(required(h.horse, "horse", `runner ${horseId}`)),
 
     jockeyId: str(h.jockey_id),
-    jockeyName: str(h.jockey),
+    jockeyName: jockey.name, // claim stripped — see parseJockeyClaim
+    jockeyClaimLbs: jockey.claimLbs,
     trainerId: str(h.trainer_id),
     trainerName: str(h.trainer),
     ownerId: str(h.owner_id),
@@ -241,7 +244,8 @@ export function mapRunner(raceId: string, h: Raw) {
     // "blinkers1" with any code ending in 1.
     headgearFirstTime: str(h.headgear_run) === "1",
 
-    ofr: int(h.ofr),
+    ofr,
+    effectiveMark: effectiveMark(ofr, jockey.claimLbs),
     rpr: int(h.rpr),
     ts: int(h.ts),
     performanceRating: int(h.performance_rating),
@@ -272,6 +276,43 @@ export function mapRunner(raceId: string, h: Raw) {
 
     raw: h,
   };
+}
+
+/**
+ * Split an apprentice or conditional claim off a jockey name.
+ *
+ *   "Alfie Redman(7)"  ->  { name: "Alfie Redman", claimLbs: 7 }
+ *
+ * The API appends the claim to the name itself. Two reasons this must be
+ * separated at ingest:
+ *
+ * 1. URL permanence. Riders ride OUT their claim over time — 7lb, then 5, then
+ *    3, then none. Left in the name, the slug changes with it, and
+ *    /jockeys/taryn-langley-5 breaks the day she starts claiming 3. Observed
+ *    live: "Taryn Langley(3)" had already been stored with slug
+ *    "taryn-langley-5".
+ * 2. The effective mark. Dan: "with the apprentice taking off 7lb, he
+ *    effectively races from 55." That subtraction needs the claim as a number.
+ *
+ * Confirmed against the live card: 172 of 719 rides carried a marker, all on
+ * the standard ladder (3, 5, 7, 10lb).
+ */
+export function parseJockeyClaim(name: string | null): { name: string | null; claimLbs: number | null } {
+  if (!name) return { name: null, claimLbs: null };
+  const m = name.match(/^(.*?)\s*\((\d{1,2})\)\s*$/);
+  if (!m) return { name: name.trim(), claimLbs: null };
+  const lbs = parseInt(m[2], 10);
+  return { name: m[1].trim(), claimLbs: Number.isFinite(lbs) ? lbs : null };
+}
+
+/**
+ * The mark a horse effectively races off once the claim is deducted.
+ *
+ * A 55-rated horse with a 7lb claimer runs off an effective 48.
+ */
+export function effectiveMark(ofr: number | null, claimLbs: number | null): number | null {
+  if (ofr === null) return null;
+  return claimLbs ? ofr - claimLbs : ofr;
 }
 
 /** "Goliath Power (FR)" -> "Goliath Power". Results append origin, racecards don't. */
@@ -425,7 +466,7 @@ export function mapResultRunner(raceId: string, h: Raw) {
     speedRating: int(h.speed_rating),
     weight: str(h.weight),
     weightLbs: int(h.weight_lbs),
-    jockeyClaimLbs: int(h.jockey_claim_lbs),
+    jockeyClaimLbs: int(h.jockey_claim_lbs) ?? parseJockeyClaim(str(h.jockey)).claimLbs,
     comment: str(h.comment),
   };
 }

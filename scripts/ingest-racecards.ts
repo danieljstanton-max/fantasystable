@@ -80,17 +80,26 @@ async function ingestDate(date: string) {
         await tx
           .insert(horses)
           .values(people.horses)
-          .onConflictDoUpdate({ target: horses.id, set: { name: sql`excluded.name` } });
+          .onConflictDoUpdate({
+            target: horses.id,
+            set: { name: sql`excluded.name`, slug: sql`excluded.slug` },
+          });
       if (people.jockeys.length)
         await tx
           .insert(jockeys)
           .values(people.jockeys)
-          .onConflictDoUpdate({ target: jockeys.id, set: { name: sql`excluded.name` } });
+          .onConflictDoUpdate({
+            target: jockeys.id,
+            set: { name: sql`excluded.name`, slug: sql`excluded.slug` },
+          });
       if (people.trainers.length)
         await tx
           .insert(trainers)
           .values(people.trainers)
-          .onConflictDoUpdate({ target: trainers.id, set: { name: sql`excluded.name` } });
+          .onConflictDoUpdate({
+            target: trainers.id,
+            set: { name: sql`excluded.name`, slug: sql`excluded.slug` },
+          });
 
       // The race. Do not overwrite `status` — a settled result must not be
       // reverted to "upcoming" by a later racecard sweep.
@@ -101,9 +110,17 @@ async function ingestDate(date: string) {
           target: races.id,
           set: {
             going: sql`excluded.going`,
+            goingDetailed: sql`excluded.going_detailed`,
             goingBand: sql`excluded.going_band`,
             fieldSize: sql`excluded.field_size`,
             prize: sql`excluded.prize`,
+            prizeValue: sql`excluded.prize_value`,
+            region: sql`excluded.region`,
+            stalls: sql`excluded.stalls`,
+            railMovements: sql`excluded.rail_movements`,
+            weather: sql`excluded.weather`,
+            jumps: sql`excluded.jumps`,
+            distanceRound: sql`excluded.distance_round`,
             raw: sql`excluded.raw`,
             ingestedAt: sql`now()`,
           },
@@ -115,19 +132,46 @@ async function ingestDate(date: string) {
           .values(runnerRows)
           .onConflictDoUpdate({
             target: [runners.raceId, runners.horseId],
+            // NOTE: this list is exhaustive on purpose. Anything omitted is
+            // silently never updated on a re-ingest — which is how
+            // jockey_claim_lbs and effective_mark stayed null after being
+            // added. If you add a column to the runner mapper, add it here.
             set: {
               jockeyId: sql`excluded.jockey_id`,
               jockeyName: sql`excluded.jockey_name`,
+              jockeyClaimLbs: sql`excluded.jockey_claim_lbs`,
+              trainerId: sql`excluded.trainer_id`,
+              trainerName: sql`excluded.trainer_name`,
               number: sql`excluded.number`,
               draw: sql`excluded.draw`,
+              age: sql`excluded.age`,
               weight: sql`excluded.weight`,
               weightLbs: sql`excluded.weight_lbs`,
               headgear: sql`excluded.headgear`,
+              headgearFirstTime: sql`excluded.headgear_first_time`,
               ofr: sql`excluded.ofr`,
+              effectiveMark: sql`excluded.effective_mark`,
               rpr: sql`excluded.rpr`,
               ts: sql`excluded.ts`,
+              performanceRating: sql`excluded.performance_rating`,
+              speedRating: sql`excluded.speed_rating`,
               form: sql`excluded.form`,
+              lastRun: sql`excluded.last_run`,
+              silkUrl: sql`excluded.silk_url`,
+              comment: sql`excluded.comment`,
+              trainer14Runs: sql`excluded.trainer_14_runs`,
+              trainer14Wins: sql`excluded.trainer_14_wins`,
+              trainer14Percent: sql`excluded.trainer_14_percent`,
+              trainerRtf: sql`excluded.trainer_rtf`,
+              windSurgery: sql`excluded.wind_surgery`,
+              windSurgeryRun: sql`excluded.wind_surgery_run`,
               odds: sql`excluded.odds`,
+              bestOddsDec: sql`excluded.best_odds_dec`,
+              bestOddsFrac: sql`excluded.best_odds_frac`,
+              bestOddsBookmaker: sql`excluded.best_odds_bookmaker`,
+              ewPlaces: sql`excluded.ew_places`,
+              ewDenom: sql`excluded.ew_denom`,
+              oddsUpdatedAt: sql`excluded.odds_updated_at`,
               isNonRunner: sql`excluded.is_non_runner`,
               raw: sql`excluded.raw`,
             },

@@ -226,6 +226,11 @@ export const runners = pgTable(
     ewDenom: integer("ew_denom"),
     oddsUpdatedAt: timestamp("odds_updated_at", { withTimezone: true }),
 
+    // The mark once the apprentice/conditional claim is deducted. Stored
+    // rather than derived so historical rows keep the claim that applied on
+    // the day -- riders ride their claims out.
+    effectiveMark: integer("effective_mark"),
+
     bsp: real("bsp"), // Betfair SP, results only
     prize: text("prize"),
     jockeyClaimLbs: integer("jockey_claim_lbs"),
