@@ -86,7 +86,16 @@ async function main() {
     }
   }
 
-  // 3. Score.
+  // 3. Write-ups for EVERY race, which is what goes on the site.
+  console.log("  writing up every race...");
+  let writeups = "";
+  try {
+    writeups = run("npx", ["tsx", "--env-file=.env.local", "scripts/write-ups.ts", date]);
+  } catch (e) {
+    writeups = `Write-ups failed:\n${(e as Error).message}`;
+  }
+
+  // 4. The analysis behind them, for checking a claim.
   console.log("  scoring...");
   let output = "";
   try {
@@ -95,10 +104,14 @@ async function main() {
     output = `Scoring failed:\n${(e as Error).message}`;
   }
 
-  // 4. Write the plain text exactly as produced — the terminal output is
-  //    already the fullest version of the analysis.
-  const txtPath = join(OUT_DIR, `${date} card.txt`);
-  writeFileSync(txtPath, `RACING CARD — ${date}\nGenerated ${stamp}\n\n${output}`);
+  // 5. Two text files. The write-ups are the publishable copy; the analysis
+  //    is the working behind them, kept separate so one can be pasted into the
+  //    site without the other.
+  const upPath = join(OUT_DIR, `${date} write-ups.txt`);
+  writeFileSync(upPath, writeups);
+
+  const txtPath = join(OUT_DIR, `${date} analysis.txt`);
+  writeFileSync(txtPath, `RACING CARD ANALYSIS — ${date}\nGenerated ${stamp}\n\n${output}`);
 
   // 5. A CSV of the flagged horses, for tracking selections and settling them.
   const flagged: string[] = ["date,horse,off_time,course,points,price,lbs_in_hand,prime,race"];
@@ -121,7 +134,7 @@ async function main() {
   writeFileSync(csvPath, flagged.join("\n"));
 
   // 6. A readable HTML version of the same thing.
-  const htmlPath = join(OUT_DIR, `${date} card.html`);
+  const htmlPath = join(OUT_DIR, `${date} analysis.html`);
   writeFileSync(
     htmlPath,
     `<!doctype html><html><head><meta charset="utf-8">
@@ -150,6 +163,7 @@ recommended bets. 18+ &middot; BeGambleAware.org</div>
 
   const flaggedCount = Math.max(0, flagged.length - 1);
   console.log(`\n  written:`);
+  console.log(`    ${upPath}   (every race, ready to publish)`);
   console.log(`    ${txtPath}`);
   console.log(`    ${htmlPath}`);
   console.log(`    ${csvPath}   (${flaggedCount} flagged horses)`);

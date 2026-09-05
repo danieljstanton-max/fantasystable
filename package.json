@@ -29,7 +29,8 @@
     "train": "tsx --env-file=.env.local scripts/train-model.ts",
     "predict": "tsx --env-file=.env.local scripts/predict.ts",
     "combine": "tsx --env-file=.env.local --max-old-space-size=8192 scripts/combine.ts",
-    "daily": "tsx --env-file=.env.local --max-old-space-size=4096 scripts/daily-report.ts"
+    "daily": "tsx --env-file=.env.local --max-old-space-size=4096 scripts/daily-report.ts",
+    "writeups": "tsx --env-file=.env.local --max-old-space-size=4096 scripts/write-ups.ts"
   },
   "dependencies": {
     "next": "^15.1.6",
