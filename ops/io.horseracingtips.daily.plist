@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>io.horseracingtips.daily</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>cd /Users/danielstantonneo/Documents/Projects/racing-site &amp;&amp; npm run daily</string>
+  </array>
+
+  <!-- 19:00 every day. Tomorrow's prices are published during the evening
+       before, so this is late enough to have them and early enough to act. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>19</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+
+  <!-- If the Mac was asleep at 19:00, run as soon as it wakes rather than
+       skipping the day entirely. -->
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/danielstantonneo/Desktop/Racing Tips/_log.txt</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/danielstantonneo/Desktop/Racing Tips/_log.txt</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+  </dict>
+</dict>
+</plist>
