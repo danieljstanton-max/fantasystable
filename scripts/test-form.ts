@@ -100,5 +100,16 @@ check("type: brought down",
 check("type: pulled up",
   readComment("Dropped away and pulled up before the last").nonCompletionType, "pulled-up");
 
+
+console.log("\nambiguous trouble phrases");
+check("lost momentum THEN dropped away is not trouble",
+  readComment("Held up towards the back - pushed along over a furlong out - lost momentum inside final 110yds and dropped away late").trouble, false);
+check("...and it reads as weakened instead",
+  readComment("Held up towards the back - lost momentum inside final 110yds and dropped away late").failedToStay, true);
+check("lost momentum alone still counts",
+  readComment("Travelling well when lost momentum inside the final furlong").trouble, true);
+check("short of room is always trouble",
+  readComment("Held up - short of room inside final 110yds - stayed on without threatening").trouble, true);
+
 console.log(fails === 0 ? "\nAll form-reading checks passed.\n" : `\n${fails} check(s) FAILED.\n`);
 process.exit(fails === 0 ? 0 : 1);

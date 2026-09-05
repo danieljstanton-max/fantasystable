@@ -86,18 +86,29 @@ const STAYED_ON = [
 
 /**
  * A compromised run. "Run blocked" in Dan's words.
- *
- * `lost momentum` is deliberately included but is weaker evidence than the
- * others — it can describe a horse simply weakening. It is reported so it can
- * be weighted separately rather than treated as proof of interference.
  */
 const TROUBLE = [
   "no room", "short of room", "short of racing room", "no racing room",
   "denied a clear run", "denied a run", "nowhere to go", "hampered",
   "badly hampered", "checked", "squeezed out", "squeezed up", "snatched up",
   "blocked", "impeded", "carried wide", "forced wide", "short of a clear run",
-  "had to switch", "switched to find room", "lost momentum",
+  "had to switch", "switched to find room",
 ];
+
+/**
+ * Ambiguous phrases that only mean interference when nothing else explains it.
+ *
+ * "Lost momentum" was in TROUBLE outright, and it produced a false positive on
+ * Royal Duke: "lost momentum inside final 110yds AND DROPPED AWAY LATE" was
+ * read as a compromised run when the same sentence says the horse stopped. It
+ * scored +2 for an excuse it did not have, when it should have taken -1 for
+ * weakening — a three point swing that moved it up the card.
+ *
+ * These now only count as trouble when no weakening phrase fires in the same
+ * comment. A horse that loses momentum and then finishes is unlucky; one that
+ * loses momentum and drops away is beaten.
+ */
+const WEAK_TROUBLE = ["lost momentum", "lost position", "lost place"];
 
 /** Emptied out. Argues against a step up in trip. */
 const FAILED_TO_STAY = [
@@ -224,8 +235,10 @@ export function readComment(comment: string | null | undefined): FormRead {
   }
 
   const stayed = hits(t, STAYED_ON);
-  const trouble = hits(t, TROUBLE);
   const failed = hits(t, FAILED_TO_STAY);
+  const trouble = hits(t, TROUBLE);
+  // Ambiguous phrases only count when the comment does not also say it stopped.
+  if (!trouble.length && !failed.length) trouble.push(...hits(t, WEAK_TROUBLE));
   const nonComp = hits(t, NON_COMPLETION);
   const travelled = hits(t, TRAVELLED_WELL);
   const easy = hits(t, EASY_RIDE);
