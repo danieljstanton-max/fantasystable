@@ -69,10 +69,7 @@ export function Header({ date, raceweekLabel, deadlineLabel, locked, onNextRace,
 
         {/* right — session action */}
         <div className="justify-self-end">
-          <div className="flex items-center gap-2">
-            <ResultsPill href="/game/results" />
-            {session.kind === "signed-in" ? session.signOut : null}
-          </div>
+          {session.kind === "signed-in" ? session.signOut : null}
         </div>
       </div>
 
@@ -85,12 +82,9 @@ export function Header({ date, raceweekLabel, deadlineLabel, locked, onNextRace,
           aria-label="Game sections"
           className="-mx-1 mt-3 flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          <NavPill href="/game" label="Stable" />
-          <NavPill href="/game/sell" label="Sell" />
           <NavPill href="/game/leaderboard" label="Leaderboard" />
-          <NavPill href="/game/leagues" label="Leagues" />
+          <NavPill href="/game/results" label="Results" />
           <NavPill href="/game/rules" label="Rules" />
-          <NavPill href="/game/account" label="Account" />
         </nav>
       )}
     </header>
