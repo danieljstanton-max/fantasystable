@@ -228,6 +228,17 @@ export const runners = pgTable(
     bestOddsDec: real("best_odds_dec"),
     bestOddsFrac: text("best_odds_frac"),
     bestOddsBookmaker: text("best_odds_bookmaker"),
+
+    // The FIRST price we ever recorded for this runner, and when. Written once
+    // and never overwritten -- see the COALESCE in the ingest upsert. The API
+    // carries no price history (every `history` array comes back empty), so
+    // this is the only way we can ever know what a horse opened at.
+    openingOddsDec: real("opening_odds_dec"),
+    openingOddsFrac: text("opening_odds_frac"),
+    openingOddsAt: timestamp("opening_odds_at", { withTimezone: true }),
+
+    // Shortest price seen across the day, for spotting a move that came back.
+    shortestOddsDec: real("shortest_odds_dec"),
     ewPlaces: integer("ew_places"),
     ewDenom: integer("ew_denom"),
     oddsUpdatedAt: timestamp("odds_updated_at", { withTimezone: true }),

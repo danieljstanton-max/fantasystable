@@ -270,6 +270,11 @@ export function mapRunner(raceId: string, h: Raw) {
     bestOddsDec: best.dec,
     bestOddsFrac: best.frac,
     bestOddsBookmaker: best.bookmaker,
+    // Proposed opening price. The ingest keeps whichever it already had.
+    openingOddsDec: best.dec,
+    openingOddsFrac: best.frac,
+    openingOddsAt: best.updatedAt ?? new Date(),
+    shortestOddsDec: best.dec,
     ewPlaces: best.ewPlaces,
     ewDenom: best.ewDenom,
     oddsUpdatedAt: best.updatedAt,

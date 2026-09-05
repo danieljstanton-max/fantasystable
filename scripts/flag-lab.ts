@@ -39,12 +39,20 @@ interface Run {
   positionNum: number | null; ofr: number | null; spDec: number | null;
   comment: string | null; ovrBtn: number | null; isNonRunner: boolean;
   t14Pct: number | null; t14Runs: number | null; winMargin: number | null;
+  /** Rank by SP within its race; 1 = favourite. Filled in after loading. */
+  marketRank?: number;
+  /** Rank by official rating within its race; 1 = top rated. */
+  ratingRank?: number;
+  /** ratingRank - marketRank. Positive means shorter than its rating implies. */
+  support?: number;
 }
 
 /** A flag is a predicate over (today's run, prior form). */
 interface Flag {
   name: string;
-  group: "well-handicapped" | "on-the-up" | "perfect-conditions" | "control";
+  group:
+    | "well-handicapped" | "on-the-up" | "perfect-conditions"
+    | "market-said-yes" | "control";
   test: (now: Run, hist: Run[]) => boolean;
 }
 
@@ -93,6 +101,40 @@ function provenToday(now: Run, hist: Run[]): boolean {
     now.distanceF !== null &&
     w.some((r) => r.distanceF !== null && Math.abs(r.distanceF - (now.distanceF as number)) <= 0.5);
   return going && trip;
+}
+
+/**
+ * Was the market on it?
+ *
+ * Dan, 2026-08-27: "there is a key for well backed horses in previous runs that
+ * didnt win but are well handicapped ... someone obv likes it, it just didnt
+ * run well for some reason."
+ *
+ * The API carries no price history — every `history` array in the odds feed is
+ * empty — so there is no way to see a horse being backed on the day. What we do
+ * have, for every past race, is each runner's SP and official rating. A horse
+ * far shorter in the betting than its rating position implies is one the market
+ * fancied: the stable, the work watchers, or simply better information than the
+ * handicapper had.
+ *
+ * `support` is (rating rank − market rank). Second favourite off the eighth
+ * highest mark scores +6.
+ */
+function computeMarketRanks(rows: Run[]) {
+  const byRace = new Map<string, Run[]>();
+  for (const r of rows) {
+    if (!byRace.has(r.raceId)) byRace.set(r.raceId, []);
+    byRace.get(r.raceId)!.push(r);
+  }
+  for (const field of byRace.values()) {
+    const priced = field.filter((r) => r.spDec !== null).sort((a, b) => (a.spDec as number) - (b.spDec as number));
+    priced.forEach((r, i) => { r.marketRank = i + 1; });
+    const rated = field.filter((r) => r.ofr !== null).sort((a, b) => (b.ofr as number) - (a.ofr as number));
+    rated.forEach((r, i) => { r.ratingRank = i + 1; });
+    for (const r of field) {
+      if (r.marketRank && r.ratingRank) r.support = r.ratingRank - r.marketRank;
+    }
+  }
 }
 
 const FLAGS: Flag[] = [
@@ -281,6 +323,55 @@ const FLAGS: Flag[] = [
     },
   },
 
+  /* -------------------------------------------- market said yes --------- */
+  {
+    name: "backed last time (top 3), beaten",
+    group: "market-said-yes",
+    test: (n, h) => {
+      const last = h[0];
+      return !!last && (last.marketRank ?? 99) <= 3 && (last.positionNum ?? 99) > 1;
+    },
+  },
+  {
+    name: "backed last time, beaten, now lower mark",
+    group: "market-said-yes",
+    test: (n, h) => {
+      const last = h[0];
+      return (
+        !!last && (last.marketRank ?? 99) <= 3 && (last.positionNum ?? 99) > 1 &&
+        last.ofr !== null && n.ofr !== null && last.ofr > n.ofr
+      );
+    },
+  },
+  {
+    name: "shorter than its rating implies (+4), beaten",
+    group: "market-said-yes",
+    test: (n, h) =>
+      h.slice(0, 3).some((r) => (r.support ?? 0) >= 4 && (r.positionNum ?? 99) > 1),
+  },
+  {
+    name: "market backed it, beaten, excuse in comment",
+    group: "market-said-yes",
+    test: (n, h) =>
+      h.slice(0, 3).some((r) => {
+        if ((r.marketRank ?? 99) > 3 || (r.positionNum ?? 99) === 1) return false;
+        const c = readComment(r.comment);
+        return c.trouble || c.fellGoingWell || c.travelledWell;
+      }),
+  },
+  {
+    name: "backed + beaten + excuse + right conditions today",
+    group: "market-said-yes",
+    test: (n, h) => {
+      const backedWithExcuse = h.slice(0, 3).some((r) => {
+        if ((r.marketRank ?? 99) > 3 || (r.positionNum ?? 99) === 1) return false;
+        const c = readComment(r.comment);
+        return c.trouble || c.fellGoingWell || c.travelledWell;
+      });
+      return backedWithExcuse && provenToday(n, h);
+    },
+  },
+
   /* ---------------------------------------------------- controls -------- */
   { name: "CONTROL: every scored runner", group: "control", test: () => true },
   {
@@ -328,6 +419,9 @@ async function main() {
   const targets = rows.filter(
     (r) => !r.isNonRunner && /handicap/i.test(r.raceName) && !/nursery|arab/i.test(r.raceName)
   );
+  process.stdout.write("  computing market ranks... ");
+  computeMarketRanks(rows);
+  console.log("done");
   console.log(`  ${targets.length.toLocaleString()} handicap runners\n`);
 
   function history(r: Run): Run[] {

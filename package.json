@@ -21,7 +21,8 @@
     "horse": "tsx --env-file=.env.local scripts/horse-profile.ts",
     "fetch:horse": "tsx --env-file=.env.local scripts/fetch-horse.ts",
     "backtest": "tsx --env-file=.env.local scripts/backtest.ts",
-    "flags": "tsx --env-file=.env.local scripts/flag-lab.ts"
+    "flags": "tsx --env-file=.env.local scripts/flag-lab.ts",
+    "movers": "tsx --env-file=.env.local scripts/movers.ts"
   },
   "dependencies": {
     "next": "^15.1.6",

@@ -167,6 +167,14 @@ async function ingestDate(date: string) {
               windSurgeryRun: sql`excluded.wind_surgery_run`,
               odds: sql`excluded.odds`,
               bestOddsDec: sql`excluded.best_odds_dec`,
+              // Opening price is written once and never moved. Without the
+              // COALESCE every ten-minute sweep would overwrite it and the
+              // "opened at" price would just track the current one.
+              openingOddsDec: sql`coalesce(runners.opening_odds_dec, excluded.opening_odds_dec)`,
+              openingOddsFrac: sql`coalesce(runners.opening_odds_frac, excluded.opening_odds_frac)`,
+              openingOddsAt: sql`coalesce(runners.opening_odds_at, excluded.opening_odds_at)`,
+              // Shortest price seen today: only ever moves down.
+              shortestOddsDec: sql`least(coalesce(runners.shortest_odds_dec, excluded.best_odds_dec), excluded.best_odds_dec)`,
               bestOddsFrac: sql`excluded.best_odds_frac`,
               bestOddsBookmaker: sql`excluded.best_odds_bookmaker`,
               ewPlaces: sql`excluded.ew_places`,
