@@ -324,8 +324,18 @@ export const tips = pgTable(
     advisedPrice: text("advised_price"), // "7/2" exactly as published
     advisedPriceDec: real("advised_price_dec"), // 4.5
 
-    reasoning: text("reasoning"),
-    factors: jsonb("factors"), // string[] — the chips shown under the tip
+    reasoning: text("reasoning"), // the write-up, in Dan's voice
+    factors: jsonb("factors"), // string[] — the features that actually fired
+
+    // 1-5. Five requires the full well-handicapped case (see
+    // docs/tipping-method.md). Treated as a hypothesis until strike rate and
+    // ROI by band prove the bands mean anything.
+    stars: integer("stars"),
+
+    // Set by hand, after the fact. Every tip is published to the public record
+    // regardless — auto-withholding the best bets would leave the public record
+    // showing only the weakest selections.
+    isVip: boolean("is_vip").default(false).notNull(),
 
     // human | model
     source: text("source").default("human").notNull(),

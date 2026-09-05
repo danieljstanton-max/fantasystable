@@ -13,7 +13,8 @@
     "ingest:racecards": "tsx --env-file=.env.local scripts/ingest-racecards.ts",
     "ingest:courses": "tsx --env-file=.env.local scripts/ingest-courses.ts",
     "test:tips": "tsx scripts/test-tips.ts",
-    "verify:mappers": "tsx scripts/verify-mappers.ts"
+    "verify:mappers": "tsx scripts/verify-mappers.ts",
+    "test:form": "tsx scripts/test-form.ts"
   },
   "dependencies": {
     "next": "^15.1.6",
