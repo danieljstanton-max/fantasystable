@@ -260,6 +260,8 @@ export interface HorseToday {
   horseName: string;
   ofr: number | null;
   age?: number | null;
+  /** Stall number. Flat and all-weather only; jumps races have none. */
+  draw?: number | null;
   /** Trainer's last 14 days, as supplied per runner by the API. */
   trainer14Runs?: number | null;
   trainer14Wins?: number | null;
@@ -278,7 +280,52 @@ export interface RaceToday {
   goingBand: GoingBand;
   /** Today's discipline. Marks only compare within it. */
   raceType: string | null;
+  /** Runners actually declared, for normalising the draw. */
+  fieldSize?: number | null;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Draw bias                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Distance buckets for draw purposes. Draw matters most at sprint trips.
+ * Must match scripts/draw-bias.ts, which builds the table.
+ */
+export function drawDistBand(f: number | null): string | null {
+  if (f === null) return null;
+  if (f <= 5.5) return "5f";
+  if (f <= 6.5) return "6f";
+  if (f <= 7.5) return "7f";
+  if (f <= 8.5) return "1m";
+  if (f <= 10.5) return "1m1f-1m2f";
+  if (f <= 12.5) return "1m3f-1m4f";
+  return "beyond 1m4f";
+}
+
+export type DrawBand = "low" | "mid" | "high";
+
+/**
+ * Where a stall sits ACROSS THE FIELD, not its raw number.
+ *
+ * Stall 8 of 9 is a wide draw; stall 8 of 20 is not. Fields under six runners
+ * are not split at all — the thirds stop meaning anything.
+ */
+export function drawBandOf(draw: number | null, fieldSize: number | null): DrawBand | null {
+  if (draw === null || fieldSize === null || fieldSize < 6) return null;
+  const p = (draw - 1) / (fieldSize - 1);
+  if (p <= 1 / 3) return "low";
+  if (p >= 2 / 3) return "high";
+  return "mid";
+}
+
+/** Looks up a stored impact value; null when we have no reliable sample. */
+export type DrawBiasLookup = (
+  courseSlug: string,
+  distBand: string,
+  goingBand: string,
+  drawBand: DrawBand
+) => number | null;
 
 export interface Signal {
   key: string;
@@ -958,7 +1005,8 @@ export function scoreHorse(
   race: RaceToday,
   history: PastRun[],
   jockeyStrikeRate: (jockeyId: string) => number | null = () => null,
-  raceDate: string = new Date().toISOString().slice(0, 10)
+  raceDate: string = new Date().toISOString().slice(0, 10),
+  drawBias: DrawBiasLookup = () => null
 ): HorseScore {
   const signals: Signal[] = [];
 
@@ -1029,6 +1077,34 @@ export function scoreHorse(
     signals.push({ key: "headgear", label: "First-time headgear", weight: weightFor("headgear", 1), detail: "yard trying something" });
   if (today.windSurgeryFirstTime)
     signals.push({ key: "wind", label: "First run after wind surgery", weight: weightFor("wind", 1), detail: "" });
+
+  // Draw bias. Flat only — there are no stalls over jumps — and only where a
+  // stored impact value exists for this exact course, trip and going. The
+  // bias reverses with the ground at several tracks (Thirsk 6f runs IV 1.61
+  // for low draws on soft and 0.83 on good-firm), so a per-track number is
+  // not good enough and a missing cell means no signal rather than a guess.
+  const code = normaliseDiscipline(race.raceType);
+  if (code === "flat") {
+    const band = drawBandOf(today.draw ?? null, race.fieldSize ?? null);
+    const dist = drawDistBand(race.distanceF);
+    if (band && dist) {
+      const iv = drawBias(race.courseSlug, dist, race.goingBand, band);
+      if (iv !== null && iv >= 1.3)
+        signals.push({
+          key: "draw-good",
+          label: "Favoured by the draw",
+          weight: weightFor("draw-good", iv >= 1.5 ? 2 : 1),
+          detail: `${band} draw here wins ${iv.toFixed(2)}x its share on ${race.goingBand}`,
+        });
+      else if (iv !== null && iv <= 0.7)
+        signals.push({
+          key: "draw-bad",
+          label: "Wrong side of the draw",
+          weight: weightFor("draw-bad", iv <= 0.5 ? -2 : -1),
+          detail: `${band} draw here wins ${iv.toFixed(2)}x its share on ${race.goingBand}`,
+        });
+    }
+  }
 
   const trainer = trainerFormSignal(
     today.trainer14Runs,

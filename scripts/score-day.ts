@@ -60,7 +60,7 @@ async function main() {
            r.ofr, r.effective_mark, r.jockey_id, r.jockey_name, r.jockey_claim_lbs,
            r.trainer_name, r.best_odds_dec, r.best_odds_frac,
            r.headgear_first_time, r.wind_surgery_run, r.form, r.last_run,
-           r.trainer_14_runs, r.trainer_14_wins, r.trainer_14_percent
+           r.trainer_14_runs, r.trainer_14_wins, r.trainer_14_percent, r.draw
     from runners r join races ra on ra.id = r.race_id
     where ra.race_date = ${date}`);
 
@@ -89,6 +89,16 @@ async function main() {
 
   if (!eligible.length) { await client.end(); return; }
 
+  // Draw bias table, built by `npm run draw`.
+  const drawRows: any[] = await db.execute(sql`
+    select course_slug, dist_band, going_band, draw_band, impact_value, races from draw_bias`);
+  const drawMap = new Map<string, number>();
+  for (const d of drawRows)
+    drawMap.set(`${d.course_slug}|${d.dist_band}|${d.going_band}|${d.draw_band}`, Number(d.impact_value));
+  const drawBias = (c: string, dist: string, going: string, band: string) =>
+    drawMap.get(`${c}|${dist}|${going}|${band}`) ?? null;
+  console.log(`  draw bias: ${drawMap.size} stored cells`);
+
   // Jockey strike rates over everything we hold.
   const jockeyRows: any[] = await db.execute(sql`
     select r.jockey_id,
@@ -113,6 +123,7 @@ async function main() {
       distanceF: race.distance_f,
       goingBand: race.going_band as GoingBand,
       raceType: race.race_type,
+      fieldSize: runners.length,
     };
 
     const scored: any[] = [];
@@ -133,10 +144,11 @@ async function main() {
         trainer14Runs: r.trainer_14_runs,
         trainer14Wins: r.trainer_14_wins,
         trainer14Percent: r.trainer_14_percent,
+        draw: r.draw,
       };
 
       const raceForHorse: RaceToday = { ...raceToday, courseSlug: courseSlugOf(race.course_name) };
-      const s = scoreHorse(today, raceForHorse, history, jockeyStrikeRate, date);
+      const s = scoreHorse(today, raceForHorse, history, jockeyStrikeRate, date, drawBias);
       const decline = markDecline(history, date);
 
       // Dan's override: unproven is not fatal if it was staying on or blocked.
