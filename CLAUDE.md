@@ -24,14 +24,29 @@ Scripts load `.env.local` via `--env-file`, not `.env`.
 
 ## The one thing to know first
 
-`lib/mappers.ts` is **unverified**. It was written without access to a live API
-response, so every field is read through `pick()`, which tries several plausible
-key names. This is a hypothesis, not a mapping.
+`lib/mappers.ts` is **verified** against live responses (probe, 2026-08-26).
+Every key is confirmed; there is no `pick()` guessing left. Keep it that way —
+if the API shape changes, the mappers throw rather than silently reading the
+wrong field.
 
-Before trusting any ingested data, run `npm run probe` and correct the mappers
-against `probe-output/FIELD-REPORT.txt`. Once a real key is confirmed, collapse
-that `pick()` to the single correct key — silently reading the wrong field is
-worse than failing loudly.
+Two endpoints, two different schemas. `/racecards/pro` and `/results` name the
+same concepts differently (`off_time`/`off`, `distance_f`/`dist_f`,
+`race_class`/`class`, `ofr`/`or`, `ts`/`tsr`, `lbs`/`weight_lbs`), so they have
+separate mappers.
+
+Three traps probe caught, all still live:
+
+1. **`off_time` is 12-hour with no am/pm.** "2:15" means 14:15. Only ever parse
+   `off_dt`, which is a full ISO instant with offset.
+2. **Non-runners are flagged by `number === "NR"`.** There is no boolean. Miss
+   this and withdrawn horses ingest as live runners.
+3. **Exchanges quote unmatched prices.** Matchbook, Smarkets and Betfair
+   Exchange were showing 55.0 where the best real bookmaker price was 25/1.
+   They are excluded from the headline price; each-way terms are taken by
+   consensus across the sportsbooks that publish them.
+
+Run `npm run verify:mappers` after any mapper change — it replays the real
+payloads in `probe-output/` and fails on regressions.
 
 ## Rules that are not negotiable
 

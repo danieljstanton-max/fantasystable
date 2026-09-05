@@ -12,7 +12,8 @@
     "probe": "tsx --env-file=.env.local scripts/probe.ts",
     "ingest:racecards": "tsx --env-file=.env.local scripts/ingest-racecards.ts",
     "ingest:courses": "tsx --env-file=.env.local scripts/ingest-courses.ts",
-    "test:tips": "tsx scripts/test-tips.ts"
+    "test:tips": "tsx scripts/test-tips.ts",
+    "verify:mappers": "tsx scripts/verify-mappers.ts"
   },
   "dependencies": {
     "next": "^15.1.6",

@@ -129,6 +129,23 @@ export const races = pgTable(
     prizeValue: integer("prize_value"), // pence, for sorting big races
     fieldSize: integer("field_size"),
 
+    // Confirmed present on /racecards/pro (probe 2026-08-26). Conditions a
+    // punter checks and the model will want: stalls position and rail
+    // movements change effective draw bias; weather moves the going.
+    region: text("region"), // GB, IRE
+    goingDetailed: text("going_detailed"), // "GOOD, Good to firm in places (GoingStick: 7.2)"
+    distanceRound: text("distance_round"), // "5f" — the display form
+    stalls: text("stalls"),
+    railMovements: text("rail_movements"),
+    weather: text("weather"),
+    jumps: text("jumps"),
+
+    // Results-only extras
+    nonRunnersText: text("non_runners"), // race-level NR list as published
+    winningTimeDetail: text("winning_time_detail"),
+    toteWin: text("tote_win"),
+    toteCsf: text("tote_csf"),
+
     // Editorial / SEO
     isFeature: boolean("is_feature").default(false).notNull(),
     bigRaceSlug: text("big_race_slug"), // links to /big-races/grand-national
@@ -186,7 +203,32 @@ export const runners = pgTable(
 
     isNonRunner: boolean("is_non_runner").default(false).notNull(),
 
-    odds: jsonb("odds"), // bookmaker price array as returned
+    // Trainer form at declaration time. The API gives this per runner and it
+    // is not reconstructable later, so it is captured at ingest.
+    trainer14Runs: integer("trainer_14_runs"),
+    trainer14Wins: integer("trainer_14_wins"),
+    trainer14Percent: real("trainer_14_percent"),
+    trainerRtf: real("trainer_rtf"), // % of runners returning to form
+
+    windSurgery: text("wind_surgery"),
+    windSurgeryRun: text("wind_surgery_run"),
+    performanceRating: integer("performance_rating"),
+    speedRating: integer("speed_rating"),
+
+    odds: jsonb("odds"), // full bookmaker array, as returned
+
+    // Denormalised from `odds` at ingest so pages and settlement never have to
+    // scan 30 bookmakers. ewPlaces/ewDenom drive each-way settlement.
+    bestOddsDec: real("best_odds_dec"),
+    bestOddsFrac: text("best_odds_frac"),
+    bestOddsBookmaker: text("best_odds_bookmaker"),
+    ewPlaces: integer("ew_places"),
+    ewDenom: integer("ew_denom"),
+    oddsUpdatedAt: timestamp("odds_updated_at", { withTimezone: true }),
+
+    bsp: real("bsp"), // Betfair SP, results only
+    prize: text("prize"),
+    jockeyClaimLbs: integer("jockey_claim_lbs"),
 
     // Result fields — populated in place when the race settles
     position: text("position"), // "1", "2", "PU", "F", "UR"

@@ -1,35 +1,55 @@
 /**
  * API response -> our schema.
  *
- * ⚠ CORRECT THIS FILE AFTER RUNNING `npm run probe`.
+ * VERIFIED against live responses on 2026-08-26 via `npm run probe`. Every key
+ * below was observed in probe-output/. There is no speculative key-guessing
+ * left in this file, and there should never be again: if The Racing API
+ * changes a field name, this must fail loudly rather than silently read the
+ * wrong one.
  *
- * These mappings were written without a live response to check against. Rather
- * than guessing one field name and breaking on a miss, each field is read
- * through `pick()`, which tries several plausible keys and returns the first
- * that exists. That makes the ingest resilient to being partly wrong, but it is
- * not a substitute for correcting it: silently reading the wrong field is worse
- * than failing loudly. Once probe output confirms the real names, collapse each
- * pick() down to the single correct key.
+ * Two shapes, not one
+ * -------------------
+ * /v1/racecards/pro and /v1/results return genuinely different schemas for the
+ * same concepts, so they get separate mappers rather than one lenient mapper
+ * that tries to serve both:
+ *
+ *   racecards            results
+ *   ---------            -------
+ *   off_time             off
+ *   distance / distance_f  dist / dist_f  ("16.5f", with the suffix)
+ *   race_class           class
+ *   sex_restriction      sex_rest
+ *   ofr                  or
+ *   ts                   tsr
+ *   lbs                  weight_lbs
+ *
+ * Three traps confirmed by probe
+ * ------------------------------
+ * 1. `off_time` is 12-hour with NO am/pm: "2:15" is 14:15. Constructing a time
+ *    from it puts every afternoon race twelve hours early. `off_dt` is a full
+ *    ISO instant with offset and is the only thing we parse.
+ * 2. Non-runners carry no boolean. They are flagged by `number === "NR"`.
+ *    Today's card had 15 of them; missing this ingests them as live runners.
+ * 3. Horse names differ between endpoints — "Goliath Power (FR)" in results,
+ *    bare in racecards. Match on horse_id. Never on name.
  */
 
-import { raceSlug, slugify, parseDistanceFurlongs, parseWeightLbs, parseSpDecimal } from "./slug";
+import { raceSlug, slugify } from "./slug";
 import { normaliseGoing, isAllWeather } from "./going";
-import { fromZonedTime } from "date-fns-tz";
 
 type Raw = Record<string, any>;
 
-/** First key present and non-empty wins. */
-function pick<T = any>(obj: Raw, keys: string[], fallback?: T): T | undefined {
-  for (const k of keys) {
-    const v = obj?.[k];
-    if (v !== undefined && v !== null && v !== "") return v as T;
-  }
-  return fallback;
+/** Missing values arrive as "" or "-". Both mean null, never 0. */
+function str(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  return s === "" || s === "-" ? null : s;
 }
 
 function num(v: unknown): number | null {
-  if (v === null || v === undefined || v === "") return null;
-  const n = typeof v === "number" ? v : parseFloat(String(v).replace(/[^0-9.\-]/g, ""));
+  const s = str(v);
+  if (s === null) return null;
+  const n = parseFloat(s.replace(/[^0-9.\-]/g, ""));
   return Number.isFinite(n) ? n : null;
 }
 
@@ -38,132 +58,409 @@ function int(v: unknown): number | null {
   return n === null ? null : Math.round(n);
 }
 
-/**
- * Build a real instant from a race date and an off time.
- *
- * UK racing publishes local wall-clock time. Treating "14:00" as UTC puts every
- * summer countdown an hour out, which is exactly the kind of error a punter
- * notices immediately and never forgives.
- */
-export function toOffInstant(raceDate: string, offTime: string): Date {
-  const time = /^\d{1,2}:\d{2}$/.test(offTime) ? offTime.padStart(5, "0") : "12:00";
-  return fromZonedTime(`${raceDate}T${time}:00`, "Europe/London");
+/** Fail loudly. A race or runner with no id must never reach the database. */
+function required(v: unknown, field: string, context: string): string {
+  const s = str(v);
+  if (s === null) {
+    throw new Error(
+      `Missing required field "${field}" on ${context}. The API shape has ` +
+        `changed — re-run \`npm run probe\` before ingesting.`
+    );
+  }
+  return s;
 }
 
+/**
+ * The only correct source of race time.
+ *
+ * `off_dt` looks like "2026-08-26T14:15:00+01:00" — a real instant, offset
+ * included. Postgres stores it as timestamptz. We never touch `off_time`.
+ */
+export function parseOffDt(offDt: unknown, context: string): Date {
+  const s = required(offDt, "off_dt", context);
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) {
+    throw new Error(`Unparseable off_dt ${JSON.stringify(s)} on ${context}.`);
+  }
+  return d;
+}
+
+/**
+ * Convert the published 12-hour off time to 24-hour for display and slugs.
+ *
+ * UK racecards publish "2:15" meaning 14:15. Derived from off_dt rather than
+ * guessed, so the slug and the instant can never disagree.
+ */
+export function offTime24(offDt: Date): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(offDt);
+}
+
+/** "2026-08-26T14:15:00+01:00" -> "2026-08-26" in London terms. */
+export function raceDateFromOffDt(offDt: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/London",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(offDt);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Courses                                                                     */
+/* -------------------------------------------------------------------------- */
+
 export function mapCourse(c: Raw) {
-  const name = pick<string>(c, ["course", "course_name", "name"]) ?? "Unknown";
+  const name = required(c.course, "course", "course");
   return {
-    id: String(pick(c, ["id", "course_id"]) ?? slugify(name)),
+    id: required(c.id, "id", `course ${name}`),
     name,
-    slug: slugify(name),
-    region: pick<string>(c, ["region_code", "region"]) ?? null,
-    country: pick<string>(c, ["country"]) ?? null,
+    slug: slugify(stripCourseSuffix(name)),
+    region: str(c.region_code) ?? str(c.region),
+    country: str(c.country),
   };
 }
 
-export function mapRace(r: Raw) {
-  const courseName = pick<string>(r, ["course", "course_name"]) ?? "Unknown";
-  const courseSlug = slugify(courseName);
-  const raceDate = String(pick(r, ["date", "race_date"]) ?? "").slice(0, 10);
-  const offTime = String(pick(r, ["off_time", "time", "off"]) ?? "");
-  const name = pick<string>(r, ["race_name", "name"]) ?? "Race";
-  const distance = pick<string>(r, ["distance", "dist", "distance_f", "distance_round"]) ?? null;
-  const going = pick<string>(r, ["going", "going_detailed"]) ?? null;
-  const surfaceRaw = pick<string>(r, ["surface", "type"]) ?? null;
+/**
+ * "Kempton (AW)" -> "Kempton".
+ *
+ * The API appends a surface marker to the course name. It must not reach the
+ * URL: the slug is generated once and is permanent, and "kempton-aw" would be
+ * a different page from "kempton" forever.
+ */
+export function stripCourseSuffix(name: string): string {
+  return name.replace(/\s*\((AW|A\.W\.)\)\s*$/i, "").trim();
+}
 
-  const prize = pick<string>(r, ["prize", "added_money"]) ?? null;
+/* -------------------------------------------------------------------------- */
+/* Races — /v1/racecards/pro                                                   */
+/* -------------------------------------------------------------------------- */
+
+export function mapRace(r: Raw) {
+  const id = required(r.race_id, "race_id", "race");
+  const courseRaw = required(r.course, "course", `race ${id}`);
+  const courseName = stripCourseSuffix(courseRaw);
+  const offDt = parseOffDt(r.off_dt, `race ${id}`);
+  const raceDate = raceDateFromOffDt(offDt);
+  const offTime = offTime24(offDt);
+  const name = required(r.race_name, "race_name", `race ${id}`);
+
+  const going = str(r.going);
+  const surfaceRaw = str(r.surface);
 
   return {
-    id: String(pick(r, ["race_id", "id"])),
-    courseId: pick(r, ["course_id"]) ? String(pick(r, ["course_id"])) : null,
+    id,
+    courseId: str(r.course_id),
     courseName,
-    courseSlug,
+    courseSlug: slugify(courseName),
+
     raceDate,
     offTime,
-    offDt: toOffInstant(raceDate, offTime),
+    offDt,
+
     name,
     slug: raceSlug(offTime, name),
-    distance,
-    distanceF: parseDistanceFurlongs(distance),
+
+    distance: str(r.distance), // "0m5f0y"
+    distanceRound: str(r.distance_round), // "5f" — display
+    distanceF: num(r.distance_f),
+
     going,
+    goingDetailed: str(r.going_detailed),
     goingBand: normaliseGoing(going),
-    surface: isAllWeather(surfaceRaw, going) ? "aw" : "turf",
-    raceType: pick<string>(r, ["type", "race_type"]) ?? null,
-    raceClass: pick<string>(r, ["race_class", "class"]) ?? null,
-    pattern: pick<string>(r, ["pattern", "grade"]) ?? null,
-    ageBand: pick<string>(r, ["age_band", "age"]) ?? null,
-    ratingBand: pick<string>(r, ["rating_band"]) ?? null,
-    sexRestriction: pick<string>(r, ["sex_rest", "sex_restriction"]) ?? null,
-    prize,
-    prizeValue: prize ? int(prize.replace(/[£,]/g, "")) : null,
-    fieldSize: int(pick(r, ["field_size", "runners_count"])),
-    status: "upcoming" as const,
+    surface: isAllWeather(surfaceRaw, going) || /\(AW\)/i.test(courseRaw) ? "aw" : "turf",
+
+    raceType: str(r.type),
+    raceClass: str(r.race_class),
+    pattern: str(r.pattern),
+    ageBand: str(r.age_band),
+    ratingBand: str(r.rating_band),
+    sexRestriction: str(r.sex_restriction),
+
+    region: str(r.region),
+    stalls: str(r.stalls),
+    railMovements: str(r.rail_movements),
+    weather: str(r.weather),
+    jumps: str(r.jumps),
+
+    prize: str(r.prize),
+    prizeValue: parsePrizePence(r.prize),
+    fieldSize: int(r.field_size),
+
     raw: r,
   };
 }
 
+/** "£5,400" -> 540000 pence. Null rather than 0 when absent. */
+export function parsePrizePence(prize: unknown): number | null {
+  const s = str(prize);
+  if (s === null) return null;
+  const n = parseFloat(s.replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) ? Math.round(n * 100) : null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Runners — /v1/racecards/pro                                                 */
+/* -------------------------------------------------------------------------- */
+
 export function mapRunner(raceId: string, h: Raw) {
-  const weight = pick<string>(h, ["lbs", "weight", "weight_lbs"]) ?? null;
-  const sp = pick<string>(h, ["sp", "sp_dec", "starting_price"]) ?? null;
-  const position = pick<string>(h, ["position", "pos", "finish_position"]) ?? null;
-  const posNum = position && /^\d+$/.test(String(position)) ? parseInt(String(position), 10) : null;
+  const horseId = required(h.horse_id, "horse_id", `runner in race ${raceId}`);
+  const numberRaw = str(h.number);
+
+  // Confirmed: non-runners are flagged only by number === "NR".
+  const isNonRunner = numberRaw !== null && numberRaw.toUpperCase() === "NR";
+
+  const t14 = (h.trainer_14_days ?? {}) as Raw;
+  const best = bestOdds(h.odds);
 
   return {
     raceId,
-    horseId: String(pick(h, ["horse_id", "id"])),
-    horseName: pick<string>(h, ["horse", "horse_name", "name"]) ?? "Unknown",
+    horseId,
+    horseName: stripHorseCountry(required(h.horse, "horse", `runner ${horseId}`)),
 
-    jockeyId: pick(h, ["jockey_id"]) ? String(pick(h, ["jockey_id"])) : null,
-    jockeyName: pick<string>(h, ["jockey"]) ?? null,
-    trainerId: pick(h, ["trainer_id"]) ? String(pick(h, ["trainer_id"])) : null,
-    trainerName: pick<string>(h, ["trainer"]) ?? null,
-    ownerId: pick(h, ["owner_id"]) ? String(pick(h, ["owner_id"])) : null,
-    ownerName: pick<string>(h, ["owner"]) ?? null,
+    jockeyId: str(h.jockey_id),
+    jockeyName: str(h.jockey),
+    trainerId: str(h.trainer_id),
+    trainerName: str(h.trainer),
+    ownerId: str(h.owner_id),
+    ownerName: str(h.owner),
 
-    number: int(pick(h, ["number", "no", "cloth_number"])),
-    draw: int(pick(h, ["draw", "stall"])),
-    age: int(pick(h, ["age"])),
-    weight: typeof weight === "string" ? weight : null,
-    weightLbs: typeof weight === "string" ? parseWeightLbs(weight) : int(weight),
-    headgear: pick<string>(h, ["headgear", "hg"]) ?? null,
-    headgearFirstTime: /1$|first/i.test(String(pick(h, ["headgear_run", "headgear"]) ?? "")),
+    number: isNonRunner ? null : int(numberRaw),
+    draw: int(h.draw),
+    age: int(h.age),
+    weight: str(h.lbs), // pro racecards publish lbs directly
+    weightLbs: int(h.lbs),
 
-    ofr: int(pick(h, ["ofr", "or", "official_rating"])),
-    rpr: int(pick(h, ["rpr"])),
-    ts: int(pick(h, ["ts", "topspeed"])),
+    headgear: str(h.headgear),
+    // headgear_run is its own field — "1" means first time in this headgear.
+    // The old mapper regexed the headgear string itself, which conflated
+    // "blinkers1" with any code ending in 1.
+    headgearFirstTime: str(h.headgear_run) === "1",
 
-    form: pick<string>(h, ["form"]) ?? null,
-    lastRun: int(pick(h, ["last_run", "days_since_last_run"])),
-    silkUrl: pick<string>(h, ["silk_url", "silk"]) ?? null,
-    comment: pick<string>(h, ["comment", "spotlight", "analyst_comment"]) ?? null,
+    ofr: int(h.ofr),
+    rpr: int(h.rpr),
+    ts: int(h.ts),
+    performanceRating: int(h.performance_rating),
+    speedRating: int(h.speed_rating),
 
-    isNonRunner: Boolean(pick(h, ["is_non_runner", "non_runner"], false)),
-    odds: pick(h, ["odds", "prices"]) ?? null,
+    form: str(h.form),
+    lastRun: int(h.last_run),
+    silkUrl: str(h.silk_url),
+    comment: str(h.spotlight) ?? str(h.comment),
 
-    position: position ? String(position) : null,
-    positionNum: posNum,
-    beatenBy: pick<string>(h, ["btn", "beaten_by"]) ?? null,
-    ovrBtn: num(pick(h, ["ovr_btn", "overall_beaten"])),
-    sp: sp ? String(sp) : null,
-    spDec: parseSpDecimal(sp ? String(sp) : null),
+    trainer14Runs: int(t14.runs),
+    trainer14Wins: int(t14.wins),
+    trainer14Percent: num(t14.percent),
+    trainerRtf: num(h.trainer_rtf),
+
+    windSurgery: str(h.wind_surgery),
+    windSurgeryRun: str(h.wind_surgery_run),
+
+    isNonRunner,
+
+    odds: h.odds ?? null,
+    bestOddsDec: best.dec,
+    bestOddsFrac: best.frac,
+    bestOddsBookmaker: best.bookmaker,
+    ewPlaces: best.ewPlaces,
+    ewDenom: best.ewDenom,
+    oddsUpdatedAt: best.updatedAt,
 
     raw: h,
   };
 }
 
-/** The runners array has appeared under different keys across tiers. */
-export function extractRunners(race: Raw): Raw[] {
-  for (const key of ["runners", "horses", "entries", "declarations"]) {
-    if (Array.isArray(race?.[key])) return race[key];
-  }
-  return [];
+/** "Goliath Power (FR)" -> "Goliath Power". Results append origin, racecards don't. */
+export function stripHorseCountry(name: string): string {
+  return name.replace(/\s*\((?:GB|IRE|FR|USA|GER|ITY|SPA|JPN|AUS|NZ|CAN|ARG|BRZ|SAF|UAE|TUR|POL|CZE|HUN|SWE|NOR|DEN|BEL|NED|SWI|GRE|RUS)\)\s*$/i, "").trim();
 }
 
-/** The racecards array likewise. */
+export interface BestOdds {
+  dec: number | null;
+  frac: string | null;
+  bookmaker: string | null;
+  ewPlaces: number | null;
+  ewDenom: number | null;
+  updatedAt: Date | null;
+}
+
+/**
+ * Betting exchanges. Excluded from "best price".
+ *
+ * Probe 2026-08-26 showed these quoting 55.0 on a runner whose best genuine
+ * bookmaker price was 25/1. Exchange prices are pre-commission, frequently
+ * unmatched at the displayed level on small fields, and their `fractional`
+ * field is just the decimal restated ("55", not "55/1"). Publishing one as the
+ * price a punter can take would be plainly misleading — and on a gambling
+ * affiliate site that is a compliance problem, not just a data problem.
+ *
+ * They stay in the `odds` jsonb; they simply never become the headline price.
+ */
+const EXCHANGES = new Set(["matchbook", "smarkets", "betfair exchange", "betdaq"]);
+
+function isExchange(bookmaker: string | null): boolean {
+  return bookmaker !== null && EXCHANGES.has(bookmaker.trim().toLowerCase());
+}
+
+/**
+ * Pick the best bookmaker price, and the each-way terms, from the odds array.
+ *
+ * Each-way terms are taken by consensus rather than from whichever book
+ * happens to be top-priced: places and fraction are effectively a property of
+ * the race, and the best-priced book often publishes none at all. Taking the
+ * modal terms means a runner priced at an exchange-free best of 25/1 still
+ * records the 3 places at 1/5 that every sportsbook in the list is offering.
+ */
+export function bestOdds(odds: unknown): BestOdds {
+  const empty: BestOdds = {
+    dec: null, frac: null, bookmaker: null,
+    ewPlaces: null, ewDenom: null, updatedAt: null,
+  };
+  if (!Array.isArray(odds) || odds.length === 0) return empty;
+
+  let best: BestOdds = empty;
+  const termCounts = new Map<string, number>();
+
+  for (const o of odds as Raw[]) {
+    const bookmaker = str(o.bookmaker);
+    const dec = num(o.decimal);
+
+    // Consensus each-way terms across every sportsbook that publishes them.
+    const places = int(o.ew_places);
+    const denom = int(o.ew_denom);
+    if (places !== null && places > 0 && denom !== null && denom > 0) {
+      const key = `${places}:${denom}`;
+      termCounts.set(key, (termCounts.get(key) ?? 0) + 1);
+    }
+
+    if (dec === null || dec <= 1) continue;
+    if (isExchange(bookmaker)) continue;
+    if (best.dec !== null && dec <= best.dec) continue;
+
+    const updated = str(o.updated);
+    // "2026-08-26 13:14:08" is London wall-clock with no offset; the space
+    // separator also has to become "T" before Date will parse it reliably.
+    const updatedAt = updated ? new Date(updated.replace(" ", "T") + "Z") : null;
+
+    best = {
+      dec,
+      frac: str(o.fractional),
+      bookmaker,
+      ewPlaces: null,
+      ewDenom: null,
+      updatedAt: updatedAt && !Number.isNaN(updatedAt.getTime()) ? updatedAt : null,
+    };
+  }
+
+  let topTerms: string | null = null;
+  let topCount = 0;
+  for (const [key, count] of termCounts) {
+    if (count > topCount) { topTerms = key; topCount = count; }
+  }
+  if (topTerms) {
+    const [places, denom] = topTerms.split(":").map((n) => parseInt(n, 10));
+    best.ewPlaces = places;
+    best.ewDenom = denom;
+  }
+
+  return best;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Results — /v1/results                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Result fields for an existing race row.
+ *
+ * Deliberately partial: it never returns `status: "upcoming"`, never rewrites
+ * the slug, and never touches courseSlug/raceDate. A racecard becomes a result
+ * in place, on the same URL, and a later racecard sweep must not be able to
+ * revert a settled race.
+ */
+export function mapResultRace(r: Raw) {
+  const id = required(r.race_id, "race_id", "result");
+  return {
+    id,
+    going: str(r.going),
+    winningTimeDetail: str(r.winning_time_detail),
+    nonRunnersText: str(r.non_runners),
+    comments: str(r.comments),
+    toteWin: str(r.tote_win),
+    toteCsf: str(r.tote_csf),
+    status: "result" as const,
+    resultAt: new Date(),
+  };
+}
+
+/**
+ * Result fields for an existing runner row, matched on (race_id, horse_id).
+ *
+ * Note the key differences from the racecard shape: `or` not `ofr`, `tsr` not
+ * `ts`, `weight_lbs` not `lbs`.
+ */
+export function mapResultRunner(raceId: string, h: Raw) {
+  const horseId = required(h.horse_id, "horse_id", `result runner in race ${raceId}`);
+  const position = str(h.position);
+
+  return {
+    raceId,
+    horseId,
+    position,
+    positionNum: position && /^\d+$/.test(position) ? parseInt(position, 10) : null,
+    beatenBy: str(h.btn),
+    ovrBtn: num(h.ovr_btn),
+    sp: position === null ? null : str(h.sp), // "9/4F" as published
+    spDec: num(h.sp_dec),
+    bsp: num(h.bsp),
+    prize: str(h.prize),
+    ofr: int(h.or),
+    rpr: int(h.rpr),
+    ts: int(h.tsr),
+    performanceRating: int(h.performance_rating),
+    speedRating: int(h.speed_rating),
+    weight: str(h.weight),
+    weightLbs: int(h.weight_lbs),
+    jockeyClaimLbs: int(h.jockey_claim_lbs),
+    comment: str(h.comment),
+  };
+}
+
+/**
+ * Strip the favourite marker from an SP.
+ *
+ * The API returns "9/4F", "5/2JF", "3/1CF". parsePrice() in lib/tips.ts would
+ * reject those outright, so the marker comes off before any price parsing.
+ */
+export function stripFavouriteMarker(sp: string | null): string | null {
+  const s = str(sp);
+  return s === null ? null : s.replace(/\s*(?:J|C)?F$/i, "").trim() || null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Envelopes                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/** Confirmed: /racecards/pro returns { racecards: [...] }. */
 export function extractRaces(payload: Raw): Raw[] {
   if (Array.isArray(payload)) return payload;
-  for (const key of ["racecards", "races", "results", "data"]) {
-    if (Array.isArray(payload?.[key])) return payload[key];
-  }
-  return [];
+  if (Array.isArray(payload?.racecards)) return payload.racecards;
+  if (Array.isArray(payload?.results)) return payload.results;
+  throw new Error(
+    "Unrecognised racecards payload: expected { racecards: [...] } or " +
+      `{ results: [...] }, got keys [${Object.keys(payload ?? {}).join(", ")}].`
+  );
+}
+
+/** Confirmed: runners live under `runners` on both racecards and results. */
+export function extractRunners(race: Raw): Raw[] {
+  if (Array.isArray(race?.runners)) return race.runners;
+  throw new Error(
+    `Race ${race?.race_id ?? "?"} has no runners array (keys: ` +
+      `[${Object.keys(race ?? {}).join(", ")}]).`
+  );
 }
