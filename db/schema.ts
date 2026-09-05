@@ -217,3 +217,95 @@ export const ingestRuns = pgTable("ingest_runs", {
   runnersSeen: integer("runners_seen").default(0),
   error: text("error"),
 });
+
+/* ------------------------------------------------------------------------- *
+ * Tips
+ *
+ * The tip is the product. Everything here is shaped by one requirement: the
+ * public record has to be defensible. That means a tip is immutable once
+ * published and settlement is derived, never typed in.
+ *
+ * - `advisedPrice` is captured at publish time and never updated. The record
+ *   must show the price that was actually advised, not the price the horse
+ *   went off at. Retro-fitting a better price is how tipping records become
+ *   fiction.
+ * - Settlement is computed from `runners.position` by settleTip() in
+ *   lib/tips.ts. Nobody hand-enters a result.
+ * - A non-runner voids the tip and returns the stake. It is not a loss, and
+ *   counting it as one understates the record just as badly as deleting it
+ *   would overstate it.
+ * - `source` separates human tips from model tips so both can run over the
+ *   same races and be scored against each other on identical maths. That
+ *   comparison is the entire point of building the model.
+ * ------------------------------------------------------------------------- */
+
+export const tipsters = pgTable(
+  "tipsters",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    role: text("role"),
+    bio: text("bio"),
+    avatarUrl: text("avatar_url"),
+    isModel: boolean("is_model").default(false).notNull(),
+    active: boolean("active").default(true).notNull(),
+  },
+  (t) => ({ slugIdx: uniqueIndex("tipsters_slug_idx").on(t.slug) })
+);
+
+export const tips = pgTable(
+  "tips",
+  {
+    id: text("id").primaryKey(),
+
+    tipsterId: text("tipster_id")
+      .notNull()
+      .references(() => tipsters.id),
+
+    raceId: text("race_id")
+      .notNull()
+      .references(() => races.id, { onDelete: "cascade" }),
+    horseId: text("horse_id").notNull(),
+    horseName: text("horse_name").notNull(),
+
+    raceDate: date("race_date").notNull(), // denormalised: every record query filters on it
+
+    // nap | next-best | each-way | lucky15 | acca | model
+    category: text("category").notNull(),
+
+    betType: text("bet_type").default("win").notNull(), // win | each-way
+    stakePoints: real("stake_points").default(1).notNull(), // per part, so 1pt e/w costs 2pt
+    ewPlaces: integer("ew_places"), // places paid, as advised
+    ewFraction: real("ew_fraction"), // 0.2 = 1/5, 0.25 = 1/4
+
+    advisedPrice: text("advised_price"), // "7/2" exactly as published
+    advisedPriceDec: real("advised_price_dec"), // 4.5
+
+    reasoning: text("reasoning"),
+    factors: jsonb("factors"), // string[] — the chips shown under the tip
+
+    // human | model
+    source: text("source").default("human").notNull(),
+    modelVersion: text("model_version"),
+    confidence: real("confidence"), // model's own probability, 0..1
+
+    publishedAt: timestamp("published_at", { withTimezone: true }).defaultNow().notNull(),
+
+    // ---- settlement, written by settleTip(), never by hand ----
+    // pending | won | placed | lost | void
+    status: text("status").default("pending").notNull(),
+    returnsPoints: real("returns_points"), // total returned incl. stake
+    profitPoints: real("profit_points"), // returns - outlay
+    settledAt: timestamp("settled_at", { withTimezone: true }),
+  },
+  (t) => ({
+    // One tip per tipster per race. A tipster cannot quietly hold two opinions
+    // on the same race and report whichever one won.
+    oneTipPerRace: uniqueIndex("tips_tipster_race_idx").on(t.tipsterId, t.raceId),
+    dateIdx: index("tips_date_idx").on(t.raceDate),
+    statusIdx: index("tips_status_idx").on(t.status),
+    raceIdx: index("tips_race_idx").on(t.raceId),
+    tipsterDateIdx: index("tips_tipster_date_idx").on(t.tipsterId, t.raceDate),
+  })
+);

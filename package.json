@@ -11,7 +11,8 @@
     "db:studio": "drizzle-kit studio",
     "probe": "tsx --env-file=.env.local scripts/probe.ts",
     "ingest:racecards": "tsx --env-file=.env.local scripts/ingest-racecards.ts",
-    "ingest:courses": "tsx --env-file=.env.local scripts/ingest-courses.ts"
+    "ingest:courses": "tsx --env-file=.env.local scripts/ingest-courses.ts",
+    "test:tips": "tsx scripts/test-tips.ts"
   },
   "dependencies": {
     "next": "^15.1.6",
