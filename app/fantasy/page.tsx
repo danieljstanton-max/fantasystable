@@ -20,7 +20,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { currentUser } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import { BUDGET, N_HORSES, N_JOCKEYS } from "@/lib/game-pricing";
 import { db, sessions, stables, users } from "@/db";
 import { eq, gt, sql } from "drizzle-orm";
@@ -40,11 +39,11 @@ export default async function FantasyHome({
   searchParams: Promise<{ preview?: string }>;
 }) {
   const { preview } = await searchParams;
-  // A signed-in visitor has no reason to see the pitch — send them to their
-  // stable. `?preview=1` bypasses the redirect while we're iterating on the
-  // marketing copy from a signed-in session.
-  if (!preview && (await currentUser())) redirect("/game");
-
+  // The homepage is the front door for everyone — signed-in players see the
+  // same page but with a "Go to your stable" CTA in place of "Build your
+  // stable". No auto-redirect off the domain root; that was silently
+  // hiding the marketing page from anyone with a session cookie.
+  const me = preview ? null : await currentUser();
   const stats = await loadHomeStats();
 
   return (
@@ -60,10 +59,10 @@ export default async function FantasyHome({
         } as React.CSSProperties
       }
     >
-      <Hero />
+      <Hero signedIn={!!me} />
       <LiveStats stats={stats} />
       <HowItWorks />
-      <SecondCta />
+      <SecondCta signedIn={!!me} />
       <Footer />
     </main>
   );
@@ -145,7 +144,7 @@ function LiveStats({ stats }: { stats: HomeStats }) {
 
 /* ---------------------------------------------------------------- hero */
 
-function Hero() {
+function Hero({ signedIn }: { signedIn: boolean }) {
   return (
     <section
       className="relative overflow-hidden pb-10 pt-6 sm:pb-16 sm:pt-10"
@@ -157,11 +156,20 @@ function Hero() {
       }}
     >
       <div className="mx-auto flex max-w-3xl flex-col items-center px-4 text-center">
+        {/* Brand mark first — the logo is the anchor of the homepage
+            identity, not the wordmark in the H1. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/img/logo.png"
+          alt="Fantasy Stable"
+          className="mb-4 h-24 w-auto drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)] sm:mb-6 sm:h-32"
+        />
+
         <div className="rounded-full bg-white px-4 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[var(--slate)] shadow-[0_2px_8px_rgba(23,48,60,0.08)]">
           Free-to-play · A new card every Saturday
         </div>
 
-        <h1 className="mt-4 text-[30px] font-extrabold uppercase leading-[0.95] tracking-tight text-[var(--slate)] drop-shadow-[0_2px_2px_rgba(255,255,255,0.6)] sm:text-[46px]">
+        <h1 className="mt-4 text-[26px] font-extrabold uppercase leading-[0.95] tracking-tight text-[var(--slate)] drop-shadow-[0_2px_2px_rgba(255,255,255,0.6)] sm:text-[40px]">
           Build Your Stable.
           <br />
           Beat Your Mates.
@@ -175,17 +183,19 @@ function Hero() {
         </p>
 
         <Link
-          href="/game/sign-in"
+          href={signedIn ? "/game" : "/game/sign-in"}
           className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(180deg,#1adc86,#04b56b)] px-8 py-3.5 text-[15px] font-extrabold text-white shadow-[0_6px_16px_rgba(4,181,107,0.35)]"
         >
-          Build your stable
+          {signedIn ? "Go to my stable" : "Build your stable"}
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden>
             <path d="M4 2.5 7.5 6 4 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </Link>
-        <p className="mt-3 text-[12px] font-semibold text-[var(--slate)] opacity-70">
-          Sign in with Google or a one-time email link. No password.
-        </p>
+        {!signedIn && (
+          <p className="mt-3 text-[12px] font-semibold text-[var(--slate)] opacity-70">
+            Sign in with Google or a one-time email link. No password.
+          </p>
+        )}
       </div>
 
       {/* A gentle vignette at the foot so the illustration blends into the
@@ -251,22 +261,21 @@ function HowItWorks() {
 
 /* ------------------------------------------------------------ second CTA */
 
-function SecondCta() {
+function SecondCta({ signedIn }: { signedIn: boolean }) {
   return (
     <section className="bg-[#eef2f6] px-4 py-14 sm:py-20">
       <div className="mx-auto max-w-2xl text-center">
         <h2 className="text-[26px] font-extrabold leading-tight tracking-tight text-[var(--slate)] sm:text-[34px]">
-          Ready to build your stable?
+          {signedIn ? "Card open — head to your stable." : "Ready to build your stable?"}
         </h2>
         <p className="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-[var(--slate-soft)]">
-          A card goes up every Saturday. Sign in with your email — the link is single-use and
-          expires in fifteen minutes.
+          A card goes up every Saturday. Sign in with Google or a one-time email link.
         </p>
         <Link
-          href="/game/sign-in"
+          href={signedIn ? "/game" : "/game/sign-in"}
           className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(180deg,#1adc86,#04b56b)] px-8 py-3.5 text-[15px] font-extrabold text-white shadow-[0_6px_16px_rgba(4,181,107,0.35)]"
         >
-          Sign in to play
+          {signedIn ? "Go to my stable" : "Sign in to play"}
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden>
             <path d="M4 2.5 7.5 6 4 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
