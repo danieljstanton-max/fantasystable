@@ -52,6 +52,20 @@ Five conditions. All five firing is the five-star case.
 Steps 1–3: the horse is well treated. Step 4: today is the day. Step 5:
 confirmation.
 
+## Trainer form
+
++2 for a hot yard, −2 for a cold one. Decided by Dan 2026-08-27.
+
+Thresholds are taken from the live distribution across 375 upcoming runners
+whose trainer had a usable sample: mean 12.6%, median 12.0%, 20th percentile
+5%, 80th percentile 20%. So **hot is 20%+** and **cold is 5% or below** — the
+top and bottom fifth, derived rather than picked.
+
+`MIN_TRAINER_RUNS = 10` matters more than the thresholds. A yard with one
+runner and one winner is not on a 100% strike rate. Below the minimum the
+signal does not fire in either direction, so roughly half of runners get no
+trainer signal at all — the honest outcome rather than an invented one.
+
 ## Improvement, and big runs off the same mark
 
 Added 2026-08-27 on Dan's steer:

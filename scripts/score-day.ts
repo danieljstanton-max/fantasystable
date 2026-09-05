@@ -59,7 +59,8 @@ async function main() {
     select r.race_id, r.horse_id, r.horse_name, r.age, r.is_non_runner,
            r.ofr, r.effective_mark, r.jockey_id, r.jockey_name, r.jockey_claim_lbs,
            r.trainer_name, r.best_odds_dec, r.best_odds_frac,
-           r.headgear_first_time, r.wind_surgery_run, r.form, r.last_run
+           r.headgear_first_time, r.wind_surgery_run, r.form, r.last_run,
+           r.trainer_14_runs, r.trainer_14_wins, r.trainer_14_percent
     from runners r join races ra on ra.id = r.race_id
     where ra.race_date = ${date}`);
 
@@ -129,6 +130,9 @@ async function main() {
         headgearFirstTime: Boolean(r.headgear_first_time),
         windSurgeryFirstTime: r.wind_surgery_run === "1",
         daysSinceRun: r.last_run,
+        trainer14Runs: r.trainer_14_runs,
+        trainer14Wins: r.trainer_14_wins,
+        trainer14Percent: r.trainer_14_percent,
       };
 
       const raceForHorse: RaceToday = { ...raceToday, courseSlug: courseSlugOf(race.course_name) };

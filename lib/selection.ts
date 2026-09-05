@@ -208,6 +208,10 @@ export interface HorseToday {
   horseName: string;
   ofr: number | null;
   age?: number | null;
+  /** Trainer's last 14 days, as supplied per runner by the API. */
+  trainer14Runs?: number | null;
+  trainer14Wins?: number | null;
+  trainer14Percent?: number | null;
   jockeyId: string | null;
   bestOddsDec: number | null;
   headgearFirstTime: boolean;
@@ -665,6 +669,46 @@ export function winDrought(
 }
 
 /**
+ * Trainer form over the last fourteen days.
+ *
+ * +2 for a hot yard, -2 for a cold one, per Dan 2026-08-27.
+ *
+ * The thresholds come from the live distribution across 375 upcoming runners
+ * whose trainer had a usable sample (2026-08-27):
+ *
+ *   mean 12.6%   median 12.0%   20th percentile 5%   80th percentile 20%
+ *
+ * So HOT is the top fifth and COLD the bottom fifth — symmetric, and derived
+ * rather than picked.
+ *
+ * MIN_TRAINER_RUNS matters more than the thresholds. A yard with one runner
+ * and one winner is not on a 100% strike rate, it is on no strike rate at all.
+ * Below the minimum the signal simply does not fire, in either direction:
+ * roughly half of runners get no trainer signal, which is the honest outcome
+ * rather than inventing one.
+ */
+export const TRAINER_HOT_PCT = 20;
+export const TRAINER_COLD_PCT = 5;
+export const MIN_TRAINER_RUNS = 10;
+
+export function trainerFormSignal(
+  runs: number | null | undefined,
+  wins: number | null | undefined,
+  percent: number | null | undefined
+): Signal | null {
+  if (runs === null || runs === undefined || runs < MIN_TRAINER_RUNS) return null;
+  if (percent === null || percent === undefined) return null;
+
+  const record = `${wins ?? "?"} from ${runs} in 14 days`;
+
+  if (percent >= TRAINER_HOT_PCT)
+    return { key: "trainer-hot", label: "Yard in form", weight: 2, detail: `${percent}% — ${record}` };
+  if (percent <= TRAINER_COLD_PCT)
+    return { key: "trainer-cold", label: "Yard out of form", weight: -2, detail: `${percent}% — ${record}` };
+  return null;
+}
+
+/**
  * Time off, and what it costs.
  *
  * Added 2026-08-27 after Al Suil Eile scored five stars on tomorrow's card
@@ -770,6 +814,13 @@ export function scoreHorse(
     signals.push({ key: "headgear", label: "First-time headgear", weight: 1, detail: "yard trying something" });
   if (today.windSurgeryFirstTime)
     signals.push({ key: "wind", label: "First run after wind surgery", weight: 1, detail: "" });
+
+  const trainer = trainerFormSignal(
+    today.trainer14Runs,
+    today.trainer14Wins,
+    today.trainer14Percent
+  );
+  if (trainer) signals.push(trainer);
 
   const layoff = layoffPenalty(today.daysSinceRun);
   if (layoff) signals.push(layoff);
