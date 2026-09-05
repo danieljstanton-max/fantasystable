@@ -1,0 +1,191 @@
+/**
+ * Run the selection method against a real card.
+ *
+ *   npm run score            tomorrow
+ *   npm run score -- today
+ *   npm run score -- 2026-08-28
+ *
+ * Filters the card to qualifying handicaps, loads each runner's career from
+ * the database, scores it against docs/tipping-method.md, and prints what
+ * fired. Read-only — it stores nothing.
+ */
+
+import "dotenv/config";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { sql } from "drizzle-orm";
+
+import * as schema from "../db/schema";
+import {
+  filterRace,
+  scoreHorse,
+  starsFromScore,
+  REJECT_LABELS,
+  type PastRun,
+  type HorseToday,
+  type RaceToday,
+} from "../lib/selection";
+import { excuseUnproven, readComment, racePaceShape } from "../lib/form-reading";
+import type { GoingBand } from "../lib/going";
+
+const client = postgres(process.env.DATABASE_URL!, { max: 4, ssl: "require" });
+const db = drizzle(client, { schema });
+
+function targetDate(): string {
+  const arg = process.argv[2];
+  if (arg && /^\d{4}-\d{2}-\d{2}$/.test(arg)) return arg;
+  const d = new Date();
+  if (arg !== "today") d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+async function main() {
+  const date = targetDate();
+  console.log(`\nSCORING ${date}\n${"=".repeat(64)}`);
+
+  const raceRows: any[] = await db.execute(sql`
+    select id, course_name, off_time, name, age_band, race_class,
+           going_band, distance_f, distance_round, going, field_size
+    from races where race_date = ${date} order by off_time`);
+
+  if (!raceRows.length) {
+    console.log(`  no races stored for ${date} — run \`npm run ingest:racecards -- ${date}\``);
+    await client.end();
+    return;
+  }
+
+  const runnerRows: any[] = await db.execute(sql`
+    select r.race_id, r.horse_id, r.horse_name, r.age, r.is_non_runner,
+           r.ofr, r.effective_mark, r.jockey_id, r.jockey_name, r.jockey_claim_lbs,
+           r.trainer_name, r.best_odds_dec, r.best_odds_frac,
+           r.headgear_first_time, r.wind_surgery_run, r.form
+    from runners r join races ra on ra.id = r.race_id
+    where ra.race_date = ${date}`);
+
+  const byRace = new Map<string, any[]>();
+  for (const r of runnerRows) {
+    if (!byRace.has(r.race_id)) byRace.set(r.race_id, []);
+    byRace.get(r.race_id)!.push(r);
+  }
+
+  // Qualifying races only.
+  const eligible: any[] = [];
+  const rejected = new Map<string, number>();
+  for (const race of raceRows) {
+    const rs = byRace.get(race.id) ?? [];
+    const v = filterRace(
+      { raceName: race.name, ageBand: race.age_band, raceClass: race.race_class },
+      rs.map((x) => ({ age: x.age, isNonRunner: x.is_non_runner }))
+    );
+    if (v.eligible) eligible.push({ race, runners: rs.filter((x) => !x.is_non_runner) });
+    else rejected.set(REJECT_LABELS[v.reason!], (rejected.get(REJECT_LABELS[v.reason!]) ?? 0) + 1);
+  }
+
+  console.log(`\n  ${raceRows.length} races -> ${eligible.length} qualify`);
+  for (const [k, n] of [...rejected].sort((a, b) => b[1] - a[1]))
+    console.log(`     ${String(n).padStart(3)} rejected: ${k}`);
+
+  if (!eligible.length) { await client.end(); return; }
+
+  // Jockey strike rates over everything we hold.
+  const jockeyRows: any[] = await db.execute(sql`
+    select r.jockey_id,
+           count(*)::int rides,
+           count(*) filter (where r.position_num = 1)::int wins
+    from runners r
+    where r.jockey_id is not null and r.position is not null
+    group by r.jockey_id having count(*) >= 20`);
+  const strike = new Map<string, number>();
+  for (const j of jockeyRows) strike.set(j.jockey_id, Math.round((j.wins / j.rides) * 100));
+  const jockeyStrikeRate = (id: string) => strike.get(id) ?? null;
+
+  for (const { race, runners } of eligible) {
+    console.log(`\n${"-".repeat(64)}`);
+    console.log(`${race.course_name} ${race.off_time}  ${String(race.name).slice(0, 44)}`);
+    console.log(`${race.distance_round ?? "?"}  ${race.going ?? "?"}  ${runners.length} runners  ${race.race_class ?? ""}`);
+
+    const raceToday: RaceToday = {
+      courseSlug: "",
+      distanceF: race.distance_f,
+      goingBand: race.going_band as GoingBand,
+    };
+
+    const scored: any[] = [];
+    const styles: any[] = [];
+
+    for (const r of runners) {
+      const history = await loadHistory(r.horse_id, date);
+      const today: HorseToday = {
+        horseId: r.horse_id,
+        horseName: r.horse_name,
+        ofr: r.ofr,
+        jockeyId: r.jockey_id,
+        bestOddsDec: r.best_odds_dec,
+        headgearFirstTime: Boolean(r.headgear_first_time),
+        windSurgeryFirstTime: r.wind_surgery_run === "1",
+      };
+
+      const raceForHorse: RaceToday = { ...raceToday, courseSlug: courseSlugOf(race.course_name) };
+      const s = scoreHorse(today, raceForHorse, history, jockeyStrikeRate);
+
+      // Dan's override: unproven is not fatal if it was staying on or blocked.
+      const excuse = excuseUnproven(history.slice(0, 4).map((h) => h.comment));
+      const lastStyle = history[0] ? readComment(history[0].comment).runStyle : null;
+      styles.push(lastStyle);
+
+      scored.push({ ...s, runs: history.length, excuse, odds: r.best_odds_frac, trainer: r.trainer_name, jockey: r.jockey_name, claim: r.jockey_claim_lbs, ofr: r.ofr });
+    }
+
+    const shape = racePaceShape(styles);
+    console.log(`pace: ${shape.verdict}  (${shape.leaders} front-runners, ${shape.heldUp} held up)`);
+
+    scored.sort((a, b) => b.score - a.score);
+    const top = scored.slice(0, 4);
+    console.log("");
+    for (const s of top) {
+      const stars = "*".repeat(starsFromScore(s.score));
+      console.log(
+        `  ${String(s.horseName).slice(0, 20).padEnd(21)} ${String(s.score).padStart(2)}pt ${stars.padEnd(5)} ` +
+          `${String(s.odds ?? "-").padStart(6)}  OR ${String(s.ofr ?? "-").padStart(3)}  ${s.runs} runs`
+      );
+      for (const sig of s.signals)
+        console.log(`      + ${sig.label}: ${sig.detail}`);
+      if (s.excuse.excused)
+        console.log(`      ~ excused (${s.excuse.reason}): ${s.excuse.evidence.slice(0, 2).join(", ")}`);
+      if (!s.signals.length && !s.excuse.excused) console.log(`      (nothing fired)`);
+    }
+  }
+
+  console.log(`\n${"=".repeat(64)}\n`);
+  await client.end();
+}
+
+function courseSlugOf(name: string): string {
+  return String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+/** Every past run we hold for this horse, most recent first. */
+async function loadHistory(horseId: string, before: string): Promise<PastRun[]> {
+  const rows: any[] = await db.execute(sql`
+    select ra.race_date::text race_date, ra.course_slug, ra.distance_f,
+           ra.going_band, ra.field_size, r.position_num, r.ofr,
+           r.jockey_id, r.comment
+    from runners r join races ra on ra.id = r.race_id
+    where r.horse_id = ${horseId} and ra.race_date < ${before}
+      and r.position is not null
+    order by ra.race_date desc limit 50`);
+
+  return rows.map((x) => ({
+    raceDate: x.race_date,
+    courseSlug: x.course_slug,
+    distanceF: x.distance_f,
+    goingBand: x.going_band as GoingBand,
+    positionNum: x.position_num,
+    ofr: x.ofr,
+    fieldSize: x.field_size,
+    jockeyId: x.jockey_id,
+    comment: x.comment,
+  }));
+}
+
+main().catch((e) => { console.error("\nFailed:", e.message); process.exit(1); });

@@ -57,10 +57,13 @@ const horsesArg = args.find((a) => a === "--horses" || a.startsWith("--horses=")
 const DO_HORSES = Boolean(horsesArg);
 const HORSE_SCOPE = (horsesArg?.split("=")[1] ?? "qualifying") as
   | "qualifying"
+  | "tomorrow"
   | "declared"
   | "all";
-if (DO_HORSES && !["qualifying", "declared", "all"].includes(HORSE_SCOPE)) {
-  console.error(`\n  Unknown --horses scope "${HORSE_SCOPE}". Use qualifying, declared or all.\n`);
+if (DO_HORSES && !["qualifying", "tomorrow", "declared", "all"].includes(HORSE_SCOPE)) {
+  console.error(
+    `\n  Unknown --horses scope "${HORSE_SCOPE}". Use qualifying, tomorrow, declared or all.\n`
+  );
   process.exit(1);
 }
 
@@ -481,6 +484,53 @@ async function targetHorses(store: Store | null): Promise<Array<{ id: string; na
       for (const x of rs) if (!x.is_non_runner) out.set(x.horse_id, x.horse_name);
     }
     return [...out].map(([id, name]) => ({ id, name }));
+  }
+
+  // Tomorrow's card, ordered so horses in races that pass the filters come
+  // first. If the run is cut short, the qualifying races are already covered
+  // and the model can be tested on them.
+  if (HORSE_SCOPE === "tomorrow") {
+    const rows: any[] = await db.execute(sql`
+      select r.horse_id, r.horse_name, ra.name race_name, ra.age_band,
+             ra.race_class, r.age, r.is_non_runner
+      from runners r
+      join races ra on ra.id = r.race_id
+      left join horses h on h.id = r.horse_id
+      where ra.race_date = current_date + 1
+        and r.is_non_runner = false
+        and (h.form_fetched_at is null or h.form_fetched_at < now() - ${cutoff}::interval)`);
+
+    const byRace = new Map<string, any[]>();
+    for (const x of rows) {
+      const k = `${x.race_name}||${x.age_band ?? ""}||${x.race_class ?? ""}`;
+      if (!byRace.has(k)) byRace.set(k, []);
+      byRace.get(k)!.push(x);
+    }
+
+    const priority: Array<{ id: string; name: string }> = [];
+    const rest: Array<{ id: string; name: string }> = [];
+    const seen = new Set<string>();
+
+    for (const [k, rs] of byRace) {
+      const [raceName, ageBand, raceClass] = k.split("||");
+      const verdict = filterRace(
+        { raceName, ageBand: ageBand || null, raceClass: raceClass || null },
+        rs.map((x) => ({ age: x.age, isNonRunner: x.is_non_runner }))
+      );
+      const bucket = verdict.eligible ? priority : rest;
+      for (const x of rs) {
+        if (seen.has(x.horse_id)) continue;
+        seen.add(x.horse_id);
+        bucket.push({ id: x.horse_id, name: x.horse_name });
+      }
+    }
+
+    console.log(
+      `  tomorrow: ${priority.length} horses in qualifying races (fetched first), ` +
+        `${rest.length} others`
+    );
+    const list = [...priority, ...rest];
+    return LIMIT_HORSES > 0 ? list.slice(0, LIMIT_HORSES) : list;
   }
 
   const rows: any[] =
