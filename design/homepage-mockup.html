@@ -1,0 +1,465 @@
+<title>Blackout Racecard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@1,600;1,700;1,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+  :root{
+    --bg:#0a0a0c;
+    --surface:#141419;
+    --raised:#1c1c23;
+    --hair:#292932;
+    --txt:#f6f6f8;
+    --muted:#8b8b98;
+    --dim:#5f5f6c;
+
+    --red:#e8112d;
+    --red-hot:#ff2f47;
+    --red-dim:#8f0b1c;
+
+    --win:#22c55e;
+    --live:#22c55e;
+
+    --g-heavy:#3b6ea8; --g-soft:#4c8fa8; --g-goodsoft:#5fa88c;
+    --g-good:#7cb342; --g-goodfirm:#c9a227; --g-firm:#e08c1e; --g-aw:#6b7280;
+
+    --fd:"Kanit","Arial Narrow",sans-serif;
+    --fb:"Inter",system-ui,-apple-system,sans-serif;
+    --fm:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+
+    --r:10px;
+    --r-sm:6px;
+  }
+
+  /* This design commits to one dark world — it is the brand, not a theme.
+     Every colour is painted explicitly so it holds on any host ground. */
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:var(--fb); font-size:15px; line-height:1.5;
+    margin:0; padding:0 0 96px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:600px; margin:0 auto; padding:0 14px;}
+  h1,h2,h3{margin:0; font-family:var(--fd); font-style:italic; font-weight:800; line-height:.92; letter-spacing:-.015em; text-transform:uppercase; text-wrap:balance;}
+  .num{font-family:var(--fm); font-variant-numeric:tabular-nums;}
+  a{color:inherit; text-decoration:none;}
+  :focus-visible{outline:2px solid var(--red); outline-offset:2px; border-radius:3px;}
+
+  .mock{
+    background:var(--red); color:#fff; text-align:center;
+    font-family:var(--fm); font-size:10px; font-weight:700;
+    letter-spacing:.14em; text-transform:uppercase; padding:6px 12px;
+  }
+
+  /* ---------- header ---------- */
+  header.site{
+    position:sticky; top:0; z-index:40;
+    background:rgba(10,10,12,.92);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--hair);
+  }
+  .site-in{
+    max-width:600px; margin:0 auto; padding:12px 14px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .logo{
+    font-family:var(--fd); font-style:italic; font-weight:800;
+    font-size:20px; text-transform:uppercase; letter-spacing:-.02em; line-height:1;
+  }
+  .logo .r{color:var(--red);}
+  .burger{
+    background:var(--surface); border:1px solid var(--hair); border-radius:var(--r-sm);
+    padding:8px 10px; cursor:pointer; display:flex; flex-direction:column; gap:3.5px;
+  }
+  .burger i{display:block; width:15px; height:1.5px; background:var(--txt); border-radius:2px;}
+
+  /* ---------- section furniture ---------- */
+  section{margin-top:30px;}
+  .eyebrow{
+    display:flex; align-items:center; gap:9px;
+    font-family:var(--fm); font-size:10px; font-weight:700;
+    letter-spacing:.15em; text-transform:uppercase; color:var(--dim);
+    margin:0 0 11px;
+  }
+  .eyebrow::after{content:""; flex:1; height:1px; background:var(--hair);}
+
+  /* ---------- NAP hero ---------- */
+  .nap{
+    margin-top:16px; border-radius:var(--r); overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 100% 0%, rgba(232,17,45,.16) 0%, rgba(232,17,45,0) 62%),
+      var(--surface);
+    border:1px solid var(--hair);
+  }
+  .nap-hd{
+    display:flex; align-items:center; gap:9px;
+    padding:12px 16px; border-bottom:1px solid var(--hair);
+  }
+  .flag{
+    background:var(--red); color:#fff;
+    font-family:var(--fd); font-style:italic; font-weight:800; font-size:13px;
+    letter-spacing:.03em; text-transform:uppercase;
+    padding:4px 9px; border-radius:3px; line-height:1.15;
+  }
+  .nap-hd .dt{font-family:var(--fm); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-left:auto;}
+
+  .nap-body{padding:17px 16px 16px;}
+  .horse{font-size:clamp(38px,11.5vw,54px); margin:0 0 10px;}
+  .rl{
+    display:flex; flex-wrap:wrap; align-items:center; gap:6px;
+    font-size:13.5px; color:var(--muted); margin:0 0 16px;
+  }
+  .rl b{color:var(--txt); font-weight:600;}
+  .rl .sep{color:var(--dim);}
+
+  .buy{display:flex; gap:10px; align-items:stretch;}
+  .odds{
+    flex:0 0 auto; text-align:center; min-width:78px;
+    background:var(--raised); border:1px solid var(--hair); border-radius:var(--r-sm);
+    padding:9px 12px;
+  }
+  .odds b{display:block; font-family:var(--fm); font-size:23px; font-weight:700; line-height:1.1;}
+  .odds i{display:block; font-style:normal; font-family:var(--fm); font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); margin-top:3px;}
+  .btn{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
+    background:var(--red); color:#fff;
+    font-family:var(--fd); font-style:italic; font-weight:800; font-size:20px;
+    text-transform:uppercase; letter-spacing:.01em;
+    border:none; border-radius:var(--r-sm); padding:0 18px; cursor:pointer;
+    box-shadow:0 6px 18px rgba(232,17,45,.28);
+    transition:background .15s ease, transform .1s ease;
+  }
+  .btn:hover{background:var(--red-hot);}
+  .btn:active{transform:translateY(1px);}
+
+  .why{border-top:1px solid var(--hair); padding:15px 16px;}
+  .why .by{
+    font-family:var(--fm); font-size:10px; font-weight:700; letter-spacing:.11em;
+    text-transform:uppercase; color:var(--red); margin:0 0 8px;
+  }
+  .why p{margin:0 0 10px; font-size:14.5px; color:#d7d7de;}
+  .why p:last-of-type{margin-bottom:0;}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin:13px 0 0; padding:0; list-style:none;}
+  .tags li{
+    font-family:var(--fm); font-size:9.5px; font-weight:600; letter-spacing:.07em;
+    text-transform:uppercase; color:var(--muted);
+    background:var(--raised); border:1px solid var(--hair);
+    border-radius:99px; padding:4px 10px;
+  }
+  .fine{
+    font-size:10.5px; color:var(--dim); line-height:1.5;
+    padding:11px 16px; border-top:1px solid var(--hair);
+  }
+
+  /* ---------- next off ---------- */
+  .nextoff{
+    background:var(--surface); border:1px solid var(--hair); border-radius:var(--r);
+    padding:14px 16px; display:flex; align-items:center; gap:14px;
+    border-left:3px solid var(--live);
+  }
+  .nextoff .m{flex:1; min-width:0;}
+  .nextoff .c{font-family:var(--fd); font-style:italic; font-weight:700; font-size:20px; text-transform:uppercase; line-height:1;}
+  .nextoff .s{font-family:var(--fm); font-size:11.5px; color:var(--muted); margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .cd{text-align:right; flex-shrink:0;}
+  .cd b{display:block; font-family:var(--fm); font-size:27px; font-weight:700; color:var(--live); line-height:1;}
+  .cd i{font-style:normal; font-family:var(--fm); font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim);}
+  @media (prefers-reduced-motion:no-preference){
+    .dot{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--live); margin-right:5px; animation:pulse 1.6s ease-in-out infinite; vertical-align:middle;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  }
+  .dot{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--live); margin-right:5px; vertical-align:middle;}
+
+  /* ---------- picks ---------- */
+  .picks{display:grid; gap:8px;}
+  .pick{
+    background:var(--surface); border:1px solid var(--hair); border-radius:var(--r);
+    padding:12px 14px; display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:12px;
+    transition:border-color .15s ease;
+  }
+  .pick:hover{border-color:var(--red-dim);}
+  .pick .n{font-family:var(--fd); font-style:italic; font-weight:700; font-size:19px; text-transform:uppercase; line-height:1;}
+  .pick .d{font-family:var(--fm); font-size:11px; color:var(--muted); margin-top:5px;}
+  .pick .o{font-family:var(--fm); font-size:16px; font-weight:700;}
+  .btn-sm{
+    background:transparent; border:1.5px solid var(--red); color:var(--red);
+    font-family:var(--fd); font-style:italic; font-weight:800; font-size:13px;
+    text-transform:uppercase; border-radius:var(--r-sm); padding:6px 13px; cursor:pointer;
+    transition:background .15s ease,color .15s ease;
+  }
+  .btn-sm:hover{background:var(--red); color:#fff;}
+
+  /* ---------- record ---------- */
+  .rec{background:var(--surface); border:1px solid var(--hair); border-radius:var(--r); overflow:hidden;}
+  .rec-g{display:grid; grid-template-columns:repeat(3,1fr);}
+  .rec-c{padding:16px 10px; text-align:center; border-right:1px solid var(--hair);}
+  .rec-c:last-child{border-right:none;}
+  .rec-c b{display:block; font-family:var(--fm); font-size:26px; font-weight:700; line-height:1;}
+  .rec-c b.up{color:var(--win);}
+  .rec-c i{display:block; font-style:normal; font-family:var(--fm); font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); margin-top:6px;}
+  .rec-f{padding:11px 14px; border-top:1px solid var(--hair); display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:12px; color:var(--muted);}
+  .rec-f a{color:var(--red); font-weight:600;}
+
+  /* ---------- meetings: horizontal grid ---------- */
+  .meet{
+    background:var(--surface); border:1px solid var(--hair); border-radius:var(--r);
+    margin-bottom:8px; overflow:hidden;
+  }
+  .meet-hd{display:flex; align-items:center; gap:8px; padding:11px 14px 10px;}
+  .meet-hd .c{flex:1; font-family:var(--fd); font-style:italic; font-weight:700; font-size:18px; text-transform:uppercase; line-height:1;}
+  .going{
+    font-family:var(--fm); font-size:9px; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; padding:3.5px 8px; border-radius:99px;
+    color:#0a0a0c; white-space:nowrap;
+  }
+  .g-good{background:var(--g-good);} .g-goodfirm{background:var(--g-goodfirm);}
+  .g-goodsoft{background:var(--g-goodsoft);} .g-soft{background:var(--g-soft);}
+  .g-firm{background:var(--g-firm);} .g-aw{background:var(--g-aw); color:#f6f6f8;}
+
+  .rail{display:flex; gap:6px; overflow-x:auto; padding:0 14px 13px; scrollbar-width:none;}
+  .rail::-webkit-scrollbar{display:none;}
+  .rail a{
+    flex:0 0 auto; text-align:center;
+    background:var(--raised); border:1px solid var(--hair); border-radius:var(--r-sm);
+    padding:8px 11px; min-width:60px; transition:border-color .15s ease;
+  }
+  .rail a:hover{border-color:var(--red-dim);}
+  .rail a b{display:block; font-family:var(--fm); font-size:13px; font-weight:700; line-height:1;}
+  .rail a i{display:block; font-style:normal; font-family:var(--fm); font-size:9px; color:var(--dim); margin-top:4px;}
+  .rail a.nap{background:var(--red); border-color:var(--red);}
+  .rail a.nap b, .rail a.nap i{color:#fff;}
+
+  /* ---------- offers ---------- */
+  .off{
+    background:var(--surface); border:1px solid var(--hair); border-radius:var(--r);
+    padding:13px 14px; margin-bottom:8px;
+    display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px;
+  }
+  .off .b{font-family:var(--fd); font-style:italic; font-weight:700; font-size:17px; text-transform:uppercase; line-height:1;}
+  .off .o{font-size:13px; color:var(--muted); margin-top:5px;}
+  .off .st{font-size:10px; color:var(--red); letter-spacing:1.5px; margin-top:4px;}
+
+  /* ---------- sticky ---------- */
+  .sticky{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    background:rgba(20,20,25,.96);
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    border-top:1px solid var(--hair);
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    transform:translateY(115%);
+    transition:transform .22s cubic-bezier(.4,0,.2,1);
+  }
+  .sticky.show{transform:none;}
+  @media (prefers-reduced-motion:reduce){.sticky{transition:none;}}
+  .sticky-in{max-width:600px; margin:0 auto; display:flex; align-items:center; gap:12px;}
+  .sticky .l{flex:1; min-width:0;}
+  .sticky .l b{display:block; font-family:var(--fd); font-style:italic; font-weight:800; font-size:17px; text-transform:uppercase; line-height:1;}
+  .sticky .l i{font-style:normal; font-family:var(--fm); font-size:11px; color:var(--muted); display:block; margin-top:4px;}
+  .sticky .btn{flex:0 0 auto; padding:12px 22px; font-size:17px;}
+
+  footer{margin-top:34px; padding-top:16px; border-top:1px solid var(--hair); font-size:11.5px; color:var(--dim); line-height:1.6;}
+  .rg{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;}
+  .rg span{
+    font-family:var(--fm); font-size:9.5px; font-weight:600; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--muted);
+    border:1px solid var(--hair); border-radius:99px; padding:3.5px 9px;
+  }
+</style>
+
+<div class="mock">Design mockup — illustrative selections, not live tips</div>
+
+<header class="site">
+  <div class="site-in">
+    <div class="logo">Horse<span class="r">racing</span>tips<span class="r">.io</span></div>
+    <button class="burger" aria-label="Menu"><i></i><i></i><i></i></button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- NAP -->
+  <div class="nap">
+    <div class="nap-hd">
+      <span class="flag">Nap of the Day</span>
+      <span class="dt">Wed 26 Aug</span>
+    </div>
+    <div class="nap-body">
+      <h1 class="horse">Copper Dancer</h1>
+      <p class="rl">
+        <b class="num">15:15</b> <b>Catterick</b>
+        <span class="sep">/</span> <span>Victoria Melling Handicap</span>
+        <span class="sep">/</span> <span class="num">6f</span>
+        <span class="sep">/</span> <span>Good</span>
+      </p>
+      <div class="buy">
+        <div class="odds"><b class="num">7/2</b><i>Best</i></div>
+        <a class="btn" href="#">Back it &rsaquo;</a>
+      </div>
+    </div>
+    <div class="why">
+      <p class="by">Dan Stanton</p>
+      <p>Drops back to six furlongs for the first time since March, and that's where every one of his best figures was posted. Beaten a length over seven here last time when the pace collapsed in front — the extra speed in this line-up suits him far better.</p>
+      <p>Course-and-distance winner, and Doyle takes over having ridden him to his only win of the season.</p>
+      <ul class="tags">
+        <li>C&amp;D winner</li><li>Drop in trip</li><li>Jockey upgrade</li><li>Pace suits</li><li>Proven good</li>
+      </ul>
+    </div>
+    <p class="fine">#ad 18+ only. Prices correct at 13:52 and subject to change. Please gamble responsibly — BeGambleAware.org</p>
+  </div>
+
+  <!-- NEXT OFF -->
+  <section>
+    <p class="eyebrow"><span class="dot"></span>Next off</p>
+    <div class="nextoff">
+      <div class="m">
+        <div class="c">Wolverhampton</div>
+        <div class="s num">14:00 · Apprentice Handicap · 7 runners</div>
+      </div>
+      <div class="cd"><b class="num" id="cd">07:41</b><i>to post</i></div>
+    </div>
+  </section>
+
+  <!-- PICKS -->
+  <section>
+    <p class="eyebrow">Also on the card</p>
+    <div class="picks">
+      <div class="pick">
+        <div><div class="n">Winter Harbour</div><div class="d">16:10 NEWBURY · E/W 5 PLACES</div></div>
+        <div class="o num">11/1</div><a class="btn-sm" href="#">Back</a>
+      </div>
+      <div class="pick">
+        <div><div class="n">Marching Order</div><div class="d">17:35 BELLEWSTOWN · WIN ONLY</div></div>
+        <div class="o num">9/4</div><a class="btn-sm" href="#">Back</a>
+      </div>
+      <div class="pick">
+        <div><div class="n">Gallant Ledger</div><div class="d">19:21 KEMPTON · E/W 3 PLACES</div></div>
+        <div class="o num">6/1</div><a class="btn-sm" href="#">Back</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECORD -->
+  <section>
+    <p class="eyebrow">The record — every bet published</p>
+    <div class="rec">
+      <div class="rec-g">
+        <div class="rec-c"><b class="num">30</b><i>Naps</i></div>
+        <div class="rec-c"><b class="num">9</b><i>Winners</i></div>
+        <div class="rec-c"><b class="num up">+11.4%</b><i>ROI</i></div>
+      </div>
+      <div class="rec-f"><span>Last 30 days, level stakes to SP</span><a href="#">Full record &rsaquo;</a></div>
+    </div>
+  </section>
+
+  <!-- MEETINGS -->
+  <section>
+    <p class="eyebrow">Today's racing</p>
+
+    <div class="meet">
+      <div class="meet-hd"><span class="c">Wolverhampton</span><span class="going g-aw">Tapeta · Std</span></div>
+      <div class="rail">
+        <a href="#"><b class="num">14:00</b><i class="num">7 rnr</i></a>
+        <a href="#"><b class="num">14:30</b><i class="num">11 rnr</i></a>
+        <a href="#"><b class="num">15:00</b><i class="num">9 rnr</i></a>
+        <a href="#"><b class="num">15:30</b><i class="num">7 rnr</i></a>
+        <a href="#"><b class="num">16:00</b><i class="num">11 rnr</i></a>
+        <a href="#"><b class="num">16:35</b><i class="num">12 rnr</i></a>
+        <a href="#"><b class="num">17:10</b><i class="num">8 rnr</i></a>
+      </div>
+    </div>
+
+    <div class="meet">
+      <div class="meet-hd"><span class="c">Catterick</span><span class="going g-good">Good</span></div>
+      <div class="rail">
+        <a href="#"><b class="num">14:15</b><i class="num">9 rnr</i></a>
+        <a href="#"><b class="num">14:45</b><i class="num">8 rnr</i></a>
+        <a href="#" class="nap"><b class="num">15:15</b><i>NAP</i></a>
+        <a href="#"><b class="num">15:45</b><i class="num">8 rnr</i></a>
+        <a href="#"><b class="num">16:15</b><i class="num">9 rnr</i></a>
+        <a href="#"><b class="num">16:52</b><i class="num">13 rnr</i></a>
+      </div>
+    </div>
+
+    <div class="meet">
+      <div class="meet-hd"><span class="c">Bellewstown</span><span class="going g-goodsoft">Good to Yielding</span></div>
+      <div class="rail">
+        <a href="#"><b class="num">15:51</b><i class="num">14 rnr</i></a>
+        <a href="#"><b class="num">16:25</b><i class="num">15 rnr</i></a>
+        <a href="#"><b class="num">17:00</b><i class="num">19 rnr</i></a>
+        <a href="#"><b class="num">17:35</b><i class="num">13 rnr</i></a>
+        <a href="#"><b class="num">18:05</b><i class="num">7 rnr</i></a>
+        <a href="#"><b class="num">18:38</b><i class="num">18 rnr</i></a>
+        <a href="#"><b class="num">19:08</b><i class="num">17 rnr</i></a>
+        <a href="#"><b class="num">19:38</b><i class="num">14 rnr</i></a>
+      </div>
+    </div>
+
+    <div class="meet">
+      <div class="meet-hd"><span class="c">Newbury</span><span class="going g-goodfirm">Good to Firm</span></div>
+      <div class="rail">
+        <a href="#"><b class="num">16:10</b><i class="num">15 rnr</i></a>
+        <a href="#"><b class="num">16:45</b><i class="num">10 rnr</i></a>
+        <a href="#"><b class="num">17:20</b><i class="num">9 rnr</i></a>
+        <a href="#"><b class="num">17:55</b><i class="num">11 rnr</i></a>
+        <a href="#"><b class="num">18:30</b><i class="num">12 rnr</i></a>
+        <a href="#"><b class="num">19:00</b><i class="num">6 rnr</i></a>
+        <a href="#"><b class="num">19:30</b><i class="num">8 rnr</i></a>
+      </div>
+    </div>
+
+    <div class="meet">
+      <div class="meet-hd"><span class="c">Kempton</span><span class="going g-aw">Polytrack · Std</span></div>
+      <div class="rail">
+        <a href="#"><b class="num">18:20</b><i class="num">8 rnr</i></a>
+        <a href="#"><b class="num">18:51</b><i class="num">7 rnr</i></a>
+        <a href="#"><b class="num">19:21</b><i class="num">10 rnr</i></a>
+        <a href="#"><b class="num">19:51</b><i class="num">8 rnr</i></a>
+        <a href="#"><b class="num">20:21</b><i class="num">11 rnr</i></a>
+        <a href="#"><b class="num">20:51</b><i class="num">11 rnr</i></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- OFFERS -->
+  <section>
+    <p class="eyebrow">Where to back it</p>
+    <div class="off"><div><div class="b">QuinnBet</div><div class="o">50% back up to £25</div><div class="st">★★★★</div></div><a class="btn-sm" href="#">Claim</a></div>
+    <div class="off"><div><div class="b">BetVictor</div><div class="o">Bet £10 get £30 in free bets</div><div class="st">★★★★</div></div><a class="btn-sm" href="#">Claim</a></div>
+    <div class="off"><div><div class="b">Midnite</div><div class="o">Bet £10 get £30 in free bets</div><div class="st">★★★★★</div></div><a class="btn-sm" href="#">Claim</a></div>
+    <p class="fine" style="border:none; padding-left:0;">#ad 18+ New customers only. T&amp;Cs apply. BeGambleAware.org</p>
+  </section>
+
+  <footer>
+    <div class="rg"><span>18+</span><span>BeGambleAware</span><span>GamStop</span><span>GamCare</span><span>Gambling Commission</span></div>
+    Tips are opinion, not guarantees. Never bet more than you can afford to lose.
+  </footer>
+</div>
+
+<div class="sticky">
+  <div class="sticky-in">
+    <div class="l"><b>Copper Dancer</b><i class="num">15:15 Catterick · 7/2</i></div>
+    <a class="btn" href="#">Back &rsaquo;</a>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var el=document.getElementById('cd'); if(!el) return;
+    var s=7*60+41;
+    function p(){ if(s<0){el.textContent='OFF';return;}
+      var m=Math.floor(s/60),x=s%60;
+      el.textContent=(m<10?'0':'')+m+':'+(x<10?'0':'')+x; s--; }
+    p(); setInterval(p,1000);
+  })();
+
+  // The sticky bar only earns its space once the NAP has scrolled away —
+  // otherwise it repeats a CTA that is already on screen.
+  (function(){
+    var nap=document.querySelector('.nap'), bar=document.querySelector('.sticky');
+    if(!nap||!bar) return;
+    if(!('IntersectionObserver' in window)){ bar.classList.add('show'); return; }
+    new IntersectionObserver(function(es){
+      bar.classList.toggle('show', !es[0].isIntersecting);
+    },{rootMargin:'-70px 0px 0px 0px'}).observe(nap);
+  })();
+</script>
