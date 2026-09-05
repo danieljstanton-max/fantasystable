@@ -259,7 +259,7 @@ async function loadHistory(horseId: string, before: string): Promise<PastRun[]> 
   const rows: any[] = await db.execute(sql`
     select ra.race_date::text race_date, ra.course_slug, ra.distance_f,
            ra.going_band, ra.field_size, ra.race_type, r.position_num, r.ofr, r.ovr_btn, r.age,
-           r.jockey_id, r.comment
+           r.jockey_id, r.comment,
            (select min(w.ovr_btn) from runners w
               where w.race_id = ra.id and w.position_num = 2) win_margin
     from runners r join races ra on ra.id = r.race_id

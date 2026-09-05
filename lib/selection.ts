@@ -854,6 +854,15 @@ export function wonMoreEasilyThanRaised(
 
     // What the handicapper actually did to it since that win.
     const rise = todayOfr - r.ofr;
+
+    // Only meaningful when the horse was RAISED. A negative rise means the
+    // mark has since FALLEN, and crediting the drop here double-counts what
+    // wonOffHigherMark() already scores. Simiyann showed the failure: a win by
+    // a quarter of a length (worth ~0.3lb) was reported as "14.3lb in hand"
+    // purely because its mark had dropped 14lb, and it collected for the same
+    // 14lb twice in one score.
+    if (rise < 0) continue;
+
     const surplus = lbs - rise;
 
     if (surplus > best.surplus) {
