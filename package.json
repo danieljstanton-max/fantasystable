@@ -24,7 +24,8 @@
     "flags": "tsx --env-file=.env.local scripts/flag-lab.ts",
     "movers": "tsx --env-file=.env.local scripts/movers.ts",
     "draw": "tsx --env-file=.env.local scripts/draw-bias.ts",
-    "pace": "tsx --env-file=.env.local scripts/pace-bias.ts"
+    "pace": "tsx --env-file=.env.local scripts/pace-bias.ts",
+    "audit": "tsx --env-file=.env.local scripts/audit-comments.ts"
   },
   "dependencies": {
     "next": "^15.1.6",
