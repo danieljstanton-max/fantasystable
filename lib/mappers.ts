@@ -447,10 +447,31 @@ export function mapResultRace(r: Raw) {
 export function mapResultRunner(raceId: string, h: Raw) {
   const horseId = required(h.horse_id, "horse_id", `result runner in race ${raceId}`);
   const position = str(h.position);
+  const jockey = parseJockeyClaim(str(h.jockey));
+  const ofr = int(h.or);
 
+  // Identity fields are included even though this is usually an UPDATE of an
+  // existing runner. The historical backfill INSERTs rows that were never
+  // declared here, and horse_name is NOT NULL — omitting it silently failed
+  // every historical runner insert while the race insert succeeded, leaving
+  // 2,476 races with no field at all.
   return {
     raceId,
     horseId,
+    horseName: stripHorseCountry(required(h.horse, "horse", `result runner ${horseId}`)),
+    jockeyId: str(h.jockey_id),
+    jockeyName: jockey.name,
+    trainerId: str(h.trainer_id),
+    trainerName: str(h.trainer),
+    ownerId: str(h.owner_id),
+    ownerName: str(h.owner),
+    number: int(h.number),
+    draw: int(h.draw),
+    age: int(h.age),
+    headgear: str(h.headgear),
+    silkUrl: str(h.silk_url),
+    isNonRunner: false, // it ran; it is in the result
+    effectiveMark: effectiveMark(ofr, int(h.jockey_claim_lbs) ?? jockey.claimLbs),
     position,
     positionNum: position && /^\d+$/.test(position) ? parseInt(position, 10) : null,
     beatenBy: str(h.btn),
@@ -459,7 +480,7 @@ export function mapResultRunner(raceId: string, h: Raw) {
     spDec: num(h.sp_dec),
     bsp: num(h.bsp),
     prize: str(h.prize),
-    ofr: int(h.or),
+    ofr,
     rpr: int(h.rpr),
     ts: int(h.tsr),
     performanceRating: int(h.performance_rating),

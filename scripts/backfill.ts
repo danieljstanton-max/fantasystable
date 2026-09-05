@@ -138,9 +138,17 @@ async function persistRace(store: Store | null, race: any, runnerRows: any[]) {
         set: {
           position: sql`excluded.position`,
           positionNum: sql`excluded.position_num`,
+          beatenBy: sql`excluded.beaten_by`,
+          ovrBtn: sql`excluded.ovr_btn`,
           sp: sql`excluded.sp`,
           spDec: sql`excluded.sp_dec`,
+          bsp: sql`excluded.bsp`,
           ofr: sql`excluded.ofr`,
+          effectiveMark: sql`excluded.effective_mark`,
+          rpr: sql`excluded.rpr`,
+          ts: sql`excluded.ts`,
+          weightLbs: sql`excluded.weight_lbs`,
+          jockeyClaimLbs: sql`excluded.jockey_claim_lbs`,
           comment: sql`excluded.comment`,
         },
       });
@@ -201,6 +209,12 @@ async function bulkResults(store: Store | null) {
         if (raw.date && raw.date < stats.oldestSeen) stats.oldestSeen = raw.date;
       } catch (e) {
         stats.errors++;
+        // Surface the first failure loudly. Counting errors silently is how a
+        // run once stored 2,476 races with zero runners: horse_name is NOT
+        // NULL, every runner insert threw, and the total just ticked upward.
+        if (stats.errors === 1) {
+          console.error(`\n  FIRST ERROR (race ${raw.race_id}): ${(e as Error).message}\n`);
+        }
       }
     }
 
@@ -355,8 +369,9 @@ async function horseCareers(store: Store | null) {
         stats.harvestedRunners += (raw.runners ?? []).length;
         if (raw.date && raw.date < stats.oldestSeen) stats.oldestSeen = raw.date;
       }
-    } catch {
+    } catch (e) {
       stats.errors++;
+      if (stats.errors === 1) console.error(`\n  FIRST ERROR (${h.name}): ${(e as Error).message}\n`);
     }
 
     if (n % 10 === 0 || n === horses.length) {
