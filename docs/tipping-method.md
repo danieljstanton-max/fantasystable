@@ -52,6 +52,20 @@ Five conditions. All five firing is the five-star case.
 Steps 1–3: the horse is well treated. Step 4: today is the day. Step 5:
 confirmation.
 
+## Excluded: Arabian racing
+
+Decided 2026-08-27. Arabian races are a separate breed with their own form book
+and ratings, and essentially no overlap with Thoroughbred racing.
+
+The Wolverhampton 17:10 on 2026-08-26 passed every other filter and then scored
+all eight runners zero — no history exists for any of them — so the model would
+have tipped one at random.
+
+Detection uses word boundaries (`\barabs?\b`, `\barabians?\b`,
+`anglo[- ]arab`). A bare substring match also catches "Melissa, **Arab**ella And
+Oriana Hawthorne Handicap" at Musselburgh, an ordinary handicap named after a
+person — three such races were in the database.
+
 ## The 18-month mark window
 
 Decided 2026-08-27. A winning mark only counts if the win was inside the last

@@ -28,6 +28,7 @@ export interface FilterableRunner {
 
 export type RejectReason =
   | "not-a-handicap"
+  | "arab-race"
   | "two-year-old-nursery"
   | "three-year-old-only"
   | "small-field"
@@ -53,6 +54,24 @@ export const MAX_THREE_YEAR_OLDS = 4;
 export function isHandicap(raceName: string): boolean {
   const n = raceName.toLowerCase();
   return n.includes("handicap") || n.includes("nursery");
+}
+
+/**
+ * Arabian racing. Excluded 2026-08-27.
+ *
+ * A separate breed with its own form book, its own ratings and almost no
+ * overlap with Thoroughbred racing. On today's card the Wolverhampton 17:10
+ * Arab handicap passed every filter and then scored every runner zero — no
+ * history exists for any of them — so the model would have tipped one at
+ * random.
+ *
+ * Word boundaries matter here. A bare `includes("arab")` also matches the
+ * "Melissa, ARABella And Oriana Hawthorne Handicap" at Musselburgh, which is
+ * an ordinary handicap named after somebody. \barab\b matches "Arab" but not
+ * "Arabella", because the following "e" is a word character.
+ */
+export function isArabRace(raceName: string): boolean {
+  return /\barabs?\b|\barabians?\b|\banglo[- ]arab/i.test(raceName);
 }
 
 export function isNursery(race: FilterableRace): boolean {
@@ -86,7 +105,12 @@ export function filterRace(race: FilterableRace, runners: FilterableRunner[]): R
     return { eligible: false, reason: "not-a-handicap", ...base };
   }
 
-  // 2. No 2yo nurseries, no 3yo-only handicaps.
+  // 2. Thoroughbreds only.
+  if (isArabRace(race.raceName)) {
+    return { eligible: false, reason: "arab-race", ...base };
+  }
+
+  // 3. No 2yo nurseries, no 3yo-only handicaps.
   if (isNursery(race)) {
     return { eligible: false, reason: "two-year-old-nursery", ...base };
   }
@@ -94,12 +118,12 @@ export function filterRace(race: FilterableRace, runners: FilterableRunner[]): R
     return { eligible: false, reason: "three-year-old-only", ...base };
   }
 
-  // 3. Field size.
+  // 4. Field size.
   if (runnerCount < MIN_RUNNERS) {
     return { eligible: false, reason: "small-field", ...base };
   }
 
-  // 4. All-aged handicaps carrying too many 3yos.
+  // 5. All-aged handicaps carrying too many 3yos.
   if (isAllAged(race.ageBand) && threeYearOlds > MAX_THREE_YEAR_OLDS) {
     return { eligible: false, reason: "too-many-three-year-olds", ...base };
   }
@@ -109,6 +133,7 @@ export function filterRace(race: FilterableRace, runners: FilterableRunner[]): R
 
 export const REJECT_LABELS: Record<RejectReason, string> = {
   "not-a-handicap": "Not a handicap",
+  "arab-race": "Arabian racing",
   "two-year-old-nursery": "2yo nursery",
   "three-year-old-only": "3yo-only handicap",
   "small-field": `Fewer than ${MIN_RUNNERS} runners`,
