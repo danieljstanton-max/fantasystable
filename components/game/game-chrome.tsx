@@ -75,7 +75,36 @@ export function Header({ date, raceweekLabel, deadlineLabel, locked, onNextRace,
           </div>
         </div>
       </div>
+
+      {/* Secondary nav — the only place a signed-in player can reach the
+          rest of the game from the pitch. Kept as pills for consistency
+          with the Results button; scrolls horizontally on narrow screens
+          rather than wrapping so the row height stays fixed. */}
+      {session.kind === "signed-in" && (
+        <nav
+          aria-label="Game sections"
+          className="-mx-1 mt-3 flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <NavPill href="/game" label="Stable" />
+          <NavPill href="/game/sell" label="Sell" />
+          <NavPill href="/game/leaderboard" label="Leaderboard" />
+          <NavPill href="/game/leagues" label="Leagues" />
+          <NavPill href="/game/rules" label="Rules" />
+          <NavPill href="/game/account" label="Account" />
+        </nav>
+      )}
     </header>
+  );
+}
+
+function NavPill({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="shrink-0 rounded-full bg-[#f2edf4] px-3.5 py-1.5 text-[12px] font-bold text-[var(--slate)] transition-colors hover:bg-[#e8e0eb]"
+    >
+      {label}
+    </Link>
   );
 }
 
