@@ -69,12 +69,13 @@ export function Header({ date, raceweekLabel, deadlineLabel, locked, onNextRace,
           </span>
         </Link>
 
-        {/* Nav sits between brand and sign-out. Horizontal scroll on narrow
-            screens keeps the row height fixed rather than wrapping. */}
+        {/* Desktop only — nav on the same row as the brand, plus sign-out.
+            Mobile puts nav on its own row (below) so pill labels don't
+            fight the logo for space. */}
         {session.kind === "signed-in" && (
           <nav
             aria-label="Game sections"
-            className="flex flex-1 items-center justify-end gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="hidden flex-1 items-center justify-end gap-1.5 sm:flex"
           >
             <NavPill href="/game/leaderboard" label="Leaderboard" />
             <NavPill href="/game/results" label="Results" />
@@ -82,22 +83,36 @@ export function Header({ date, raceweekLabel, deadlineLabel, locked, onNextRace,
           </nav>
         )}
 
-        {session.kind === "signed-in" ? session.signOut : null}
+        <div className="ml-auto sm:ml-0">
+          {session.kind === "signed-in" ? session.signOut : null}
+        </div>
       </div>
 
-      {/* Mobile-only strip beneath the row — a single line, no card of its own,
-          because the whole header is one card and the strip is just the ribbon
-          under the brand on this width. */}
-      {deadlineLabel && (
-        <div className="mt-1.5 flex items-center justify-between text-[10.5px] font-bold uppercase tracking-[0.09em] sm:hidden">
-          <span className="text-[var(--slate-soft)]">
-            {centre} · {day}
-          </span>
-          <span className={locked ? "text-[#c0392b]" : "text-[var(--go-deep)]"}>
-            {deadlineLabel}
-          </span>
-        </div>
-      )}
+      {/* Mobile-only meta line + nav row, stacked directly under the brand.
+          The header stays a single card but breaks into two lines on narrow
+          screens so nothing has to compete for horizontal space. */}
+      <div className="mt-1.5 sm:hidden">
+        {deadlineLabel && (
+          <div className="flex items-center justify-between text-[10.5px] font-bold uppercase tracking-[0.09em]">
+            <span className="text-[var(--slate-soft)]">
+              {centre} · {day}
+            </span>
+            <span className={locked ? "text-[#c0392b]" : "text-[var(--go-deep)]"}>
+              {deadlineLabel}
+            </span>
+          </div>
+        )}
+        {session.kind === "signed-in" && (
+          <nav
+            aria-label="Game sections"
+            className="mt-2 flex items-center gap-1.5"
+          >
+            <NavPill href="/game/leaderboard" label="Leaderboard" />
+            <NavPill href="/game/results" label="Results" />
+            <NavPill href="/game/rules" label="Rules" />
+          </nav>
+        )}
+      </div>
     </header>
   );
 }
