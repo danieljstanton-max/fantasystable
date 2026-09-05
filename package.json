@@ -15,7 +15,8 @@
     "test:tips": "tsx scripts/test-tips.ts",
     "verify:mappers": "tsx scripts/verify-mappers.ts",
     "test:form": "tsx scripts/test-form.ts",
-    "filter:today": "tsx scripts/filter-today.ts"
+    "filter:today": "tsx scripts/filter-today.ts",
+    "backfill": "tsx --env-file=.env.local scripts/backfill.ts"
   },
   "dependencies": {
     "next": "^15.1.6",
