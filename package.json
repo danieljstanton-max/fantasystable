@@ -20,7 +20,8 @@
     "score": "tsx --env-file=.env.local scripts/score-day.ts",
     "horse": "tsx --env-file=.env.local scripts/horse-profile.ts",
     "fetch:horse": "tsx --env-file=.env.local scripts/fetch-horse.ts",
-    "backtest": "tsx --env-file=.env.local scripts/backtest.ts"
+    "backtest": "tsx --env-file=.env.local scripts/backtest.ts",
+    "flags": "tsx --env-file=.env.local scripts/flag-lab.ts"
   },
   "dependencies": {
     "next": "^15.1.6",
