@@ -23,7 +23,7 @@ type HeaderProps = {
   locked?: boolean;
   onNextRace?: () => void;
   session:
-    | { kind: "signed-in"; email: string; signOut: React.ReactNode }
+    | { kind: "signed-in"; email: string; signOut: React.ReactNode; isAdmin?: boolean }
     | { kind: "signed-out" };
 };
 
@@ -80,6 +80,7 @@ export function Header({ date, raceweekLabel, deadlineLabel, locked, onNextRace,
             <NavPill href="/game/leaderboard" label="Leaderboard" />
             <NavPill href="/game/results" label="Results" />
             <NavPill href="/game/rules" label="Rules" />
+            {session.isAdmin && <NavPill href="/game/admin" label="Admin" tone="admin" />}
           </nav>
         )}
 
@@ -105,11 +106,12 @@ export function Header({ date, raceweekLabel, deadlineLabel, locked, onNextRace,
         {session.kind === "signed-in" && (
           <nav
             aria-label="Game sections"
-            className="mt-2 flex items-center gap-1.5"
+            className="mt-2 flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             <NavPill href="/game/leaderboard" label="Leaderboard" />
             <NavPill href="/game/results" label="Results" />
             <NavPill href="/game/rules" label="Rules" />
+            {session.isAdmin && <NavPill href="/game/admin" label="Admin" tone="admin" />}
           </nav>
         )}
       </div>
@@ -117,12 +119,13 @@ export function Header({ date, raceweekLabel, deadlineLabel, locked, onNextRace,
   );
 }
 
-function NavPill({ href, label }: { href: string; label: string }) {
+function NavPill({ href, label, tone }: { href: string; label: string; tone?: "admin" }) {
+  const cls =
+    tone === "admin"
+      ? "shrink-0 rounded-full bg-[#eaf7f0] px-3.5 py-1.5 text-[12px] font-bold text-[var(--go-deep)] transition-colors hover:bg-[#d6efe1]"
+      : "shrink-0 rounded-full bg-[#f2edf4] px-3.5 py-1.5 text-[12px] font-bold text-[var(--slate)] transition-colors hover:bg-[#e8e0eb]";
   return (
-    <Link
-      href={href}
-      className="shrink-0 rounded-full bg-[#f2edf4] px-3.5 py-1.5 text-[12px] font-bold text-[var(--slate)] transition-colors hover:bg-[#e8e0eb]"
-    >
+    <Link href={href} className={cls}>
       {label}
     </Link>
   );

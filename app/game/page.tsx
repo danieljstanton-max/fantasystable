@@ -59,6 +59,18 @@ export default async function GamePage({
       : null);
   const { card, offDtByRaceId } = await loadCard(date);
   const saved = realUser ? await loadStable(realUser.id, date) : null;
+  // Admin pill in the header nav is opt-in per user — fetched here so the
+  // Header component (which is a client component) doesn't have to touch
+  // the database itself.
+  const isAdmin = realUser
+    ? (
+        await db
+          .select({ isAdmin: users.isAdmin })
+          .from(users)
+          .where(eq(users.id, realUser.id))
+          .limit(1)
+      )[0]?.isAdmin ?? false
+    : false;
 
   if (!card.races.length) return <NoCard date={date} />;
 
@@ -103,6 +115,7 @@ export default async function GamePage({
               ? {
                   kind: "signed-in",
                   email: user.email,
+                  isAdmin,
                   signOut: (
                     <form action={signOutAction} className="hidden sm:block">
                       <button
