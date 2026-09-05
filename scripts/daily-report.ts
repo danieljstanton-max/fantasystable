@@ -95,78 +95,26 @@ async function main() {
     writeups = `Write-ups failed:\n${(e as Error).message}`;
   }
 
-  // 4. The analysis behind them, for checking a claim.
-  console.log("  scoring...");
-  let output = "";
+  // 4. The five best bets.
+  console.log("  picking the best bets...");
+  let bets = "";
   try {
-    output = run("npx", ["tsx", "--env-file=.env.local", "scripts/score-day.ts", date]);
+    bets = run("npx", ["tsx", "--env-file=.env.local", "scripts/best-bets.ts", date]);
   } catch (e) {
-    output = `Scoring failed:\n${(e as Error).message}`;
+    bets = `Best bets failed:\n${(e as Error).message}`;
   }
 
-  // 5. Two text files. The write-ups are the publishable copy; the analysis
-  //    is the working behind them, kept separate so one can be pasted into the
-  //    site without the other.
-  const upPath = join(OUT_DIR, `${date} write-ups.txt`);
+  // 5. Two files, which is all that was asked for: the selections, and the
+  //    preview of every race. Anything else was clutter in the folder.
+  const betsPath = join(OUT_DIR, `${date} BEST BETS.txt`);
+  writeFileSync(betsPath, bets);
+
+  const upPath = join(OUT_DIR, `${date} race write-ups.txt`);
   writeFileSync(upPath, writeups);
 
-  const txtPath = join(OUT_DIR, `${date} analysis.txt`);
-  writeFileSync(txtPath, `RACING CARD ANALYSIS — ${date}\nGenerated ${stamp}\n\n${output}`);
-
-  // 5. A CSV of the flagged horses, for tracking selections and settling them.
-  const flagged: string[] = ["date,horse,off_time,course,points,price,lbs_in_hand,prime,race"];
-  const lines = output.split("\n");
-  const start = lines.findIndex((l) => l.includes("WELL HANDICAPPED"));
-  if (start >= 0) {
-    for (let i = start; i < lines.length; i++) {
-      const m = lines[i].match(/^\s*(\*?)([A-Z][A-Z' .()-]+?)\s{2,}(\d+)pt\s+(\S+)\s+([\d.]+)lb in hand/);
-      if (!m) continue;
-      const [, prime, horse, pts, price, lbs] = m;
-      const meta = (lines[i + 1] ?? "").trim();
-      const mm = meta.match(/^(\d{2}:\d{2})\s+(\S+)\s+(.*)$/);
-      flagged.push(
-        [date, `"${horse.trim()}"`, mm?.[1] ?? "", mm?.[2] ?? "", pts, price, lbs,
-         prime === "*" ? "yes" : "no", `"${(mm?.[3] ?? "").replace(/"/g, "")}"`].join(",")
-      );
-    }
-  }
-  const csvPath = join(OUT_DIR, `${date} flagged.csv`);
-  writeFileSync(csvPath, flagged.join("\n"));
-
-  // 6. A readable HTML version of the same thing.
-  const htmlPath = join(OUT_DIR, `${date} analysis.html`);
-  writeFileSync(
-    htmlPath,
-    `<!doctype html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Racing card ${date}</title>
-<style>
-  body{background:#0a0a0c;color:#f6f6f8;font-family:"JetBrains Mono",ui-monospace,monospace;
-       font-size:13px;line-height:1.55;margin:0;padding:24px 16px 60px;}
-  .wrap{max-width:900px;margin:0 auto;}
-  h1{font-family:system-ui,sans-serif;font-style:italic;font-weight:800;text-transform:uppercase;
-     font-size:30px;letter-spacing:-.01em;margin:0 0 4px;}
-  h1 span{color:#e8112d;}
-  .sub{color:#8b8b98;font-size:12px;margin-bottom:24px;}
-  pre{white-space:pre-wrap;word-wrap:break-word;margin:0;}
-  .note{border-left:3px solid #e0a020;background:#1c1c23;padding:12px 16px;margin:0 0 22px;
-        font-family:system-ui,sans-serif;font-size:13px;color:#d7d7de;}
-</style></head><body><div class="wrap">
-<h1>Racing Card <span>${esc(date)}</span></h1>
-<div class="sub">Generated ${esc(stamp)}</div>
-<div class="note"><b>Not proven.</b> The model returned &minus;26.4% out of sample over 2,028
-races. This is a shortlist built on stated evidence, for your judgement &mdash; not a set of
-recommended bets. 18+ &middot; BeGambleAware.org</div>
-<pre>${esc(output)}</pre>
-</div></body></html>`
-  );
-
-  const flaggedCount = Math.max(0, flagged.length - 1);
   console.log(`\n  written:`);
-  console.log(`    ${upPath}   (every race, ready to publish)`);
-  console.log(`    ${txtPath}`);
-  console.log(`    ${htmlPath}`);
-  console.log(`    ${csvPath}   (${flaggedCount} flagged horses)`);
+  console.log(`    ${betsPath}`);
+  console.log(`    ${upPath}`);
   console.log("");
 }
 

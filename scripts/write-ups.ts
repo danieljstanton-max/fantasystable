@@ -183,9 +183,7 @@ async function main() {
       rs.map((x) => ({ age: x.age, isNonRunner: x.isNonRunner }))).eligible;
   }).length;
 
-  say(`Every race is previewed below with a selection. ${qualifying} of them are`);
-  say(`competitive handicaps that fit our strongest angles, and those are marked`);
-  say(`BEST BET where they come up.`);
+  say(`Every race is previewed below with a selection and a verdict.`);
   say();
   say(`Good luck if you're having a bet.`);
   say();
@@ -444,14 +442,9 @@ async function main() {
 
     if (nr.length) say(`Non-runners: ${listNames(nr.map((x) => String(x.horseName)))}.`);
 
-    say(
-      `VERDICT: ${name} ${pr}` +
-        (verdict.eligible && top.hcap.prime
-          ? "   *** BEST BET — well handicapped with conditions proven ***"
-          : verdict.eligible && top.hcap.qualifies
-          ? "   ** BEST BET **"
-          : "")
-    );
+    // No best-bet marker here. The write-ups are the site's preview of the
+    // whole card; the selections live in their own file.
+    say(`VERDICT: ${name} ${pr}`);
   }
 
   say();
