@@ -20,6 +20,7 @@ import {
   filterRace,
   scoreHorse,
   starsFromScore,
+  wellHandicapped,
   REJECT_LABELS,
   type PastRun,
   type HorseToday,
@@ -121,6 +122,7 @@ async function main() {
   const jockeyStrikeRate = (id: string) => strike.get(id) ?? null;
 
   const cardBest: any[] = [];
+  const allRunners: any[] = [];
 
   for (const { race, runners } of eligible) {
     console.log(`\n${"-".repeat(64)}`);
@@ -159,14 +161,19 @@ async function main() {
       const raceForHorse: RaceToday = { ...raceToday, courseSlug: courseSlugOf(race.course_name) };
       const s = scoreHorse(today, raceForHorse, history, jockeyStrikeRate, date, drawBias, paceBias);
       const decline = markDecline(history, date);
+      // The gate: does it belong on the well-handicapped list at all?
+      const hcap = wellHandicapped(today, raceForHorse, history, date);
 
       // Dan's override: unproven is not fatal if it was staying on or blocked.
       const excuse = excuseUnproven(history.slice(0, 4).map((h) => h.comment));
       const lastStyle = history[0] ? readComment(history[0].comment).runStyle : null;
       styles.push(lastStyle);
 
-      scored.push({ ...s, runs: history.length, excuse, decline, odds: r.best_odds_frac, trainer: r.trainer_name, jockey: r.jockey_name, claim: r.jockey_claim_lbs, ofr: r.ofr });
+      scored.push({ ...s, runs: history.length, excuse, decline, hcap, odds: r.best_odds_frac, trainer: r.trainer_name, jockey: r.jockey_name, claim: r.jockey_claim_lbs, ofr: r.ofr });
     }
+
+    for (const sc of scored)
+      allRunners.push({ ...sc, course: race.course_name, offTime: race.off_time, raceName: race.name });
 
     const shape = racePaceShape(styles);
     console.log(`pace: ${shape.verdict}  (${shape.leaders} front-runners, ${shape.heldUp} held up)`);
@@ -240,6 +247,33 @@ async function main() {
   // 4 points ahead of anything else is a better bet than a 9-point horse in a
   // race where three others score 8.
   cardBest.sort((a, b) => b.score - a.score || b.clear - a.clear);
+
+  /* --------------------------- the well-handicapped list ------------------ */
+  //
+  // The point of the exercise. Every runner that clears the gate, ranked by
+  // the measured signals, for Dan to judge. Not a selection -- a shortlist.
+  //
+  const flagged = allRunners
+    .filter((r: any) => r.hcap?.qualifies)
+    .sort((a: any, b: any) => b.score - a.score || b.hcap.lbsInHand - a.hcap.lbsInHand);
+
+  const prime = flagged.filter((f: any) => f.hcap.prime);
+  console.log(`\n${"=".repeat(64)}`);
+  console.log(`WELL HANDICAPPED — ${flagged.length} of ${allRunners.length} runners qualify`);
+  console.log(`  of those, ${prime.length} are in their proven conditions today\n`);
+  for (const f of flagged.slice(0, 12) as any[]) {
+    console.log(
+      `  ${f.hcap.prime ? "*" : " "}${String(f.horseName).toUpperCase().padEnd(20)}${String(f.score).padStart(3)}pt  ` +
+        `${String(f.odds ?? "-").padStart(6)}  ${f.hcap.lbsInHand}lb in hand${f.hcap.prime ? "   PRIME" : ""}`
+    );
+    console.log(`     ${f.offTime} ${f.course}  ${String(f.raceName).slice(0, 44)}`);
+    for (const why of f.hcap.reasons) console.log(`     * ${why}`);
+    const support = f.signals.filter((s: any) => s.weight > 0 && !["mark","plot","went-close","won-easily"].includes(s.key));
+    if (support.length) console.log(`     + ${support.map((s: any) => s.label).join(", ")}`);
+    const against = f.signals.filter((s: any) => s.weight < 0);
+    if (against.length) console.log(`     ! ${against.map((s: any) => s.label).join(", ")}`);
+    console.log("");
+  }
 
   console.log(`\n${"=".repeat(64)}`);
   console.log(`TOP SELECTIONS — ${date}\n`);

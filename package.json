@@ -27,7 +27,8 @@
     "pace": "tsx --env-file=.env.local scripts/pace-bias.ts",
     "audit": "tsx --env-file=.env.local scripts/audit-comments.ts",
     "train": "tsx --env-file=.env.local scripts/train-model.ts",
-    "predict": "tsx --env-file=.env.local scripts/predict.ts"
+    "predict": "tsx --env-file=.env.local scripts/predict.ts",
+    "combine": "tsx --env-file=.env.local --max-old-space-size=8192 scripts/combine.ts"
   },
   "dependencies": {
     "next": "^15.1.6",

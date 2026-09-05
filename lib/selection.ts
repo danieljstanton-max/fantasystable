@@ -393,7 +393,55 @@ export interface Signal {
  */
 export type Weights = Partial<Record<string, number>>;
 
-let ACTIVE_WEIGHTS: Weights = {};
+/**
+ * Measured weights, set 2026-08-27.
+ *
+ * Replaces the numbers I invented with what the evidence showed. Each is
+ * justified by the audit (lift on the horse's NEXT run, 250,000 comments) or
+ * by the fitted conditional logit over 40 features.
+ *
+ *   quick-turnaround  +7.8pp measured, and was scoring ZERO
+ *   easyRide          +8.3pp, the strongest comment signal
+ *   travelledWell     +6.4pp
+ *   jockey            the single largest coefficient in the fit (0.705)
+ *   draw              third largest (0.318)
+ *   trouble           -0.6pp, wrong direction, so it scores nothing
+ *   fell-going-well   +0.2pp, was weighted 3
+ *
+ * The mark and the plot are NOT reduced to nothing despite measuring near
+ * zero. They no longer carry the score, but they are the gate: a horse only
+ * reaches the list by being well handicapped, and these rank what qualifies.
+ */
+const MEASURED_WEIGHTS: Weights = {
+  "quick-turnaround": 3,
+  "last-run-easy": 3,
+  jockey: 3,
+  "trainer-hot": 2,
+  "trainer-cold": -2,
+  "draw-good": 2,
+  "draw-bad": -2,
+  "last-run-positive": 2,
+  going: 2,
+  trip: 2,
+  course: 2,
+  mark: 2,
+  plot: 2,
+  "went-close": 2,
+  "won-easily": 2,
+  "pace-suits": 1,
+  "pace-against": -1,
+  headgear: 1,
+  wind: 1,
+  "fell-going-well": 1,
+  "last-run-trouble": 0,
+  layoff: -3,
+  drought: -2,
+  "drought-excused": 0,
+  "never-won": -2,
+  "last-run-negative": -2,
+};
+
+let ACTIVE_WEIGHTS: Weights = MEASURED_WEIGHTS;
 
 /** Override the default weights, e.g. from a fitted set. Returns the previous. */
 export function setWeights(w: Weights): Weights {
@@ -1207,6 +1255,97 @@ export function scoreHorse(
     signals,
     excluded: false,
     exclusionReason: null,
+  };
+}
+
+/**
+ * Is this horse well handicapped enough to put in front of Dan?
+ *
+ * The gate, not a score. Dan, 2026-08-27: "remember its flagging well
+ * handicapped horses to me".
+ *
+ * The measurement said the mark angle does not predict winners by itself
+ * (-0.6pp) — but that only matters if it is being asked to pick. Its job here
+ * is to decide who appears on the list at all; the ranking and the judgement
+ * happen afterwards. A filter and a predictor are different things.
+ *
+ * Any ONE of these qualifies:
+ *   - racing below a mark it won off inside 18 months
+ *   - its mark has been coming down across recent runs
+ *   - it went close off a mark no lower than today's
+ */
+export interface HandicapCase {
+  qualifies: boolean;
+  /** Conditions today also match what it has won on. Dan's "perfect conditions". */
+  prime: boolean;
+  reasons: string[];
+  /** Pounds of room, where that is measurable. */
+  lbsInHand: number;
+}
+
+/**
+ * How much room counts as well handicapped.
+ *
+ * The first version qualified on any evidence at all and passed 101 of 145
+ * runners — 70% of the card, which is a list rather than a flag. A pound below
+ * a winning mark is noise: the handicapper moves horses by that much routinely
+ * and it says nothing.
+ *
+ * Three pounds is the floor for a real edge, and five with today's conditions
+ * proven is Dan's "perfect conditions" case — the one the method exists to
+ * catch.
+ */
+export const HANDICAP_MIN_LBS = 3;
+export const HANDICAP_PRIME_LBS = 5;
+
+export function wellHandicapped(
+  today: HorseToday,
+  race: RaceToday,
+  history: PastRun[],
+  raceDate: string
+): HandicapCase {
+  const reasons: string[] = [];
+  let lbs = 0;
+
+  const mark = wonOffHigherMark(today.ofr, history, raceDate, race.raceType);
+  if (mark.found) {
+    reasons.push(`${mark.lbsBelow}lb below its ${mark.discipline ?? ""} winning mark of ${mark.lastWinningMark} (${mark.when})`);
+    lbs = Math.max(lbs, mark.lbsBelow);
+  }
+
+  const plot = campaignedImpossibly(history, 4, race.raceType);
+  if (plot.found) {
+    reasons.push(plot.detail);
+    lbs = Math.max(lbs, plot.ofrDrop);
+  }
+
+  const close = wentCloseOffSimilarMark(today.ofr, history, raceDate, race.raceType);
+  if (close.found && close.best) {
+    reasons.push(
+      `beaten ${close.lengths}L off ${close.best.ofr}` +
+        `${close.markDiff > 0 ? ` (${close.markDiff}lb higher than today)` : ""} on ${close.best.raceDate}`
+    );
+    lbs = Math.max(lbs, Math.max(0, close.markDiff));
+  }
+
+  const easy = wonMoreEasilyThanRaised(today.ofr, history, raceDate, race.raceType);
+  if (easy.found) {
+    reasons.push(`won by ${easy.margin}L (~${easy.marginLbs}lb), raised ${easy.rise}lb — ${easy.surplus}lb in hand`);
+    lbs = Math.max(lbs, easy.surplus);
+  }
+
+  const lbsInHand = Math.round(lbs * 10) / 10;
+
+  // Conditions proven today: going, trip and course all inside its winning
+  // profile. "The profit model is when we catch a horse in perfect conditions."
+  const cond = likesConditions(race, history);
+  const conditionsRight = cond.going && cond.trip;
+
+  return {
+    qualifies: lbsInHand >= HANDICAP_MIN_LBS,
+    prime: lbsInHand >= HANDICAP_PRIME_LBS && conditionsRight,
+    reasons,
+    lbsInHand,
   };
 }
 
