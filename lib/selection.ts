@@ -147,6 +147,8 @@ export interface HorseToday {
   bestOddsDec: number | null;
   headgearFirstTime: boolean;
   windSurgeryFirstTime: boolean;
+  /** Days since the previous run. From `last_run` on the racecard. */
+  daysSinceRun?: number | null;
 }
 
 export interface RaceToday {
@@ -407,6 +409,32 @@ export function significantBooking(
 }
 
 /**
+ * Time off, and what it costs.
+ *
+ * Added 2026-08-27 after Al Suil Eile scored five stars on tomorrow's card
+ * while 486 days off the track. Every condition matched — Southwell, 7f,
+ * standard, right field size — and the model had no idea the horse had not
+ * run in sixteen months.
+ *
+ * The bands are conventional rather than fitted, and should be re-checked
+ * against the backfill: a returning horse's strike rate is measurable from
+ * the history we now hold.
+ */
+export function layoffPenalty(days: number | null | undefined): Signal | null {
+  if (days === null || days === undefined) return null;
+
+  if (days >= 365)
+    return { key: "layoff", label: "Long absence", weight: -4, detail: `${days} days off — over a year` };
+  if (days >= 180)
+    return { key: "layoff", label: "Long absence", weight: -3, detail: `${days} days off` };
+  if (days >= 120)
+    return { key: "layoff", label: "Off the track a while", weight: -1, detail: `${days} days off` };
+  if (days <= 5)
+    return { key: "quick-turnaround", label: "Quick turnaround", weight: 0, detail: `ran ${days} days ago` };
+  return null;
+}
+
+/**
  * Score one horse.
  *
  * Weights are a starting hypothesis, not a finding. They must be re-fitted
@@ -457,7 +485,12 @@ export function scoreHorse(
   if (today.windSurgeryFirstTime)
     signals.push({ key: "wind", label: "First run after wind surgery", weight: 1, detail: "" });
 
-  const score = signals.reduce((sum, s) => sum + s.weight, 0);
+  const layoff = layoffPenalty(today.daysSinceRun);
+  if (layoff) signals.push(layoff);
+
+  // Negative signals can drag a score below zero; a tip is never a negative
+  // number of points, it is simply not a tip.
+  const score = Math.max(0, signals.reduce((sum, s) => sum + s.weight, 0));
 
   return {
     horseId: today.horseId,

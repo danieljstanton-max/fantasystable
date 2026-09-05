@@ -59,7 +59,7 @@ async function main() {
     select r.race_id, r.horse_id, r.horse_name, r.age, r.is_non_runner,
            r.ofr, r.effective_mark, r.jockey_id, r.jockey_name, r.jockey_claim_lbs,
            r.trainer_name, r.best_odds_dec, r.best_odds_frac,
-           r.headgear_first_time, r.wind_surgery_run, r.form
+           r.headgear_first_time, r.wind_surgery_run, r.form, r.last_run
     from runners r join races ra on ra.id = r.race_id
     where ra.race_date = ${date}`);
 
@@ -100,6 +100,8 @@ async function main() {
   for (const j of jockeyRows) strike.set(j.jockey_id, Math.round((j.wins / j.rides) * 100));
   const jockeyStrikeRate = (id: string) => strike.get(id) ?? null;
 
+  const cardBest: any[] = [];
+
   for (const { race, runners } of eligible) {
     console.log(`\n${"-".repeat(64)}`);
     console.log(`${race.course_name} ${race.off_time}  ${String(race.name).slice(0, 44)}`);
@@ -124,6 +126,7 @@ async function main() {
         bestOddsDec: r.best_odds_dec,
         headgearFirstTime: Boolean(r.headgear_first_time),
         windSurgeryFirstTime: r.wind_surgery_run === "1",
+        daysSinceRun: r.last_run,
       };
 
       const raceForHorse: RaceToday = { ...raceToday, courseSlug: courseSlugOf(race.course_name) };
@@ -142,6 +145,24 @@ async function main() {
     console.log(`pace: ${shape.verdict}  (${shape.leaders} front-runners, ${shape.heldUp} held up)`);
 
     scored.sort((a, b) => b.score - a.score);
+
+    // One selection per race. A tipster does not take three from the same
+    // contest, so the card ranking compares each race's best against the rest.
+    if (scored.length) {
+      const clear = scored.length > 1 ? scored[0].score - scored[1].score : scored[0].score;
+      cardBest.push({
+        ...scored[0],
+        course: race.course_name,
+        offTime: race.off_time,
+        raceName: race.name,
+        going: race.going,
+        dist: race.distance_round,
+        fieldSize: runners.length,
+        pace: shape.verdict,
+        clear, // margin over the next horse in the same race
+      });
+    }
+
     const top = scored.slice(0, 4);
     console.log("");
     for (const s of top) {
@@ -151,7 +172,7 @@ async function main() {
           `${String(s.odds ?? "-").padStart(6)}  OR ${String(s.ofr ?? "-").padStart(3)}  ${s.runs} runs`
       );
       for (const sig of s.signals)
-        console.log(`      + ${sig.label}: ${sig.detail}`);
+        console.log(`      ${sig.weight < 0 ? "-" : "+"} ${sig.label}: ${sig.detail}`);
       if (s.excuse.excused)
         console.log(`      ~ excused (${s.excuse.reason}): ${s.excuse.evidence.slice(0, 2).join(", ")}`);
       if (s.decline?.declining)
@@ -160,7 +181,30 @@ async function main() {
     }
   }
 
-  console.log(`\n${"=".repeat(64)}\n`);
+  /* ------------------------------ card summary ------------------------------ */
+
+  // Rank by score, then by how clear-cut the race is. A 9-point horse that is
+  // 4 points ahead of anything else is a better bet than a 9-point horse in a
+  // race where three others score 8.
+  cardBest.sort((a, b) => b.score - a.score || b.clear - a.clear);
+
+  console.log(`\n${"=".repeat(64)}`);
+  console.log(`TOP SELECTIONS — ${date}\n`);
+  cardBest.slice(0, 5).forEach((s, i) => {
+    console.log(
+      `${i + 1}. ${String(s.horseName).toUpperCase().padEnd(20)} ${starsFromScore(s.score)}* ` +
+        `${String(s.score).padStart(2)}pt  (clear by ${s.clear})`
+    );
+    console.log(`   ${s.offTime} ${s.course}  ${s.dist ?? "?"}  ${s.going ?? "?"}  ${s.fieldSize} runners  pace: ${s.pace}`);
+    console.log(`   ${String(s.raceName).slice(0, 58)}`);
+    console.log(`   ${s.trainer ?? "?"} / ${s.jockey ?? "?"}${s.claim ? `(${s.claim})` : ""}   price ${s.odds ?? "not yet published"}`);
+    for (const sig of s.signals) console.log(`     ${sig.weight < 0 ? "!" : "-"} ${sig.label}: ${sig.detail}`);
+    if (s.excuse?.excused) console.log(`     - excused (${s.excuse.reason})`);
+    if (s.decline?.declining) console.log(`     ! ${s.decline.lbsLost}lb decline over ${s.decline.overMonths} months`);
+    console.log("");
+  });
+
+  console.log(`${"=".repeat(64)}\n`);
   await client.end();
 }
 
