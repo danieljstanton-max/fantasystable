@@ -1,0 +1,81 @@
+old_path,action,new_path,category,lastmod,notes
+/another-test/,410 GONE,,TEST PAGE,2026-06-11,indexable test/template stub - remove from index
+/course-shortcode-test/,410 GONE,,TEST PAGE,2026-02-23,indexable test/template stub - remove from index
+/race-detail-test-page/,410 GONE,,TEST PAGE,2026-02-08,indexable test/template stub - remove from index
+/shortcode-test-jockeys-trainers-owners/,410 GONE,,TEST PAGE,2026-02-15,indexable test/template stub - remove from index
+/horse-detail-page/,301,/horses/,TEMPLATE STUB,2026-03-27,indexable test/template stub - remove from index
+/horse-profile-page/,301,/horses/,TEMPLATE STUB,2026-03-01,indexable test/template stub - remove from index
+/race-card-page/,301,/racecards/,TEMPLATE STUB,2026-05-14,indexable test/template stub - remove from index
+/race-result-detail-page/,301,/results/,TEMPLATE STUB,2026-03-24,indexable test/template stub - remove from index
+/results-listing-page/,301,/results/,TEMPLATE STUB,2026-03-01,indexable test/template stub - remove from index
+/double-bet-calculator/,KEEP,/double-bet-calculator/,Calculator,2026-04-21,port calculator logic as-is
+/each-way-acca-bet-calculator/,KEEP,/each-way-acca-bet-calculator/,Calculator,2026-04-20,port calculator logic as-is
+/free-bet-calculator/,KEEP,/free-bet-calculator/,Calculator,2026-04-15,port calculator logic as-is
+/heinz-bet-calculator/,KEEP,/heinz-bet-calculator/,Calculator,2026-04-21,port calculator logic as-is
+/lucky-15-bet-calculator/,KEEP,/lucky-15-bet-calculator/,Calculator,2026-04-16,port calculator logic as-is
+/lucky-31-bet-calculator/,KEEP,/lucky-31-bet-calculator/,Calculator,2026-04-24,port calculator logic as-is
+/lucky-63-bet-calculator/,KEEP,/lucky-63-bet-calculator/,Calculator,2026-04-24,port calculator logic as-is
+/patent-bet-calculator/,KEEP,/patent-bet-calculator/,Calculator,2026-04-20,port calculator logic as-is
+/super-heinz-bet-calculator/,KEEP,/super-heinz-bet-calculator/,Calculator,2026-04-23,port calculator logic as-is
+/treble-bet-calculator/,KEEP,/treble-bet-calculator/,Calculator,2026-04-16,port calculator logic as-is
+/trixie-bet-calculator/,KEEP,/trixie-bet-calculator/,Calculator,2026-04-16,port calculator logic as-is
+/yankee-bet-calculator/,KEEP,/yankee-bet-calculator/,Calculator,2026-04-23,port calculator logic as-is
+/category/grand-national/,KEEP,/category/grand-national/,Category,2026-03-31,
+/category/royal-ascot/,KEEP,/category/royal-ascot/,Category,2026-05-22,
+/category/tips/,KEEP,/category/tips/,Category,2026-05-22,
+/,KEEP,/,Core page,2026-06-28,
+/betpro-iq-review/,KEEP,/betpro-iq-review/,Core page,2026-06-22,
+/big-races/,KEEP,/big-races/,Core page,2026-02-09,
+/doncaster-racing-tips/,KEEP,/doncaster-racing-tips/,Core page,2026-06-14,
+/epsom-derby-day-tips-2026/,KEEP,/epsom-derby-day-tips-2026/,Core page,2026-06-06,
+/epsom-oaks-day-horse-racing-tips/,KEEP,/epsom-oaks-day-horse-racing-tips/,Core page,2026-06-05,
+/giddy-up-racing-club/,KEEP,/giddy-up-racing-club/,Core page,2026-05-30,
+/nap-of-the-day/,KEEP,/nap-of-the-day/,Core page,2026-03-31,
+/new-betting-sites-uk/,KEEP,/new-betting-sites-uk/,Core page,2026-08-04,
+/race-detail-page-winner-announced/,KEEP,/race-detail-page-winner-announced/,Core page,2026-02-08,
+/racing-tips-today/,KEEP,/racing-tips-today/,Core page,2026-06-19,
+/responsible-gambling/,KEEP,/responsible-gambling/,Core page,2026-04-01,
+/tipster-stats/,KEEP,/tipster-stats/,Core page,2026-07-13,
+/vip-membership/,KEEP,/vip-membership/,Core page,2026-05-15,
+/horse-racing-tips-friday-22nd-may-2026/,KEEP,/horse-racing-tips-friday-22nd-may-2026/,Dated daily tips,2026-05-22,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-friday-29th-may-2026/,KEEP,/horse-racing-tips-friday-29th-may-2026/,Dated daily tips,2026-05-29,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-monday-18th-may-2026/,KEEP,/horse-racing-tips-monday-18th-may-2026/,Dated daily tips,2026-05-18,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-monday-1st-june-2026/,KEEP,/horse-racing-tips-monday-1st-june-2026/,Dated daily tips,2026-06-01,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-monday-25th-may-2026/,KEEP,/horse-racing-tips-monday-25th-may-2026/,Dated daily tips,2026-05-25,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-saturday-13th-june-2026/,KEEP,/horse-racing-tips-saturday-13th-june-2026/,Dated daily tips,2026-06-13,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-saturday-16th-may-2026/,KEEP,/horse-racing-tips-saturday-16th-may-2026/,Dated daily tips,2026-05-16,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-saturday-23rd-may-2026/,KEEP,/horse-racing-tips-saturday-23rd-may-2026/,Dated daily tips,2026-05-23,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-saturday-30th-may-2026/,KEEP,/horse-racing-tips-saturday-30th-may-2026/,Dated daily tips,2026-05-30,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-sunday-17th-may-2026/,KEEP,/horse-racing-tips-sunday-17th-may-2026/,Dated daily tips,2026-05-17,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-sunday-24th-may-2026/,KEEP,/horse-racing-tips-sunday-24th-may-2026/,Dated daily tips,2026-05-24,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-sunday-31st-may-2026/,KEEP,/horse-racing-tips-sunday-31st-may-2026/,Dated daily tips,2026-05-31,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-thursday-21st-may-2026/,KEEP,/horse-racing-tips-thursday-21st-may-2026/,Dated daily tips,2026-05-21,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-thursday-4th-june-2026/,KEEP,/horse-racing-tips-thursday-4th-june-2026/,Dated daily tips,2026-06-04,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-tuesday-19th-may-2025/,KEEP,/horse-racing-tips-tuesday-19th-may-2025/,Dated daily tips,2026-05-19,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-tuesday-23rd-june-2026/,KEEP,/horse-racing-tips-tuesday-23rd-june-2026/,Dated daily tips,2026-06-22,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-tuesday-26th-may-2026/,KEEP,/horse-racing-tips-tuesday-26th-may-2026/,Dated daily tips,2026-05-26,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-tuesday-2nd-june-2026/,KEEP,/horse-racing-tips-tuesday-2nd-june-2026/,Dated daily tips,2026-06-02,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-wednesday-20th-may-2026/,KEEP,/horse-racing-tips-wednesday-20th-may-2026/,Dated daily tips,2026-05-20,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-wednesday-27th-may-2026/,KEEP,/horse-racing-tips-wednesday-27th-may-2026/,Dated daily tips,2026-05-27,"archive - keep path, becomes a dated tips record"
+/horse-racing-tips-wednesday-3rd-june-2026/,KEEP,/horse-racing-tips-wednesday-3rd-june-2026/,Dated daily tips,2026-06-03,"archive - keep path, becomes a dated tips record"
+/grand-national-aintree-racecourse/,KEEP,/grand-national-aintree-racecourse/,Grand National,2026-03-30,
+/grand-national-betting-guide/,KEEP,/grand-national-betting-guide/,Grand National,2026-03-30,
+/grand-national-fences/,KEEP,/grand-national-fences/,Grand National,2026-03-30,
+/grand-national-racecards/,KEEP,/grand-national-racecards/,Grand National,2026-03-30,
+/grand-national/,KEEP,/grand-national/,Grand National,2026-03-30,
+/betting/2243-2/,KEEP,/betting/2243-2/,Offer page,2026-05-27,becomes a CMS bookmaker record
+/betting/50-back-up-to-25/,KEEP,/betting/50-back-up-to-25/,Offer page,2026-07-15,becomes a CMS bookmaker record
+/betting/bet-10-get-30-in-free-bets-2/,KEEP,/betting/bet-10-get-30-in-free-bets-2/,Offer page,2026-05-27,becomes a CMS bookmaker record
+/betting/bet-10-get-30-in-free-bets/,KEEP,/betting/bet-10-get-30-in-free-bets/,Offer page,2026-05-11,becomes a CMS bookmaker record
+/betting/bet-5-get-30-in-free-bets/,KEEP,/betting/bet-5-get-30-in-free-bets/,Offer page,2026-05-27,becomes a CMS bookmaker record
+/betting/pricedup/,KEEP,/betting/pricedup/,Offer page,2026-05-11,becomes a CMS bookmaker record
+/fast-results/,KEEP,/fast-results/,Racing data,2026-05-13,"same path, content rebuilt from our DB"
+/horse-racing/,KEEP,/horse-racing/,Racing data,2026-03-27,"same path, content rebuilt from our DB"
+/racecards/,KEEP,/racecards/,Racing data,2026-03-27,"same path, content rebuilt from our DB"
+/racecourses/,KEEP,/racecourses/,Racing data,2026-03-27,"same path, content rebuilt from our DB"
+/racing-hub/,KEEP,/racing-hub/,Racing data,2026-03-27,"same path, content rebuilt from our DB"
+/todays-racecards/,KEEP,/todays-racecards/,Racing data,2026-04-22,"same path, content rebuilt from our DB"
+/tomorrows-racecards/,KEEP,/tomorrows-racecards/,Racing data,2026-03-27,"same path, content rebuilt from our DB"
+/yesterday-racecard/,KEEP,/yesterday-racecard/,Racing data,2026-03-27,"same path, content rebuilt from our DB"
+/tips/545-1-ante-post-double-for-royal-ascot/,KEEP,/tips/545-1-ante-post-double-for-royal-ascot/,Tip article,2026-05-22,
+/tips/grand-national-2026-betting-preview/,KEEP,/tips/grand-national-2026-betting-preview/,Tip article,2026-03-31,
