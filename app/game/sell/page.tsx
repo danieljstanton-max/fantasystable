@@ -17,6 +17,7 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { loadCard, nextGameDate } from "@/lib/game-data";
 import { loadStable } from "@/lib/stable";
+import { loadSales } from "@/lib/sales";
 import { GameShell, SubpageHeader } from "@/components/game/game-shell";
 import { N_SALES } from "@/lib/game-pricing";
 import { SellFloor } from "./sell-floor";
@@ -40,6 +41,10 @@ export default async function SellPage({
   const date = await nextGameDate();
   const { card } = await loadCard(date);
   const saved = user.id === "__preview__" ? null : await loadStable(user.id, date);
+  // Actual sales already made against this stable. Preview mode has no
+  // stable row so it's always zero — the sheet is a design demonstrator.
+  const madeSales = saved ? await loadSales(saved.id) : [];
+  const salesLeft = Math.max(0, N_SALES - madeSales.length);
 
   // In preview or before saving, use the optimiser's stable so the page has
   // something to render. In real play the stable exists as soon as the user
@@ -76,7 +81,7 @@ export default async function SellPage({
               This race week
             </p>
             <p className="text-[15px] font-extrabold text-[var(--slate)]">
-              Sales left: {N_SALES} of {N_SALES}
+              Sales left: {salesLeft} of {N_SALES}
             </p>
           </div>
           <TrophyHammer />
@@ -85,9 +90,39 @@ export default async function SellPage({
           Tap a horse to see what it will fetch at auction. You can sell up to {N_SALES} horses per
           race week — the money goes back into your bank so you can buy an upgrade.
         </p>
+        {madeSales.length > 0 && (
+          <ul className="mt-3 divide-y divide-[#eef2f6] border-t border-[#eef2f6] pt-2">
+            {madeSales.map((s) => {
+              const pl = Math.round((s.soldM - s.boughtM) * 10) / 10;
+              const plTone = pl >= 0 ? "text-[var(--go-deep)]" : "text-[#c0392b]";
+              return (
+                <li key={s.id} className="flex items-baseline justify-between py-1.5 text-[12.5px]">
+                  <span className="text-[var(--slate)]">
+                    Sale {s.saleIndex}: <span className="font-bold">{s.horseName}</span>
+                  </span>
+                  <span className={`font-extrabold tabular-nums ${plTone}`}>
+                    {pl >= 0 ? "+" : ""}
+                    £{pl.toFixed(1)}m
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
-      <SellFloor horses={example} boughtAt={boughtAt} preview={!!preview} date={date} sell={sellHorseAction} />
+      {salesLeft <= 0 ? (
+        <div className="rounded-[22px] bg-white p-5 text-center shadow-[0_2px_8px_rgba(23,48,60,0.06)]">
+          <p className="text-[13.5px] font-bold text-[var(--slate)]">
+            You&rsquo;ve used both sales this week.
+          </p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--slate-soft)]">
+            The auction reopens with next week&rsquo;s card.
+          </p>
+        </div>
+      ) : (
+        <SellFloor horses={example} boughtAt={boughtAt} preview={!!preview} date={date} sell={sellHorseAction} />
+      )}
     </GameShell>
   );
 }
