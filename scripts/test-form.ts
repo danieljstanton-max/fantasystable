@@ -83,5 +83,22 @@ if (existsSync(p)) {
   if (styled / total < 0.8) { fails++; console.log("  !! under 80% coverage — phrase list needs widening"); }
 }
 
+
+console.log("\nfell / brought down when going well");
+check("brought down is always excused",
+  readComment("Held up towards the back - brought down at the 3rd").fellGoingWell, true);
+check("fell while in contention counts",
+  readComment("Settled with the pack - pushed into contention to challenge three out - still very much involved when fell").fellGoingWell, true);
+check("fell while travelling well counts",
+  readComment("Travelling well in second when came to grief at the 9th").fellGoingWell, true);
+check("fell from the back does not",
+  readComment("Held up towards the back - stumbled and lost rider 3rd").fellGoingWell, false);
+check("pulled up never counts as going well",
+  readComment("Travelling well early - dropped away with no chance and pulled up before the 11th").fellGoingWell, false);
+check("type: brought down",
+  readComment("Held up - brought down at the 12th").nonCompletionType, "brought-down");
+check("type: pulled up",
+  readComment("Dropped away and pulled up before the last").nonCompletionType, "pulled-up");
+
 console.log(fails === 0 ? "\nAll form-reading checks passed.\n" : `\n${fails} check(s) FAILED.\n`);
 process.exit(fails === 0 ? 0 : 1);

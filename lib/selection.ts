@@ -10,6 +10,7 @@
 
 import type { GoingBand } from "./going";
 import { GOING_ORDER } from "./going";
+import { readComment } from "./form-reading";
 
 /* ========================================================================== */
 /* Race filtering                                                             */
@@ -167,6 +168,57 @@ export interface PastRun {
   /** Cumulative lengths behind the winner. 0 for the winner. */
   ovrBtn: number | null;
   age: number | null;
+  /** When this horse WON, how far it won by (the runner-up's lengths). */
+  winMargin?: number | null;
+}
+
+/**
+ * Lengths to pounds.
+ *
+ * Dan, 2026-08-27: "when we look at horses that won recently we need to look at
+ * how easily they won and by how far taking into account lentghs by weight."
+ *
+ * A length is worth far more over five furlongs than over three miles, so a
+ * winning distance only means something once converted. The conventional scale,
+ * in pounds per length:
+ *
+ *   FLAT   5f 3.0 | 6f 2.5 | 7f 2.0 | 1m 1.75 | 9-10f 1.5 | 11-12f 1.25
+ *          13-16f 1.0 | 17f+ 0.75
+ *   JUMPS  2m 1.0 | 2m4f 0.75 | 3m 0.6 | beyond 0.5
+ *
+ * This is an approximation of the published scale, not the scale itself — the
+ * real thing varies by going and code. Good enough to tell a three-length
+ * sprint win from a three-length staying win, which is the point.
+ */
+export function lbPerLength(distanceF: number | null, raceType: string | null): number {
+  const jumps = ["hurdle", "chase"].includes(normaliseDiscipline(raceType));
+  const f = distanceF ?? (jumps ? 20 : 8);
+
+  if (jumps) {
+    if (f <= 16) return 1.0;
+    if (f <= 20) return 0.75;
+    if (f <= 24) return 0.6;
+    return 0.5;
+  }
+
+  if (f <= 5) return 3.0;
+  if (f <= 6) return 2.5;
+  if (f <= 7) return 2.0;
+  if (f <= 8) return 1.75;
+  if (f <= 10) return 1.5;
+  if (f <= 12) return 1.25;
+  if (f <= 16) return 1.0;
+  return 0.75;
+}
+
+/** A winning distance expressed in pounds of superiority. */
+export function marginInPounds(
+  lengths: number | null,
+  distanceF: number | null,
+  raceType: string | null
+): number | null {
+  if (lengths === null || lengths === undefined) return null;
+  return Math.round(lengths * lbPerLength(distanceF, raceType) * 10) / 10;
 }
 
 /**
@@ -509,42 +561,111 @@ export function wentCloseOffSimilarMark(
 }
 
 /**
- * Is the horse improving?
+ * How did it run last time?
  *
- * Dan: "if a horse has been running badly we can tell this by how many lengths
- * its been beat, and then puts in a more solid performance etc this is a big
- * factor."
+ * Dan, 2026-08-27: "the 'improving part' we dont need to get by lentghs beaten
+ * on avg - i think we need to look at the last race comments."
  *
- * Beaten lengths are compared within one discipline only — three lengths in a
- * five-furlong sprint is not three lengths in a staying chase — and the recent
- * two runs are set against the three before them. A horse beaten 20, 15 and 12
- * that is then beaten 2 and 3 is telling you something the finishing positions
- * alone may not.
+ * Replaces an averaged beaten-lengths trend. The in-running comment says what
+ * the finishing position cannot: a horse beaten six lengths that was staying on
+ * through the last furlong is going the right way, and one beaten the same
+ * distance after weakening from two out is not.
+ *
+ * Frequencies across 655 horses declared on 2026-08-27, so these actually
+ * separate runners rather than firing on everything:
+ *
+ *   stayed on / finished well   30%
+ *   trouble in running           4%
+ *   weakened / dropped away     14%
+ *   nothing readable            53%
  */
-export function improvementTrend(
+export function lastRunReading(
   history: PastRun[],
-  todayType: string | null = null
-): { improving: boolean; recentAvg: number; priorAvg: number; gain: number; runs: number } {
-  const scoped = (todayType
-    ? history.filter((r) => sameDiscipline(r.raceType, todayType))
-    : history
-  ).filter((r) => r.ovrBtn !== null && r.positionNum !== null);
+  age: number | null | undefined
+): { signal: Signal | null; evidence: string[] } {
+  const last = history[0];
+  if (!last) return { signal: null, evidence: [] };
 
-  if (scoped.length < 4) return { improving: false, recentAvg: 0, priorAvg: 0, gain: 0, runs: scoped.length };
+  const read = readComment(last.comment);
 
-  const recent = scoped.slice(0, 2);
-  const prior = scoped.slice(2, 5);
-  const mean = (xs: PastRun[]) => xs.reduce((a, b) => a + (b.ovrBtn as number), 0) / xs.length;
+  // A faller usually says nothing — but one that came down while travelling in
+  // contention, or was brought down through no fault of its own, is a run the
+  // market forgets and the form book hides.
+  if (read.fellGoingWell) {
+    return {
+      signal: {
+        key: "fell-going-well",
+        label:
+          read.nonCompletionType === "brought-down"
+            ? "Brought down last time"
+            : "Fell when going well",
+        weight: 3,
+        detail: `last time: ${read.evidence.slice(0, 2).join(", ") || read.nonCompletionType}`,
+      },
+      evidence: read.evidence,
+    };
+  }
+  if (read.nonCompletion) return { signal: null, evidence: [] };
 
-  const recentAvg = mean(recent);
-  const priorAvg = mean(prior);
-  const gain = priorAvg - recentAvg;
+  const young = (age ?? 99) <= 5;
 
-  // Needs to be a real move, not noise: at least 4 lengths better on average
-  // and at least a third of the previous deficit.
-  const improving = gain >= 4 && priorAvg > 0 && gain / priorAvg >= 0.33;
+  // Travelling well and not being knocked about stack with finishing well:
+  // together they describe a horse that had more to give.
+  const extras: string[] = [];
+  let bonus = 0;
+  if (read.travelledWell) { extras.push("travelled well"); bonus += 1; }
+  if (read.easyRide) { extras.push("not given a hard ride"); bonus += 2; }
 
-  return { improving, recentAvg: round1(recentAvg), priorAvg: round1(priorAvg), gain: round1(gain), runs: scoped.length };
+  if (read.stayedOn) {
+    return {
+      signal: {
+        key: "last-run-positive",
+        label: young ? "Finishing well, and young enough to improve" : "Finishing well last time",
+        weight: (young ? 3 : 2) + bonus,
+        detail: `last time: ${[...read.evidence.slice(0, 2), ...extras].join(", ")}`,
+      },
+      evidence: read.evidence,
+    };
+  }
+
+  // Travelled well or was never asked, even without a strong finish.
+  if (bonus > 0) {
+    return {
+      signal: {
+        key: "last-run-easy",
+        label: read.easyRide ? "Not given a hard ride last time" : "Travelled well last time",
+        weight: bonus,
+        detail: `last time: ${extras.join(", ")}`,
+      },
+      evidence: read.evidence,
+    };
+  }
+
+  if (read.trouble) {
+    return {
+      signal: {
+        key: "last-run-trouble",
+        label: "Run compromised last time",
+        weight: 2,
+        detail: `last time: ${read.evidence.slice(0, 2).join(", ")}`,
+      },
+      evidence: read.evidence,
+    };
+  }
+
+  if (read.failedToStay) {
+    return {
+      signal: {
+        key: "last-run-negative",
+        label: "Weakened last time",
+        weight: -1,
+        detail: `last time: ${read.evidence.slice(0, 2).join(", ")}`,
+      },
+      evidence: read.evidence,
+    };
+  }
+
+  return { signal: null, evidence: [] };
 }
 
 function round1(n: number): number {
@@ -666,6 +787,64 @@ export function winDrought(
   }
 
   return { runsSinceWin, monthsSinceWin, everWon, offOptimalGoing, excused, signal };
+}
+
+/**
+ * Did it win by more than the handicapper has taken off it?
+ *
+ * A horse that wins a five-furlong handicap by four lengths has shown roughly
+ * twelve pounds of superiority. If the assessor has raised it six, it is still
+ * six pounds ahead of its mark — and that is invisible if you only look at the
+ * rating.
+ *
+ * Only wins inside the lookback window, in today's discipline, count.
+ */
+export function wonMoreEasilyThanRaised(
+  todayOfr: number | null,
+  history: PastRun[],
+  today: string,
+  todayType: string | null = null
+): {
+  found: boolean;
+  surplus: number;
+  margin: number;
+  marginLbs: number;
+  rise: number;
+  when: string | null;
+} {
+  const none: {
+    found: boolean; surplus: number; margin: number;
+    marginLbs: number; rise: number; when: string | null;
+  } = { found: false, surplus: 0, margin: 0, marginLbs: 0, rise: 0, when: null };
+  if (todayOfr === null) return none;
+
+  let best = none;
+
+  for (const r of winningRuns(history)) {
+    if (r.ofr === null || r.winMargin === null || r.winMargin === undefined) continue;
+    if (monthsBetween(r.raceDate, today) > MARK_LOOKBACK_MONTHS) continue;
+    if (todayType && !sameDiscipline(r.raceType, todayType)) continue;
+
+    const lbs = marginInPounds(r.winMargin, r.distanceF, r.raceType);
+    if (lbs === null) continue;
+
+    // What the handicapper actually did to it since that win.
+    const rise = todayOfr - r.ofr;
+    const surplus = lbs - rise;
+
+    if (surplus > best.surplus) {
+      best = {
+        found: surplus >= 3, // below three pounds it is noise
+        surplus: Math.round(surplus * 10) / 10,
+        margin: r.winMargin,
+        marginLbs: lbs,
+        rise,
+        when: r.raceDate,
+      };
+    }
+  }
+
+  return best.found ? best : none;
 }
 
 /**
@@ -794,17 +973,20 @@ export function scoreHorse(
     }
   }
 
-  const trend = improvementTrend(history, race.raceType);
-  if (trend.improving) {
-    // Young horses are still filling out, so a genuine upward move means more.
-    const young = (today.age ?? 99) <= 5;
+  const easy = wonMoreEasilyThanRaised(today.ofr, history, raceDate, race.raceType);
+  if (easy.found) {
     signals.push({
-      key: "improving",
-      label: young ? "Improving, and young enough to keep doing so" : "Improving",
-      weight: young ? 3 : 2,
-      detail: `beaten ${trend.priorAvg}L on average, now ${trend.recentAvg}L`,
+      key: "won-easily",
+      label: "Won by more than the handicapper took",
+      weight: easy.surplus >= 8 ? 3 : 2,
+      detail:
+        `won by ${easy.margin}L (~${easy.marginLbs}lb) on ${easy.when}, ` +
+        `raised only ${easy.rise}lb — ${easy.surplus}lb in hand`,
     });
   }
+
+  const lastRun = lastRunReading(history, today.age);
+  if (lastRun.signal) signals.push(lastRun.signal);
 
   const booking = significantBooking(today, history, jockeyStrikeRate);
   if (booking.found)

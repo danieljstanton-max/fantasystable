@@ -260,6 +260,8 @@ async function loadHistory(horseId: string, before: string): Promise<PastRun[]> 
     select ra.race_date::text race_date, ra.course_slug, ra.distance_f,
            ra.going_band, ra.field_size, ra.race_type, r.position_num, r.ofr, r.ovr_btn, r.age,
            r.jockey_id, r.comment
+           (select min(w.ovr_btn) from runners w
+              where w.race_id = ra.id and w.position_num = 2) win_margin
     from runners r join races ra on ra.id = r.race_id
     where r.horse_id = ${horseId} and ra.race_date < ${before}
       and r.position is not null
@@ -278,6 +280,8 @@ async function loadHistory(horseId: string, before: string): Promise<PastRun[]> 
     raceType: x.race_type,
     ovrBtn: x.ovr_btn,
     age: x.age,
+    // Only meaningful when this horse won; it is the runner-up's deficit.
+    winMargin: x.position_num === 1 ? x.win_margin : null,
   }));
 }
 
