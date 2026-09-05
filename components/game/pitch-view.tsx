@@ -198,23 +198,30 @@ function JockeyCard({
 }) {
   const interactive = !!handlers?.onRemove && !handlers.locked;
   return (
-    <article className="relative flex w-[112px] flex-col overflow-hidden rounded-[14px] bg-[#dbe4ec] shadow-[0_2px_6px_rgba(23,48,60,0.12)]">
+    <article
+      className="relative grid h-[128px] w-[112px] overflow-hidden rounded-[14px] bg-[#3f9d4a] shadow-[0_3px_10px_rgba(23,48,60,0.25)]"
+      style={{ gridTemplateRows: "1fr auto" }}
+    >
+      {/* Same corner controls as the horse card, minus the NAP toggle.
+          Removing the redundant "picked ✓" — the jockey being IN the stable
+          IS the signal; a green tick just adds visual noise. */}
       <div className="absolute left-1.5 top-1.5 z-10 flex flex-col gap-1">
-        <Dot tone="go">✓</Dot>
         <RemoveBadge
           onClick={interactive ? () => handlers.onRemove!(jockey) : undefined}
         />
       </div>
       <InfoDot />
-      <div className="flex h-[68px] items-center justify-center pt-2">
-        <JockeySilk id={jockey.id} size={54} />
+
+      <div className="flex min-h-0 items-center justify-center px-1.5 pt-2">
+        <JockeySilk id={jockey.id} size={72} />
       </div>
+
       <div className="bg-white px-1.5 pb-1.5 pt-1 text-center">
-        <div className="truncate text-[12px] font-semibold leading-tight text-[var(--slate)]">
+        <div className="truncate text-[11.5px] font-semibold leading-tight text-[var(--slate)] sm:text-[13px]">
           {jockeyLabel(jockey.name)}
         </div>
         <div
-          className="mt-0.5 text-[17px] font-extrabold leading-none tracking-tight text-[var(--slate)]"
+          className="text-[18px] font-extrabold leading-none tracking-tight text-[var(--slate)] sm:text-[22px]"
           style={{ fontVariantNumeric: "tabular-nums" }}
         >
           {money(jockey.price)}
@@ -225,7 +232,7 @@ function JockeyCard({
 }
 
 function EmptyJockey({ onClick }: { onClick?: () => void }) {
-  const cls = "flex h-[112px] w-[112px] items-center justify-center rounded-[14px] border-2 border-dashed border-[#c2cfda] text-[12px] font-semibold text-[#8fa2ae]";
+  const cls = "flex h-[128px] w-[112px] items-center justify-center rounded-[14px] border-2 border-dashed border-white/70 bg-black/10 text-[12px] font-semibold text-white/85";
   if (onClick) return (
     <button type="button" onClick={onClick} className={cls + " hover:bg-white/40"}>+ Pick a jockey</button>
   );
