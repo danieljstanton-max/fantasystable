@@ -106,7 +106,9 @@ async function main() {
     select r.horse_id "horseId", ra.race_date::text "raceDate", ra.course_slug "courseSlug",
            ra.distance_f "distanceF", ra.going_band "goingBand", ra.race_type "raceType",
            ra.field_size "fieldSize", r.position_num "positionNum", r.ofr,
-           r.jockey_id "jockeyId", r.comment, r.ovr_btn "ovrBtn", r.age
+           r.jockey_id "jockeyId", r.comment, r.ovr_btn "ovrBtn", r.age,
+           (select min(w.ovr_btn) from runners w
+             where w.race_id = ra.id and w.position_num = 2) "winMargin"
     from runners r join races ra on ra.id = r.race_id
     where r.horse_id = any(${ids}) and ra.race_date < ${date} and r.position is not null
     order by ra.race_date desc`;
@@ -120,7 +122,12 @@ async function main() {
         raceDate: h.raceDate, courseSlug: h.courseSlug, distanceF: h.distanceF,
         goingBand: (h.goingBand ?? "unknown") as GoingBand, positionNum: h.positionNum,
         ofr: h.ofr, fieldSize: h.fieldSize, jockeyId: h.jockeyId, comment: h.comment,
-        raceType: h.raceType, ovrBtn: h.ovrBtn, age: h.age, winMargin: null,
+        raceType: h.raceType, ovrBtn: h.ovrBtn, age: h.age,
+        // Only meaningful when this horse won; it is the runner-up's deficit.
+        // Hardcoding null here made the write-ups disagree with the analysis:
+        // "won by more than the handicapper took" could never fire, so the
+        // 20:30 Southwell named a different horse in each file.
+        winMargin: h.positionNum === 1 ? h.winMargin : null,
       });
   }
 
@@ -135,6 +142,22 @@ async function main() {
   const jkMap = new Map<string, number>();
   for (const j of jkRows) jkMap.set(j.jockeyId, (j.wins / j.rides) * 100);
   const jockeyStrike = (id: string | null) => (id ? jkMap.get(id) ?? null : null);
+
+  const paceMap = new Map<string, number>();
+  for (const p of (await client`select * from pace_bias`) as any)
+    paceMap.set(`${p.course_slug}|${p.dist_band}|${p.race_code}|${p.run_style}`, Number(p.impact_value));
+
+  const drawDist = (f: number | null) =>
+    f === null ? null : f <= 5.5 ? "5f" : f <= 6.5 ? "6f" : f <= 7.5 ? "7f"
+      : f <= 8.5 ? "1m" : f <= 10.5 ? "1m1f-1m2f" : f <= 12.5 ? "1m3f-1m4f" : "beyond 1m4f";
+  const paceDist = (f: number | null) =>
+    f === null ? null : f <= 6.5 ? "sprint" : f <= 8.5 ? "7f-1m" : f <= 12.5 ? "1m1f-1m4f"
+      : f <= 17 ? "1m5f-2m" : f <= 22 ? "2m1f-2m6f" : "beyond 2m6f";
+  const drawBand = (d: number | null, field: number) => {
+    if (d === null || field < 6) return null;
+    const q = (d - 1) / (field - 1);
+    return q <= 1 / 3 ? "low" : q >= 2 / 3 ? "high" : "mid";
+  };
 
   const byRace = new Map<string, any[]>();
   for (const r of runners) {
@@ -160,8 +183,9 @@ async function main() {
       rs.map((x) => ({ age: x.age, isNonRunner: x.isNonRunner }))).eligible;
   }).length;
 
-  say(`${qualifying} of them are handicaps worth a bet by our criteria. The rest are`);
-  say(`covered below but are not races we would be having a bet in.`);
+  say(`Every race is previewed below with a selection. ${qualifying} of them are`);
+  say(`competitive handicaps that fit our strongest angles, and those are marked`);
+  say(`BEST BET where they come up.`);
   say();
   say(`Good luck if you're having a bet.`);
   say();
@@ -213,7 +237,20 @@ async function main() {
         daysSinceRun: r.lastRun, trainer14Runs: r.t14Runs,
         trainer14Wins: r.t14Wins, trainer14Percent: r.t14Pct,
       };
-      const s = scoreHorse(today, raceToday, h, jockeyStrike, date);
+      const band = drawBand(r.draw, live.length);
+      const dB = drawDist(ra.distanceF);
+      const iv = band && dB
+        ? drawMap.get(`${ra.courseSlug}|${dB}|${ra.goingBand ?? "unknown"}|${band}`) ?? null : null;
+      const styles = h.slice(0, 5).map((x) => readComment(x.comment).runStyle).filter(Boolean) as string[];
+      const cnt = new Map<string, number>();
+      for (const st of styles) cnt.set(st, (cnt.get(st) ?? 0) + 1);
+      let habit: string | null = null, bn = 0;
+      for (const [k, n] of cnt) if (n > bn) { habit = k; bn = n; }
+      const pB = paceDist(ra.distanceF);
+      const pIv = habit && bn >= 3 && pB && ra.raceType
+        ? paceMap.get(`${ra.courseSlug}|${pB}|${ra.raceType}|${habit}`) ?? null : null;
+
+      const s = scoreHorse(today, raceToday, h, jockeyStrike, date, () => iv, () => pIv);
       const hcap = wellHandicapped(today, raceToday, h, date);
       return { r, h, s, hcap, style: h[0] ? readComment(h[0].comment).runStyle : null };
     });
@@ -226,29 +263,53 @@ async function main() {
 
     /* ---- the paragraph ---- */
 
-    // A race we would not bet in still gets covered, but the copy says why.
-    if (!verdict.eligible) {
-      const why = REJECT_LABELS[verdict.reason!];
-      if (verdict.reason === "not-a-handicap") {
-        say(`Not a handicap, so it falls outside what we bet, but worth a look.`);
-      } else {
-        say(`One we leave alone — ${why.toLowerCase()}.`);
-      }
-    }
-
+    // EVERY race gets a selection. This is site copy, not a betting sheet:
+    // a preview that shrugs at two thirds of the card is no use to a reader.
+    // Where the handicap angles do not apply we say what the race is and pick
+    // on what IS there — market, stable form, the booking — rather than
+    // declining to have an opinion.
     if (experienced < 3) {
-      // Nothing to read. Say so rather than invent.
+      // Maidens and novices: little or no form to read.
       const fav = byPrice[0];
+      const hotYard = scored
+        .filter((x) => (x.r.t14Runs ?? 0) >= 10 && (x.r.t14Pct ?? 0) >= 18)
+        .sort((a, b) => (b.r.t14Pct ?? 0) - (a.r.t14Pct ?? 0))[0];
+      const goodJock = scored
+        .map((x) => ({ x, sr: jockeyStrike(x.r.jockeyId) }))
+        .filter((y) => (y.sr ?? 0) >= 15)
+        .sort((a, b) => (b.sr ?? 0) - (a.sr ?? 0))[0];
+
       say(
-        `Very little to go on here with most of these lightly raced or unraced.` +
-          (fav ? ` ${String(fav.r.horseName).toUpperCase()} heads the market at ${price(fav.r.priceFrac, fav.r.priceDec)}` +
-            `${fav.r.trainerName ? ` for ${fav.r.trainerName}` : ""}.` : "")
+        `A hard race to weigh up with most of these unexposed, so the yard and the` +
+          ` booking count for more than the form book.`
       );
-      const hotYard = scored.find((x) => (x.r.t14Runs ?? 0) >= 10 && (x.r.t14Pct ?? 0) >= 20);
-      if (hotYard)
-        say(`${hotYard.r.trainerName} is in good form at ${hotYard.r.t14Pct}% over the last fortnight, ` +
-            `which is worth noting with ${String(hotYard.r.horseName).toUpperCase()}.`);
-      say(`Not one for us.`);
+
+      // Pick on stable form first, then the market.
+      const pickWrap = hotYard ?? fav ?? scored[0];
+      const pk = pickWrap.r;
+      const pkName = String(pk.horseName).toUpperCase();
+      const reasons: string[] = [];
+      if (hotYard && pk === hotYard.r)
+        reasons.push(`${pk.trainerName} is running at ${pk.t14Pct}% over the past fortnight`);
+      if (goodJock && goodJock.x.r === pk)
+        reasons.push(`${pk.jockeyName} is a ${Math.round(goodJock.sr as number)}% rider`);
+      if (fav && fav.r === pk) reasons.push(`the market makes it favourite`);
+      if (pk.headgearFirst) reasons.push(`it wears headgear for the first time`);
+
+      say(
+        `${pkName} gets the vote at ${price(pk.priceFrac, pk.priceDec)}${pk.trainerName ? ` for ${pk.trainerName}` : ""}` +
+          `${pk.jockeyName ? `, ridden by ${pk.jockeyName}` : ""}.` +
+          (reasons.length ? ` ${reasons[0].charAt(0).toUpperCase()}${reasons.slice(0, 2).join(", and ").slice(1)}.` : "")
+      );
+
+      const others = byPrice.filter((x) => x.r !== pk).slice(0, 2);
+      if (others.length)
+        say(
+          `${others.length > 1 ? "The dangers are" : "The main danger is"} ` +
+            listNames(others.map((x) => `${String(x.r.horseName).toUpperCase()} at ${price(x.r.priceFrac, x.r.priceDec)}`)) + `.`
+        );
+      if (nr.length) say(`Non-runners: ${listNames(nr.map((x) => String(x.horseName)))}.`);
+      say(`VERDICT: ${pkName} ${price(pk.priceFrac, pk.priceDec)}`);
       continue;
     }
 
@@ -265,10 +326,22 @@ async function main() {
     const pr = price(top.r.priceFrac, top.r.priceDec);
 
     if (!sig.length) {
-      say(`A hard race to solve and nothing stands out on our figures.`);
-      const fav = byPrice[0];
-      if (fav) say(`${String(fav.r.horseName).toUpperCase()} is favourite at ${price(fav.r.priceFrac, fav.r.priceDec)}.`);
-      say(`One to watch rather than bet.`);
+      // Still commit. The top of the market with the best stable behind it is
+      // a defensible call, and saying nothing is not.
+      const fav = byPrice[0] ?? scored[0];
+      const nm = String(fav.r.horseName).toUpperCase();
+      say(`A tricky race on paper with little between them on our figures.`);
+      say(
+        `${nm} makes most appeal at ${price(fav.r.priceFrac, fav.r.priceDec)}` +
+          `${fav.r.trainerName ? ` for ${fav.r.trainerName}` : ""}` +
+          `${(fav.r.t14Runs ?? 0) >= 10 && (fav.r.t14Pct ?? 0) >= 18 ? `, whose yard is running at ${fav.r.t14Pct}%` : ""}.`
+      );
+      const others = byPrice.slice(1, 3);
+      if (others.length)
+        say(`${others.length > 1 ? "The dangers are" : "The main danger is"} ` +
+            listNames(others.map((x) => `${String(x.r.horseName).toUpperCase()} at ${price(x.r.priceFrac, x.r.priceDec)}`)) + `.`);
+      if (nr.length) say(`Non-runners: ${listNames(nr.map((x) => String(x.horseName)))}.`);
+      say(`VERDICT: ${nm} ${price(fav.r.priceFrac, fav.r.priceDec)}`);
       continue;
     }
 
@@ -287,7 +360,10 @@ async function main() {
         case "plot": return `has had its mark eased — ${detail}`;
         case "went-close": return `went close off this sort of rating, ${detail}`;
         case "won-easily": return `${detail}`;
-        case "course": return detail.includes("1 time") ? `has won here` : `has won here ${detail.replace("won here ", "")}`;
+        case "course": {
+          const n = parseInt((detail.match(/won here (\d+)/) ?? [])[1] ?? "1", 10);
+          return n === 1 ? "has won here" : n === 2 ? "has won here twice" : `has won here ${n} times`;
+        }
         case "trainer-hot": return `comes from a yard in good heart at ${detail.split(" ")[0]}`;
         case "headgear": return `wears headgear for the first time`;
         case "wind": return `makes its first start since a wind operation`;
@@ -305,12 +381,18 @@ async function main() {
     const parts: string[] = [];
     if (top.hcap.qualifies && top.hcap.reasons.length) {
       // The reason already states the pounds, so do not say it twice.
+      // Each reason has to read as a verb phrase, because it follows "It ...".
+      // The mark-drop reason arrives as a bare noun phrase ("2 of the last 4
+      // starts on the wrong ground, mark down 2lb") and produced "It 2 of the
+      // last 4 starts..." until it was given one.
       parts.push(humaniseDates(
         top.hcap.reasons[0]
           .replace(/^(\d+)lb below its \w* ?winning mark of (\d+)/, "races off a mark $1lb below the $2 it won from")
           .replace(/^beaten ([\d.]+)L off (\d+)/, "was beaten $1 lengths off $2")
           .replace(/^won by ([\d.]+)L .*?raised (-?\d+)lb — ([\d.]+)lb in hand/,
             "won by $1 lengths and was raised only $2lb for it, leaving $3lb in hand")
+          .replace(/^(\d+) of the last (\d+) starts on the wrong (.+?), mark down (\d+)lb/,
+            "has had $1 of its last $2 starts on the wrong $3 and its mark is $4lb lower for it")
       ));
     }
     for (const x of distinctive.slice(0, 3)) {
@@ -320,17 +402,20 @@ async function main() {
     if (parts.length < 2)
       for (const x of commonplace.slice(0, 2)) parts.push(humaniseDates(phrase(x.key, x.label, x.detail)));
 
-    const opener = top.hcap.prime
-      ? `${name} is the one, and this is the sort of race we are looking for`
-      : verdict.eligible
-      ? `${name} makes most appeal`
-      : `${name} looks the pick of these`;
+    const who =
+      `${name} at ${pr}` +
+      (top.r.trainerName ? `, ${top.r.trainerName}` : "") +
+      (top.r.jockeyName
+        ? `${top.r.claim ? ` with ${top.r.jockeyName} taking off ${top.r.claim}lb` : ` and ${top.r.jockeyName}`}`
+        : "");
 
-    say(
-      `${opener}${top.r.trainerName ? ` for ${top.r.trainerName}` : ""}` +
-        `${top.r.jockeyName ? `, ${top.r.claim ? `with ${top.r.jockeyName} taking off ${top.r.claim}lb` : `ridden by ${top.r.jockeyName}`}` : ""}. ` +
-        (parts.length ? `It ${listNames(parts.slice(0, 3))}.` : "")
-    );
+    const opener = top.hcap.prime
+      ? `${who}, is the one — exactly the sort of race we are looking for.`
+      : verdict.eligible
+      ? `${who}, makes most appeal.`
+      : `${who}, looks the pick of these.`;
+
+    say(opener + (parts.length ? ` It ${listNames(parts.slice(0, 3))}.` : ""));
     if (neg.length) say(`The negatives: ${listNames(neg.map((n) => n.label.toLowerCase()))}.`);
 
     // Dangers, described by what separates THEM rather than the same two
@@ -359,9 +444,14 @@ async function main() {
 
     if (nr.length) say(`Non-runners: ${listNames(nr.map((x) => String(x.horseName)))}.`);
 
-    if (verdict.eligible) {
-      say(`VERDICT: ${name} ${pr}${top.hcap.prime ? " — our strongest type of race, conditions all proven" : ""}`);
-    }
+    say(
+      `VERDICT: ${name} ${pr}` +
+        (verdict.eligible && top.hcap.prime
+          ? "   *** BEST BET — well handicapped with conditions proven ***"
+          : verdict.eligible && top.hcap.qualifies
+          ? "   ** BEST BET **"
+          : "")
+    );
   }
 
   say();
