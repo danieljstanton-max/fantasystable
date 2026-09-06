@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { gamePaused } from "@/lib/pause";
 
 /**
  * Domain-scoped visibility.
@@ -28,9 +29,28 @@ export function middleware(req: NextRequest) {
   if (!isFantasy) return NextResponse.next();
 
   const path = req.nextUrl.pathname;
+
+  // Product-level pause: if GAME_PAUSED is set on Vercel, every game route
+  // (pitch, sign-in, admin, results, leagues) redirects to the holding
+  // page. The homepage stays live so the domain still explains what the
+  // game is and when it's coming back. Static assets and the paused route
+  // itself pass through.
+  if (
+    gamePaused() &&
+    (path === "/game" || path.startsWith("/game/")) &&
+    !path.startsWith("/api") &&
+    !path.startsWith("/_next")
+  ) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/paused";
+    url.search = "";
+    return NextResponse.redirect(url, 307);
+  }
+
   if (
     path.startsWith("/game") ||
     path.startsWith("/fantasy") ||
+    path.startsWith("/paused") ||
     path.startsWith("/api") ||
     path.startsWith("/_next") ||
     path.startsWith("/img") ||
