@@ -26,9 +26,28 @@ import { eq, gt, sql } from "drizzle-orm";
 import { nextGameDate } from "@/lib/game-data";
 
 export const metadata: Metadata = {
-  title: "Fantasy Stable — pick 6 horses, chase glory",
+  // `absolute` cancels the "%s | Horse Racing Tips" template inherited from
+  // the root layout — this is the Fantasy Stable homepage, not a subpage of
+  // the tips site. The opengraph-image.tsx sibling supplies the social card.
+  title: {
+    absolute: "Fantasy Stable — free fantasy horse racing, every Saturday",
+  },
   description:
-    "A free-to-play Saturday fantasy game. Pick 6 horses and 2 jockeys from £100m, score when they run, climb the leaderboard.",
+    "Build your stable. Pick 6 horses and 2 jockeys from £100m, name your NAP, join a mini-league and chase weekly bragging rights. Free to play.",
+  openGraph: {
+    title: "Fantasy Stable — pick your horses, chase weekly bragging rights",
+    description:
+      "Free-to-play fantasy horse racing. A new card every Saturday. Sign in with Google or email — no password.",
+    siteName: "Fantasy Stable",
+    type: "website",
+    locale: "en_GB",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Fantasy Stable — pick your horses, chase weekly bragging rights",
+    description:
+      "Free-to-play fantasy horse racing. A new card every Saturday.",
+  },
 };
 
 export const dynamic = "force-dynamic";
