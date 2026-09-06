@@ -38,6 +38,8 @@ type Props = {
   /** Fraction (0..1) of saved stables that picked this horse/jockey this week. */
   horseOwnership?: Record<string, number>;
   jockeyOwnership?: Record<string, number>;
+  /** Per-horse settled result (position, points) — populated post-race. */
+  horseResults?: Record<string, import("@/lib/game-data").HorseResult>;
 };
 
 export function StableEditor({
@@ -47,6 +49,7 @@ export function StableEditor({
   save,
   horseOwnership = {},
   jockeyOwnership = {},
+  horseResults = {},
 }: Props) {
   const [horseIds, setHorseIds] = useState<string[]>(initial.horseIds);
   const [jockeyIds, setJockeyIds] = useState<string[]>(initial.jockeyIds);
@@ -235,6 +238,7 @@ export function StableEditor({
       <Pitch
         horses={horses}
         napHorseId={napHorseId}
+        results={horseResults}
         horseHandlers={{
           onRemove: locked ? undefined : toggleHorse,
           onNap: locked ? undefined : (h) => setNap(h.horseId),

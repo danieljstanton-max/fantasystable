@@ -50,10 +50,13 @@ export function Pitch({
   horses,
   napHorseId,
   horseHandlers,
+  results = {},
 }: {
   horses: PricedRunner[];
   napHorseId: string | null;
   horseHandlers?: HorseHandlers;
+  /** Per-horse race result, keyed by horseId. Omitted horses have no result yet. */
+  results?: Record<string, import("@/lib/game-data").HorseResult>;
 }) {
   return (
     <section
@@ -77,6 +80,7 @@ export function Pitch({
               runner={h}
               isNap={h.horseId === napHorseId}
               handlers={horseHandlers}
+              result={results[h.horseId]}
             />
           ) : (
             <EmptyHorse key={`empty-${i}`} onClick={horseHandlers?.onPickEmpty} />
@@ -123,15 +127,24 @@ function HorseCard({
   runner,
   isNap,
   handlers,
+  result,
 }: {
   runner: PricedRunner;
   isNap: boolean;
   handlers?: HorseHandlers;
+  result?: import("@/lib/game-data").HorseResult;
 }) {
   const interactive = !!handlers?.onRemove && !handlers.locked;
+  // A horse "has run" once we've got either a numeric position OR a
+  // non-completion code (F, PU, UR, RR, BD). Non-runners are their own
+  // state — the card is greyed out but the reason is that it never ran.
+  const settled = !!result && (result.positionNum != null || (result.positionLabel && result.positionLabel !== "NR"));
+  const nonRunner = !!result?.isNonRunner;
   return (
     <article
-      className="relative grid h-full overflow-hidden rounded-[14px] bg-[#3f9d4a] shadow-[0_3px_10px_rgba(23,48,60,0.25)]"
+      className={`relative grid h-full overflow-hidden rounded-[14px] shadow-[0_3px_10px_rgba(23,48,60,0.25)] ${
+        settled || nonRunner ? "bg-[#3a6d3f]" : "bg-[#3f9d4a]"
+      }`}
       style={{ gridTemplateRows: "1fr auto" }}
     >
       <div className="absolute left-1.5 top-1.5 z-10 flex flex-col gap-1">
@@ -195,15 +208,55 @@ function HorseCard({
         <div className="truncate text-[11.5px] font-semibold leading-tight text-[var(--slate)] sm:text-[13px]">
           {runner.horse}
         </div>
-        <div
-          className="text-[18px] font-extrabold leading-none tracking-tight text-[var(--slate)] sm:text-[22px]"
-          style={{ fontVariantNumeric: "tabular-nums" }}
-        >
-          {money(runner.price)}
-        </div>
+        {settled ? (
+          <div
+            className="text-[18px] font-extrabold leading-none tracking-tight text-[var(--go-deep)] sm:text-[22px]"
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            {result!.points ?? 0} pts
+          </div>
+        ) : (
+          <div
+            className="text-[18px] font-extrabold leading-none tracking-tight text-[var(--slate)] sm:text-[22px]"
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            {money(runner.price)}
+          </div>
+        )}
       </div>
+
+      {/* Result badge: numeric position for a finisher, the published code
+          for a non-completion, "NR" for non-runners. Sits over the silk so
+          it reads even at glance-distance without wrecking the layout. */}
+      {(settled || nonRunner) && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div
+            className={`rounded-full px-3 py-1.5 text-[13px] font-extrabold uppercase tracking-[0.09em] shadow-[0_2px_6px_rgba(0,0,0,0.3)] ${
+              nonRunner
+                ? "bg-[#dbe4ec] text-[var(--slate)]"
+                : result!.positionNum === 1
+                  ? "bg-[#f7d94a] text-[var(--slate)]"
+                  : result!.positionNum && result!.positionNum <= 3
+                    ? "bg-white text-[var(--slate)]"
+                    : "bg-[#17303c] text-white"
+            }`}
+          >
+            {nonRunner
+              ? "NR"
+              : result!.positionNum
+                ? ordinal(result!.positionNum)
+                : (result!.positionLabel ?? "—").toUpperCase()}
+          </div>
+        </div>
+      )}
     </article>
   );
+}
+
+function ordinal(n: number): string {
+  const suffix =
+    n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : n >= 4 && n <= 20 ? "th" : "th";
+  return `${n}${suffix}`;
 }
 
 function EmptyHorse({ onClick }: { onClick?: () => void }) {

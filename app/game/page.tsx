@@ -18,10 +18,13 @@ import { loadCard, mergeSavedIntoCard, nextGameDate, raceWeekFor } from "@/lib/g
 import { cardLockTime, isLocked, lockLabel } from "@/lib/lock";
 import { loadStable } from "@/lib/stable";
 import { loadHorseOwnership, loadJockeyOwnership } from "@/lib/game-stats";
+import { loadHorseResults } from "@/lib/game-data";
+import type { HorseResult } from "@/lib/game-data";
 import { db, stables, users } from "@/db";
 import { desc, eq } from "drizzle-orm";
 import { Bench, Pitch } from "@/components/game/pitch-view";
 import { Header, StatBar, TrophyMark } from "@/components/game/game-chrome";
+import { AutoRefresh } from "@/components/game/auto-refresh";
 import { GameSidebar } from "@/components/game/game-sidebar";
 import { money } from "@/components/game/format";
 import { BUDGET } from "@/lib/game-pricing";
@@ -73,6 +76,42 @@ export default async function GamePage({
     loadHorseOwnership(date),
     loadJockeyOwnership(date),
   ]);
+
+  // My rank on this week's board — 1-indexed, null while I have no stable
+  // or the board is empty. Points come off the saved row (settlement writes
+  // them there). Total is shown alongside so "8 of 13" reads honestly on a
+  // small board rather than "rank 8" out of context.
+  let myPoints: number | null = null;
+  let myRank: number | null = null;
+  let boardTotal = 0;
+  if (realUser && saved) {
+    const ranks = await db
+      .select({ userId: stables.userId, points: stables.points })
+      .from(stables)
+      .where(eq(stables.raceDate, date))
+      .orderBy(desc(stables.points));
+    boardTotal = ranks.length;
+    const idx = ranks.findIndex((r) => r.userId === realUser.id);
+    if (idx >= 0) myRank = idx + 1;
+    myPoints = saved.points;
+  }
+
+  // Per-horse results: has it run, what did it finish, how many points?
+  // Loaded only when the user has a stable; the horse card overlays this
+  // to dim finished picks and show the score.
+  let horseResults: Record<string, HorseResult> = {};
+  if (saved) {
+    // Find each pick's raceId by scanning the reconciled card — same map
+    // the pitch uses, so what we pass to HorseCard matches what it draws.
+    const raceByHorse = new Map(
+      card.races.flatMap((r) => r.runners.map((x) => [x.horseId, r.raceId] as const))
+    );
+    const pairs = saved.horseIds
+      .map((hid) => ({ horseId: hid, raceId: raceByHorse.get(hid) ?? "" }))
+      .filter((p) => p.raceId);
+    const map = await loadHorseResults(saved.id, pairs);
+    horseResults = Object.fromEntries(map);
+  }
   // Admin pill in the header nav is opt-in per user — fetched here so the
   // Header component (which is a client component) doesn't have to touch
   // the database itself.
@@ -119,6 +158,7 @@ export default async function GamePage({
       }
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-2.5">
+        {locked && <AutoRefresh intervalMs={30_000} />}
         <Header
           date={date}
           raceweekLabel={`Race Week ${raceWeekFor(date)}`}
@@ -160,6 +200,9 @@ export default async function GamePage({
               budget={BUDGET}
             />
             <div className="flex min-w-0 flex-col gap-2.5">
+              {locked && myPoints != null && (
+                <ScoreStrip points={myPoints} rank={myRank} total={boardTotal} />
+              )}
               <StableEditor
                 card={card}
                 initial={{
@@ -171,6 +214,7 @@ export default async function GamePage({
                 save={saveStableAction}
                 horseOwnership={Object.fromEntries(horseOwnership)}
                 jockeyOwnership={Object.fromEntries(jockeyOwnership)}
+                horseResults={horseResults}
               />
             </div>
           </div>
@@ -358,5 +402,44 @@ function NoCard({ date }: { date: string }) {
         try another date with <code>?date=YYYY-MM-DD</code>.
       </p>
     </main>
+  );
+}
+
+/* -------------------------------------------------------- score strip */
+
+function ScoreStrip({
+  points,
+  rank,
+  total,
+}: {
+  points: number;
+  rank: number | null;
+  total: number;
+}) {
+  return (
+    <section className="grid grid-cols-2 rounded-[22px] bg-white px-4 py-3 shadow-[0_2px_8px_rgba(23,48,60,0.06)]">
+      <div>
+        <div className="text-[10.5px] font-bold uppercase tracking-[0.09em] text-[var(--slate-soft)]">
+          Race Week points
+        </div>
+        <div
+          className="mt-0.5 text-[26px] font-extrabold leading-none text-[var(--slate)]"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {points}
+        </div>
+      </div>
+      <div className="text-right">
+        <div className="text-[10.5px] font-bold uppercase tracking-[0.09em] text-[var(--slate-soft)]">
+          Rank this week
+        </div>
+        <div
+          className="mt-0.5 text-[16px] font-extrabold text-[var(--slate)]"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {rank ? `#${rank.toLocaleString("en-GB")} of ${total.toLocaleString("en-GB")}` : "—"}
+        </div>
+      </div>
+    </section>
   );
 }

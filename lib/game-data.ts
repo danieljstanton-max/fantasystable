@@ -231,3 +231,63 @@ export function raceWeekFor(date: string): number {
   const weeks = Math.floor((t - RACE_WEEK_EPOCH) / (7 * 86_400_000));
   return Math.max(1, weeks + 1);
 }
+
+/**
+ * Per-horse results for the pitch: has it run, where did it finish, what
+ * points did it earn?
+ *
+ * Reads from `runners` for the position + non-runner flag and from
+ * `stable_picks` for the settled points (populated by settleDate). Callers
+ * treat "no row" as "not settled yet" — the pitch keeps its live look for
+ * anything without a result.
+ */
+export type HorseResult = {
+  horseId: string;
+  raceId: string;
+  positionNum: number | null;
+  positionLabel: string | null; // "1", "2", "PU", "F", "UR" — as published
+  isNonRunner: boolean;
+  points: number | null;
+};
+
+export async function loadHorseResults(
+  stableId: string,
+  horseRaceIds: { horseId: string; raceId: string }[]
+): Promise<Map<string, HorseResult>> {
+  const out = new Map<string, HorseResult>();
+  if (horseRaceIds.length === 0) return out;
+
+  // stable_picks.points, keyed by horseId (kind='horse') for the stable.
+  const pointsRows = await db
+    .select({ subjectId: stablePicks.subjectId, points: stablePicks.points })
+    .from(stablePicks)
+    .where(and(eq(stablePicks.stableId, stableId), eq(stablePicks.kind, "horse")));
+  const pointsByHorse = new Map(pointsRows.map((r) => [r.subjectId, r.points]));
+
+  // Position for each (horseId, raceId). We only need the specific runner
+  // row for the horse in the race we picked it in — the same horse could
+  // in principle have another row in a different race, but not for the
+  // same card, and we scope by raceId regardless.
+  for (const { horseId, raceId } of horseRaceIds) {
+    const [row] = await db
+      .select({
+        positionNum: runners.positionNum,
+        position: runners.position,
+        isNonRunner: runners.isNonRunner,
+      })
+      .from(runners)
+      .where(and(eq(runners.horseId, horseId), eq(runners.raceId, raceId)))
+      .limit(1);
+    out.set(horseId, {
+      horseId,
+      raceId,
+      positionNum: row?.positionNum ?? null,
+      positionLabel: row?.position ?? null,
+      isNonRunner: row?.isNonRunner ?? false,
+      points: pointsByHorse.get(horseId) ?? null,
+    });
+  }
+
+  return out;
+}
+
