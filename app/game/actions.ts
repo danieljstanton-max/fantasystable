@@ -77,6 +77,10 @@ export async function saveStableAction(
   date: string,
   selection: StableSelection
 ): Promise<SaveStableResponse> {
+  const { gamePaused } = await import("@/lib/pause");
+  if (gamePaused()) {
+    return { ok: false, error: "Stables open Friday night at 7pm — nothing to save yet." };
+  }
   const user = await currentUser();
   if (!user) return { ok: false, error: "Sign in to save a stable." };
 
@@ -110,6 +114,8 @@ export type SellResponse = {
  * cannot argue with either.
  */
 export async function sellHorseAction(date: string, horseId: string): Promise<SellResponse> {
+  const { gamePaused } = await import("@/lib/pause");
+  if (gamePaused()) return { ok: false, error: "The auction opens Friday night at 7pm." };
   const user = await currentUser();
   if (!user) return { ok: false, error: "Sign in to sell a horse." };
 

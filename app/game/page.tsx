@@ -25,7 +25,6 @@ import { desc, eq } from "drizzle-orm";
 import { Bench, Pitch } from "@/components/game/pitch-view";
 import { Header, StatBar, TrophyMark } from "@/components/game/game-chrome";
 import { AutoRefresh } from "@/components/game/auto-refresh";
-import { LaunchBanner } from "@/components/game/launch-banner";
 import { gamePaused } from "@/lib/pause";
 import { GameSidebar } from "@/components/game/game-sidebar";
 import { money } from "@/components/game/format";
@@ -164,7 +163,6 @@ export default async function GamePage({
       }
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-2.5">
-        {gamePaused() && <LaunchBanner />}
         {locked && <AutoRefresh intervalMs={30_000} />}
         <Header
           date={date}
@@ -196,7 +194,9 @@ export default async function GamePage({
             single column stays centred and the pitch keeps its width. Rendering
             the grid with an empty sidebar slot would push the main content
             into the 320px column and cramp it. */}
-        {user ? (
+        {gamePaused() ? (
+          <LaunchCard signedIn={!!user} name={user?.displayName ?? user?.email?.split("@")[0] ?? null} />
+        ) : user ? (
           <div className="grid gap-3 lg:grid-cols-[320px_1fr]">
             <GameSidebar
               stableName={(user.displayName ?? user.email.split("@")[0]) + "’s Stable"}
@@ -236,7 +236,7 @@ export default async function GamePage({
             for the whole product — not just the picker. A signed-in player
             can scroll to see standings and the rulebook without hunting for a
             nav link, which was the biggest missing piece before this. */}
-        {user && (
+        {user && !gamePaused() && (
           <>
             <LeaderboardPreview date={date} />
             <RulesPreview />
@@ -447,6 +447,67 @@ function ScoreStrip({
         >
           {rank ? `#${rank.toLocaleString("en-GB")} of ${total.toLocaleString("en-GB")}` : "—"}
         </div>
+      </div>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------- launch card */
+
+/**
+ * The full-page thank-you card shown on /game while GAME_PAUSED is set.
+ * Replaces the pitch and the picker entirely so nobody sees a card they
+ * can't yet save against. The nav pills at the top still take players to
+ * leagues, rules and leaderboard, so this is a soft pause on the pitch
+ * itself, not on the whole product.
+ */
+function LaunchCard({ signedIn, name }: { signedIn: boolean; name: string | null }) {
+  return (
+    <section className="mt-4 rounded-[24px] bg-white/95 px-6 py-10 text-center shadow-[0_8px_28px_rgba(23,48,60,0.15)] backdrop-blur-sm sm:px-10 sm:py-14">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#eaf7f0] text-[28px] sm:h-20 sm:w-20 sm:text-[36px]" aria-hidden>
+        🏁
+      </div>
+      <div className="mt-5 inline-block rounded-full bg-[#eaf7f0] px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[var(--go-deep)]">
+        Kick-off · Friday 7pm
+      </div>
+      <h1 className="mx-auto mt-4 max-w-[560px] text-[26px] font-extrabold uppercase leading-[1.05] tracking-tight text-[var(--slate)] sm:text-[38px]">
+        {signedIn ? (
+          <>
+            Thanks for signing up{name ? `, ${name}` : ""}.
+            <br />
+            <span className="text-[var(--go-deep)]">The competition starts Saturday.</span>
+          </>
+        ) : (
+          <>
+            Thanks for signing up.
+            <br />
+            <span className="text-[var(--go-deep)]">The competition starts Saturday.</span>
+          </>
+        )}
+      </h1>
+      <p className="mx-auto mt-5 max-w-[500px] text-[15px] leading-relaxed text-[var(--slate-soft)] sm:text-[16px]">
+        The card for Week 1 goes up Friday night at 7pm. From then you&rsquo;ll be able to pick
+        your 6 horses, 2 jockeys and name your NAP — deadline is one hour before the first race
+        on Saturday.
+      </p>
+      <p className="mx-auto mt-3 max-w-[500px] text-[13.5px] leading-relaxed text-[var(--slate-soft)]">
+        In the meantime, have a poke around: read the rules, set up a mini-league with your
+        mates, or share the site with anyone who fancies a punt.
+      </p>
+
+      <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+        <Link
+          href="/game/leagues"
+          className="inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(180deg,#1adc86,#04b56b)] px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_14px_rgba(4,181,107,0.35)]"
+        >
+          Set up a mini-league
+        </Link>
+        <Link
+          href="/game/rules"
+          className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-2.5 text-[13.5px] font-extrabold text-[var(--slate)] shadow-[0_2px_10px_rgba(23,48,60,0.10)] ring-1 ring-[#dbe4ec]"
+        >
+          Read the rules
+        </Link>
       </div>
     </section>
   );
