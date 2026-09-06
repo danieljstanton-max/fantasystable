@@ -41,6 +41,13 @@ export type GameRunnerInput = {
   openingOddsDec: number | null;
   openingOddsFrac: string | null;
   isNonRunner: boolean;
+  form: string | null;
+  comment: string | null;
+  weight: string | null;
+  headgear: string | null;
+  lastRun: number | null;
+  ofr: number | null;
+  rpr: number | null;
 };
 
 export type PricedRunner = {
@@ -56,6 +63,18 @@ export type PricedRunner = {
   /** De-overrounded win probability. */
   p: number;
   price: number;
+  /** Everything below is display-only "know your horse" info: the profile
+      sheet uses it, the pitch never does. */
+  form: string | null;
+  comment: string | null;
+  weight: string | null;
+  headgear: string | null;
+  lastRun: number | null;
+  ofr: number | null;
+  rpr: number | null;
+  course: string | null;
+  offTime: string | null;
+  raceName: string | null;
 };
 
 export type GameRace = {
@@ -170,6 +189,16 @@ export function buildCard(
           frac: r.openingOddsFrac ?? `${(r.openingOddsDec! - 1).toFixed(1)}/1`,
           p: probs[i],
           price: horsePrice(probs[i]),
+          form: r.form,
+          comment: r.comment,
+          weight: r.weight,
+          headgear: r.headgear,
+          lastRun: r.lastRun,
+          ofr: r.ofr,
+          rpr: r.rpr,
+          course: meta.courseName,
+          offTime: meta.offTime,
+          raceName: meta.raceName,
         }))
         .sort((a, b) => b.price - a.price),
     });

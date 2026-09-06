@@ -35,6 +35,7 @@ type HorseHandlers = {
   onNap?: (h: PricedRunner) => void;
   onPickEmpty?: () => void;
   onSwap?: (h: PricedRunner) => void;
+  onInfo?: (h: PricedRunner) => void;
   locked?: boolean;
 };
 
@@ -141,27 +142,53 @@ function HorseCard({
           onClick={interactive ? () => handlers.onRemove!(runner) : undefined}
         />
       </div>
-      <InfoDot />
+      <InfoDot onClick={handlers?.onInfo ? () => handlers.onInfo!(runner) : undefined} />
 
       {/* The card is a two-row grid: silks in the top 1fr, plate at the
           bottom sized to its content. `min-h-0` on the silk row lets the img
           shrink below its intrinsic size inside overflow-hidden, which flex
           layouts refuse to do on their own — a plate that overflows the card
           gets clipped, and the price is what disappears. */}
-      <div className="flex min-h-0 items-center justify-center px-1.5 pt-2">
-        {runner.silkUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={runner.silkUrl}
-            alt=""
-            width={96}
-            height={96}
-            className="max-h-full max-w-full object-contain drop-shadow-[0_2px_3px_rgba(0,0,0,0.25)]"
-          />
-        ) : (
-          <div className="h-[70%] w-[52%] rounded bg-white/30" />
-        )}
-      </div>
+      {/* The silk area doubles as the "open info" trigger — the InfoDot in
+          the top-right corner is a tiny target on mobile; the whole silk is
+          a proper tap target. Falls back to a plain div when there's no
+          onInfo handler (signed-out preview, locked card). */}
+      {handlers?.onInfo ? (
+        <button
+          type="button"
+          onClick={() => handlers.onInfo!(runner)}
+          aria-label={`Info for ${runner.horse}`}
+          className="flex min-h-0 items-center justify-center px-1.5 pt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        >
+          {runner.silkUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={runner.silkUrl}
+              alt=""
+              width={96}
+              height={96}
+              className="max-h-full max-w-full object-contain drop-shadow-[0_2px_3px_rgba(0,0,0,0.25)]"
+            />
+          ) : (
+            <div className="h-[70%] w-[52%] rounded bg-white/30" />
+          )}
+        </button>
+      ) : (
+        <div className="flex min-h-0 items-center justify-center px-1.5 pt-2">
+          {runner.silkUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={runner.silkUrl}
+              alt=""
+              width={96}
+              height={96}
+              className="max-h-full max-w-full object-contain drop-shadow-[0_2px_3px_rgba(0,0,0,0.25)]"
+            />
+          ) : (
+            <div className="h-[70%] w-[52%] rounded bg-white/30" />
+          )}
+        </div>
+      )}
 
       <div className="bg-white px-1.5 pb-1.5 pt-1 text-center">
         <div className="truncate text-[11.5px] font-semibold leading-tight text-[var(--slate)] sm:text-[13px]">
@@ -258,11 +285,12 @@ function jockeyLabel(fullName: string): string {
 
 /* -------------------------------------------------------------- ornaments */
 
-function InfoDot() {
+function InfoDot({ onClick }: { onClick?: () => void }) {
   return (
     <button
       type="button"
       aria-label="Details"
+      onClick={onClick}
       className="absolute right-1.5 top-1.5 z-10 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-white text-[10px] font-bold italic text-[var(--slate)] shadow-sm"
     >
       i

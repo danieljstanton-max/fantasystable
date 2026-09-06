@@ -31,6 +31,13 @@ export async function loadCard(
       openingOddsDec: runners.openingOddsDec,
       openingOddsFrac: runners.openingOddsFrac,
       isNonRunner: runners.isNonRunner,
+      form: runners.form,
+      comment: runners.comment,
+      weight: runners.weight,
+      headgear: runners.headgear,
+      lastRun: runners.lastRun,
+      ofr: runners.ofr,
+      rpr: runners.rpr,
     })
     .from(runners)
     .innerJoin(races, eq(races.id, runners.raceId))
@@ -152,6 +159,16 @@ export async function mergeSavedIntoCard(
         frac: "—",
         p: 0,
         price: p.priceM,
+        form: null,
+        comment: null,
+        weight: null,
+        headgear: null,
+        lastRun: null,
+        ofr: null,
+        rpr: null,
+        course: null,
+        offTime: null,
+        raceName: null,
       })),
     });
   }

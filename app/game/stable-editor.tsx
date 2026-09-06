@@ -20,6 +20,7 @@ import type { GameCard, GameJockey, PricedRunner } from "@/lib/game-card";
 import { BUDGET, N_HORSES, N_JOCKEYS } from "@/lib/game-pricing";
 import { Bench, Pitch } from "@/components/game/pitch-view";
 import { PickerSheet } from "@/components/game/picker-sheet";
+import { HorseInfoSheet } from "@/components/game/horse-info-sheet";
 import { StatBar } from "@/components/game/game-chrome";
 import { money } from "@/components/game/format";
 import type { SaveStableResponse } from "./actions";
@@ -43,6 +44,7 @@ export function StableEditor({ card, initial, locked, save }: Props) {
   const [message, setMessage] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
   const [pending, startSaving] = useTransition();
   const [pickerOpen, setPickerOpen] = useState<null | "horses" | "jockeys">(null);
+  const [infoHorse, setInfoHorse] = useState<PricedRunner | null>(null);
 
   const byHorse = useMemo(
     () => new Map(card.races.flatMap((r) => r.runners.map((x) => [x.horseId, x] as const))),
@@ -225,6 +227,7 @@ export function StableEditor({ card, initial, locked, save }: Props) {
           onRemove: locked ? undefined : toggleHorse,
           onNap: locked ? undefined : (h) => setNap(h.horseId),
           onPickEmpty: locked ? undefined : () => setPickerOpen("horses"),
+          onInfo: (h) => setInfoHorse(h),
           locked,
         }}
       />
@@ -293,6 +296,12 @@ export function StableEditor({ card, initial, locked, save }: Props) {
           notice={notice}
         />
       </PickerSheet>
+
+      <HorseInfoSheet
+        runner={infoHorse}
+        isNap={!!infoHorse && infoHorse.horseId === napHorseId}
+        onClose={() => setInfoHorse(null)}
+      />
 
       <div
         className="sticky bottom-2 z-20 flex items-center gap-2 rounded-[18px] bg-white px-3 py-2 shadow-[0_6px_16px_rgba(23,48,60,0.16)]"
