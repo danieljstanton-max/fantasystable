@@ -35,6 +35,7 @@ export type SavedStable = {
   napHorseId: string | null;
   spendM: number;
   lockedAt: Date | null;
+  points: number | null;
 };
 
 export async function loadStable(userId: string, raceDate: string): Promise<SavedStable | null> {
@@ -54,6 +55,7 @@ export async function loadStable(userId: string, raceDate: string): Promise<Save
     napHorseId: stable.napHorseId,
     spendM: stable.spendM,
     lockedAt: stable.lockedAt,
+    points: stable.points,
   };
 }
 
