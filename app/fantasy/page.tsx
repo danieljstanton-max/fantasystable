@@ -30,21 +30,34 @@ export const metadata: Metadata = {
   // the root layout — this is the Fantasy Stable homepage, not a subpage of
   // the tips site. The opengraph-image.tsx sibling supplies the social card.
   title: {
-    absolute: "Fantasy Stable — free fantasy horse racing, every Saturday",
+    absolute: "Fantasy Horse Racing Game UK — Free to Play | Fantasy Stable",
   },
   description:
-    "Build your stable. Pick 6 horses and 2 jockeys from £100m, name your NAP, join a mini-league and chase weekly bragging rights. Free to play.",
+    "The free-to-play fantasy horse racing game for UK & Irish racing. Pick 6 horses and 2 jockeys from £100m, name your NAP, join mini-leagues with your mates. A new card every Saturday.",
+  keywords: [
+    "fantasy horse racing",
+    "fantasy horse racing game",
+    "fantasy horse racing UK",
+    "free fantasy horse racing",
+    "horse racing fantasy game",
+    "fantasy racing UK",
+    "fantasy stable",
+    "UK fantasy racing game",
+    "fantasy premier league for horse racing",
+  ],
+  alternates: { canonical: "/" },
   openGraph: {
-    title: "Fantasy Stable — pick your horses, chase weekly bragging rights",
+    title: "Fantasy Stable — the UK fantasy horse racing game",
     description:
-      "Free-to-play fantasy horse racing. A new card every Saturday. Sign in with Google or email — no password.",
+      "Free-to-play fantasy horse racing. Pick 6 horses, 2 jockeys, name your NAP. A new card every Saturday. Sign in with Google or email — no password.",
     siteName: "Fantasy Stable",
     type: "website",
     locale: "en_GB",
+    url: "https://www.fantasystable.co.uk/",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Fantasy Stable — pick your horses, chase weekly bragging rights",
+    title: "Fantasy Stable — the UK fantasy horse racing game",
     description:
       "Free-to-play fantasy horse racing. A new card every Saturday.",
   },
@@ -78,9 +91,11 @@ export default async function FantasyHome({
         } as React.CSSProperties
       }
     >
+      <StructuredData />
       <Hero signedIn={!!me} />
       <LiveStats stats={stats} />
       <HowItWorks />
+      <Faq />
       <SecondCta signedIn={!!me} />
       <Footer />
     </main>
@@ -338,6 +353,128 @@ function TrophyIcon() {
 }
 
 /* ------------------------------------------------------------ second CTA */
+
+/* ------------------------------------------------------------ FAQ */
+
+const FAQ = [
+  {
+    q: "What is Fantasy Stable?",
+    a: "Fantasy Stable is a free-to-play fantasy horse racing game for UK and Irish racing. Every Saturday a new card of races is put up. You pick 6 horses (one per race) and 2 jockeys from a £100m budget, name a NAP that scores double, then watch your stable score points through the afternoon as the races run.",
+  },
+  {
+    q: "Is Fantasy Stable really free?",
+    a: "Yes. No entry fee, no stake, no cash prize. It's a game of skill — you play for weekly bragging rights and mini-league bragging rights against your mates.",
+  },
+  {
+    q: "How does fantasy horse racing scoring work?",
+    a: "Points are awarded for winners, place-getters, and jockey wins. Winners score 25 points plus a longshot bonus that scales with the horse's price. Places pay 12/7/4/2 for 2nd–5th. Fallers and non-completions cost you 5 points. Your NAP scores double. Full rules are on the rules page.",
+  },
+  {
+    q: "How do horse prices work?",
+    a: "Prices come off the overnight show every Friday, cost £2m–£109m per horse, and are locked at kick-off. Favourites cost dear, longshots leave room to spend on a star. Jockeys are priced on their book across the whole Saturday card and max out at £30m.",
+  },
+  {
+    q: "When does the game deadline lock?",
+    a: "One hour before the first race on Saturday. Ingest updates non-runners through the morning — if one of your picks is withdrawn before the deadline, you're refunded the price and emailed so you can pick a replacement.",
+  },
+  {
+    q: "Can I play with my mates?",
+    a: "Yes — mini-leagues are the point. Create a league, share the 6-character code with your mates, and see your private leaderboard week by week. Office leagues, mate groups, family — the code is all anyone needs to join.",
+  },
+  {
+    q: "Do I need a Racing Post or Sporting Life account?",
+    a: "No. Fantasy Stable is standalone. Sign in with Google or a one-time email link — no password to remember.",
+  },
+];
+
+function Faq() {
+  return (
+    <section className="bg-white px-4 py-14 sm:py-20">
+      <div className="mx-auto max-w-3xl">
+        <p className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-[var(--go-deep)]">
+          Fantasy horse racing FAQ
+        </p>
+        <h2 className="mt-2 text-[26px] font-extrabold leading-tight tracking-tight text-[var(--slate)] sm:text-[34px]">
+          Everything you need to know before you build your first stable.
+        </h2>
+        <div className="mt-8 divide-y divide-[#eef2f6]">
+          {FAQ.map((f) => (
+            <details key={f.q} className="group py-4">
+              <summary className="flex cursor-pointer items-center justify-between gap-4 text-[16px] font-bold text-[var(--slate)] [&::-webkit-details-marker]:hidden">
+                {f.q}
+                <span className="text-[var(--slate-soft)] transition-transform group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <p className="mt-2 text-[14px] leading-relaxed text-[var(--slate-soft)]">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* -------------------------------------------------- structured data (JSON-LD) */
+
+function StructuredData() {
+  const site = "https://www.fantasystable.co.uk";
+  const orgAndApp = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${site}/#organization`,
+        name: "Fantasy Stable",
+        url: site,
+        logo: `${site}/img/logo.png`,
+        description:
+          "Free-to-play fantasy horse racing game for UK & Irish racing. A new card every Saturday.",
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${site}/#website`,
+        url: site,
+        name: "Fantasy Stable",
+        publisher: { "@id": `${site}/#organization` },
+        inLanguage: "en-GB",
+      },
+      {
+        "@type": "SoftwareApplication",
+        name: "Fantasy Stable",
+        operatingSystem: "Web",
+        applicationCategory: "GameApplication",
+        applicationSubCategory: "Fantasy Sports",
+        description:
+          "Pick six horses and two jockeys from a £100m budget on the Saturday card. Name a NAP that scores double, join mini-leagues with your mates, chase weekly bragging rights.",
+        offers: { "@type": "Offer", price: 0, priceCurrency: "GBP" },
+        url: site,
+        publisher: { "@id": `${site}/#organization` },
+      },
+    ],
+  };
+  const faq = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgAndApp) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faq) }}
+      />
+    </>
+  );
+}
 
 function SecondCta({ signedIn }: { signedIn: boolean }) {
   return (
