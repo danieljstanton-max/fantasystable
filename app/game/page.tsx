@@ -17,6 +17,7 @@ import { pickStable, type GameCard } from "@/lib/game-card";
 import { loadCard, mergeSavedIntoCard, nextGameDate, raceWeekFor } from "@/lib/game-data";
 import { cardLockTime, isLocked, lockLabel } from "@/lib/lock";
 import { loadStable } from "@/lib/stable";
+import { loadHorseOwnership, loadJockeyOwnership } from "@/lib/game-stats";
 import { db, stables, users } from "@/db";
 import { desc, eq } from "drizzle-orm";
 import { Bench, Pitch } from "@/components/game/pitch-view";
@@ -65,6 +66,13 @@ export default async function GamePage({
   // this, a saved horse silently vanishes from the pitch even though the
   // pick is still on the DB — non-runners are marked, not deleted.
   const card = saved ? await mergeSavedIntoCard(rawCard, saved.horseIds, saved.jockeyIds) : rawCard;
+  // Ownership snapshots so the profile drawers can show "picked by X% of
+  // stables this week" — the social differential signal that makes a
+  // fantasy pick interesting.
+  const [horseOwnership, jockeyOwnership] = await Promise.all([
+    loadHorseOwnership(date),
+    loadJockeyOwnership(date),
+  ]);
   // Admin pill in the header nav is opt-in per user — fetched here so the
   // Header component (which is a client component) doesn't have to touch
   // the database itself.
@@ -161,6 +169,8 @@ export default async function GamePage({
                 }}
                 locked={locked}
                 save={saveStableAction}
+                horseOwnership={Object.fromEntries(horseOwnership)}
+                jockeyOwnership={Object.fromEntries(jockeyOwnership)}
               />
             </div>
           </div>

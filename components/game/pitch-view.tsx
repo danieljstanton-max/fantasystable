@@ -42,6 +42,7 @@ type HorseHandlers = {
 type JockeyHandlers = {
   onRemove?: (j: GameJockey) => void;
   onPickEmpty?: () => void;
+  onInfo?: (j: GameJockey) => void;
   locked?: boolean;
 };
 
@@ -237,11 +238,22 @@ function JockeyCard({
           onClick={interactive ? () => handlers.onRemove!(jockey) : undefined}
         />
       </div>
-      <InfoDot />
+      <InfoDot onClick={handlers?.onInfo ? () => handlers.onInfo!(jockey) : undefined} />
 
-      <div className="flex min-h-0 items-center justify-center px-1.5 pt-2">
-        <JockeySilk id={jockey.id} size={72} />
-      </div>
+      {handlers?.onInfo ? (
+        <button
+          type="button"
+          onClick={() => handlers.onInfo!(jockey)}
+          aria-label={`Info for ${jockey.name}`}
+          className="flex min-h-0 items-center justify-center px-1.5 pt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        >
+          <JockeySilk id={jockey.id} size={72} />
+        </button>
+      ) : (
+        <div className="flex min-h-0 items-center justify-center px-1.5 pt-2">
+          <JockeySilk id={jockey.id} size={72} />
+        </div>
+      )}
 
       <div className="bg-white px-1.5 pb-1.5 pt-1 text-center">
         <div className="truncate text-[11.5px] font-semibold leading-tight text-[var(--slate)] sm:text-[13px]">

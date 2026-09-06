@@ -21,6 +21,7 @@ import { BUDGET, N_HORSES, N_JOCKEYS } from "@/lib/game-pricing";
 import { Bench, Pitch } from "@/components/game/pitch-view";
 import { PickerSheet } from "@/components/game/picker-sheet";
 import { HorseInfoSheet } from "@/components/game/horse-info-sheet";
+import { JockeyInfoSheet } from "@/components/game/jockey-info-sheet";
 import { StatBar } from "@/components/game/game-chrome";
 import { money } from "@/components/game/format";
 import type { SaveStableResponse } from "./actions";
@@ -34,9 +35,19 @@ type Props = {
     date: string,
     selection: { horseIds: string[]; jockeyIds: string[]; napHorseId: string | null }
   ) => Promise<SaveStableResponse>;
+  /** Fraction (0..1) of saved stables that picked this horse/jockey this week. */
+  horseOwnership?: Record<string, number>;
+  jockeyOwnership?: Record<string, number>;
 };
 
-export function StableEditor({ card, initial, locked, save }: Props) {
+export function StableEditor({
+  card,
+  initial,
+  locked,
+  save,
+  horseOwnership = {},
+  jockeyOwnership = {},
+}: Props) {
   const [horseIds, setHorseIds] = useState<string[]>(initial.horseIds);
   const [jockeyIds, setJockeyIds] = useState<string[]>(initial.jockeyIds);
   const [napHorseId, setNap] = useState<string | null>(initial.napHorseId);
@@ -45,6 +56,7 @@ export function StableEditor({ card, initial, locked, save }: Props) {
   const [pending, startSaving] = useTransition();
   const [pickerOpen, setPickerOpen] = useState<null | "horses" | "jockeys">(null);
   const [infoHorse, setInfoHorse] = useState<PricedRunner | null>(null);
+  const [infoJockey, setInfoJockey] = useState<GameJockey | null>(null);
 
   const byHorse = useMemo(
     () => new Map(card.races.flatMap((r) => r.runners.map((x) => [x.horseId, x] as const))),
@@ -237,6 +249,7 @@ export function StableEditor({ card, initial, locked, save }: Props) {
         handlers={{
           onRemove: toggleJockey,
           onPickEmpty: () => setPickerOpen("jockeys"),
+          onInfo: (j) => setInfoJockey(j),
           locked,
         }}
       />
@@ -301,6 +314,14 @@ export function StableEditor({ card, initial, locked, save }: Props) {
         runner={infoHorse}
         isNap={!!infoHorse && infoHorse.horseId === napHorseId}
         onClose={() => setInfoHorse(null)}
+        ownershipPct={infoHorse ? horseOwnership[infoHorse.horseId] ?? null : null}
+      />
+
+      <JockeyInfoSheet
+        jockey={infoJockey}
+        raceDate={card.date}
+        onClose={() => setInfoJockey(null)}
+        ownershipPct={infoJockey ? jockeyOwnership[infoJockey.id] ?? null : null}
       />
 
       <div

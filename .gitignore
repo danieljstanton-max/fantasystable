@@ -19,3 +19,5 @@ model/
 # Local tooling / session directories
 .agents/
 .claude/
+.vercel
+.env*

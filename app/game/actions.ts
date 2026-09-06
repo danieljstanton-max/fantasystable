@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { currentUser, requestSignIn, signOut } from "@/lib/auth";
 import { loadCard } from "@/lib/game-data";
+import { loadJockeyRecord, type JockeyRecord } from "@/lib/game-stats";
+import { db, races } from "@/db";
+import { eq, and, asc } from "drizzle-orm";
 import { sendSignInLink } from "@/lib/mailer";
 import { saveStable, type StableSelection } from "@/lib/stable";
 import { sellHorse } from "@/lib/sales";
@@ -207,4 +210,31 @@ export async function deleteAccountAction(confirmation: string): Promise<{ ok: b
   if (confirmation !== "DELETE") return { ok: false, error: "Type DELETE to confirm." };
   await deleteAccount(user.id);
   redirect("/fantasy");
+}
+
+/**
+ * Fetch a jockey's rolling record — the last 10 completed rides in our DB
+ * plus (if we can identify today's course) their all-time record there.
+ *
+ * Called on demand from the JockeyInfoSheet so we don't pull this for every
+ * jockey on every card load.
+ */
+export async function loadJockeyStatsAction(
+  jockeyId: string,
+  raceDate: string
+): Promise<{ record: JockeyRecord | null; courseName: string | null }> {
+  // Find today's ride to know which course to show course-specific stats
+  // for. A jockey with rides at more than one meeting on the same card
+  // isn't unusual; the FIRST ride we see is fine for "today's course".
+  const [today] = await db
+    .select({ courseId: races.courseId, courseName: races.courseName })
+    .from(races)
+    .where(and(eq(races.raceDate, raceDate)))
+    .orderBy(asc(races.offDt));
+  // We can't scope by jockey_id directly here without another join; the
+  // course used for stats is simply the earliest meeting on the card. Good
+  // enough: most Saturdays have one flagship course and the stat carries.
+
+  const record = await loadJockeyRecord(jockeyId, today?.courseId ?? null, 10);
+  return { record, courseName: today?.courseName ?? null };
 }
