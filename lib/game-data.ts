@@ -1,5 +1,5 @@
 import { and, asc, eq, gte, inArray } from "drizzle-orm";
-import { db, races, runners } from "@/db";
+import { db, races, runners, stablePicks } from "@/db";
 import { buildCard, type GameCard } from "./game-card";
 import { LOCK_OFFSET_MS } from "./lock";
 
@@ -59,6 +59,109 @@ export async function loadCardOnly(date: string) {
  */
 export const today = (): string =>
   new Date().toLocaleDateString("en-CA", { timeZone: "Europe/London" });
+
+/**
+ * Ensure every saved pick still shows on the pitch, even after the card
+ * composition changes.
+ *
+ * `buildCard` filters non-runners and low-coverage races. That's the right
+ * call for the buyer's view, but it means a saved horse can silently vanish
+ * from the pitch if its race gets filtered or the horse itself becomes a
+ * non-runner. This helper looks up any horse/jockey that's been saved but
+ * isn't on the card and splices a minimal row back in so the pitch always
+ * renders the six the player picked. Non-runners are marked, not deleted —
+ * per CLAUDE.md.
+ */
+export async function mergeSavedIntoCard(
+  card: GameCard,
+  savedHorseIds: string[],
+  savedJockeyIds: string[]
+): Promise<GameCard> {
+  const knownHorses = new Set(
+    card.races.flatMap((r) => r.runners.map((x) => x.horseId))
+  );
+  const knownJockeys = new Set(card.jockeys.map((j) => j.id));
+
+  const missingHorses = savedHorseIds.filter((id) => !knownHorses.has(id));
+  const missingJockeys = savedJockeyIds.filter((id) => !knownJockeys.has(id));
+  if (missingHorses.length === 0 && missingJockeys.length === 0) return card;
+
+  // Fall back to whatever we stored on `stable_picks` — that record was
+  // written at save time with the price the player paid, so it's the honest
+  // source of truth here. We just need the race + jockey/horse names for a
+  // presentable pitch card; silk is left null and shows a placeholder.
+  const picks = missingHorses.length > 0
+    ? await db
+        .select({
+          subjectId: stablePicks.subjectId,
+          subjectName: stablePicks.subjectName,
+          raceId: stablePicks.raceId,
+          priceM: stablePicks.priceM,
+        })
+        .from(stablePicks)
+        .where(and(eq(stablePicks.kind, "horse"), inArray(stablePicks.subjectId, missingHorses)))
+    : [];
+
+  const jockeyPicks = missingJockeys.length > 0
+    ? await db
+        .select({
+          subjectId: stablePicks.subjectId,
+          subjectName: stablePicks.subjectName,
+          priceM: stablePicks.priceM,
+        })
+        .from(stablePicks)
+        .where(and(eq(stablePicks.kind, "jockey"), inArray(stablePicks.subjectId, missingJockeys)))
+    : [];
+
+  // Group orphan horses by their (original) race id so we don't produce six
+  // "Non-runners" tiles with no shape. If a race is entirely gone from the
+  // current card, we create one synthetic race for it.
+  const byRace = new Map<string, typeof picks>();
+  for (const p of picks) {
+    if (!p.raceId) continue;
+    const arr = byRace.get(p.raceId) ?? [];
+    arr.push(p);
+    byRace.set(p.raceId, arr);
+  }
+
+  const extraRaces: GameCard["races"] = [];
+  for (const [raceId, group] of byRace) {
+    extraRaces.push({
+      raceId,
+      course: "Non-runner",
+      name: "Withdrawn or off-card",
+      offTime: "—",
+      prizeValue: null,
+      runners: group.map((p) => ({
+        horseId: p.subjectId,
+        horse: p.subjectName,
+        raceId,
+        jockeyId: null,
+        jockey: null,
+        trainer: null,
+        silkUrl: null,
+        oddsDec: 0,
+        frac: "—",
+        p: 0,
+        price: p.priceM,
+      })),
+    });
+  }
+
+  const extraJockeys: GameCard["jockeys"] = jockeyPicks.map((p) => ({
+    id: p.subjectId,
+    name: p.subjectName,
+    rides: 0,
+    strength: 0,
+    price: p.priceM,
+  }));
+
+  return {
+    ...card,
+    races: [...card.races, ...extraRaces],
+    jockeys: [...card.jockeys, ...extraJockeys],
+  };
+}
 
 /**
  * The card a signed-in player should see by default.

@@ -245,8 +245,35 @@ export function StableEditor({ card, initial, locked, save }: Props) {
 
       <PickerSheet
         open={pickerOpen !== null}
-        onClose={() => setPickerOpen(null)}
+        onClose={() => {
+          // Auto-save on close so a player who taps the X or the backdrop
+          // can't lose picks they just made. Only fires if the pitch is
+          // actually saveable — an incomplete stable stays as local state
+          // until they finish.
+          setPickerOpen(null);
+          if (horseIds.length > 0 || jockeyIds.length > 0) onSave();
+        }}
         title={pickerOpen === "jockeys" ? "Pick a jockey" : "Pick a horse"}
+        footer={
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-[12px] font-semibold text-[var(--slate-soft)]">
+              {horses.length}/{N_HORSES} horses · {jockeys.length}/{N_JOCKEYS} jockeys ·{" "}
+              <span className={bank < 0 ? "text-[#c0392b]" : "text-[var(--go-deep)]"}>
+                {money(bank)} bank
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setPickerOpen(null);
+                if (horseIds.length > 0 || jockeyIds.length > 0) onSave();
+              }}
+              className="rounded-xl bg-[linear-gradient(180deg,#1adc86,#04b56b)] px-5 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_2px_6px_rgba(4,181,107,0.35)]"
+            >
+              Save &amp; close
+            </button>
+          </div>
+        }
       >
         <SelectionPanel
           runners={runners}

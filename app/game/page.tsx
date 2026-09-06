@@ -14,7 +14,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { currentUser } from "@/lib/auth";
 import { pickStable, type GameCard } from "@/lib/game-card";
-import { loadCard, nextGameDate, raceWeekFor } from "@/lib/game-data";
+import { loadCard, mergeSavedIntoCard, nextGameDate, raceWeekFor } from "@/lib/game-data";
 import { cardLockTime, isLocked, lockLabel } from "@/lib/lock";
 import { loadStable } from "@/lib/stable";
 import { db, stables, users } from "@/db";
@@ -57,8 +57,14 @@ export default async function GamePage({
     (preview
       ? { id: "__preview__", email: "preview@fantasystable.co.uk", displayName: "Preview" }
       : null);
-  const { card, offDtByRaceId } = await loadCard(date);
+  const { card: rawCard, offDtByRaceId } = await loadCard(date);
   const saved = realUser ? await loadStable(realUser.id, date) : null;
+  // Reconcile: if a saved horse dropped off the current card (its race was
+  // filtered for coverage, or the horse became a non-runner), pull the
+  // horse's details from the database and splice them back in. Without
+  // this, a saved horse silently vanishes from the pitch even though the
+  // pick is still on the DB — non-runners are marked, not deleted.
+  const card = saved ? await mergeSavedIntoCard(rawCard, saved.horseIds, saved.jockeyIds) : rawCard;
   // Admin pill in the header nav is opt-in per user — fetched here so the
   // Header component (which is a client component) doesn't have to touch
   // the database itself.

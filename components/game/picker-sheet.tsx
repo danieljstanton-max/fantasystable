@@ -20,11 +20,14 @@ export function PickerSheet({
   onClose,
   title,
   children,
+  footer,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  /** Optional sticky footer — perfect place for a "Save & close" button. */
+  footer?: React.ReactNode;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
 
@@ -77,10 +80,15 @@ export function PickerSheet({
       </div>
       <div
         className="overflow-y-auto px-4 pb-6 pt-2"
-        style={{ maxHeight: "calc(88vh - 60px)" }}
+        style={{ maxHeight: footer ? "calc(88vh - 128px)" : "calc(88vh - 60px)" }}
       >
         {children}
       </div>
+      {footer && (
+        <div className="sticky bottom-0 border-t border-[#eef2f6] bg-white px-4 py-3 [box-shadow:0_-4px_12px_rgba(23,48,60,0.08)]">
+          {footer}
+        </div>
+      )}
     </dialog>
   );
 }
