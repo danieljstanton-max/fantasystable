@@ -62,7 +62,10 @@ export default async function LeaderboardPage({
   const rows =
     boardRows.length > 0
       ? boardRows.map((r) => ({
-          id: r.stableId ?? `u_${r.userId}`,
+          // The profile link needs the USER id, not the stable id — the
+          // player page is /game/player/[userId], scoped so any of the
+          // user's stables (past or present) is reachable from the link.
+          id: r.userId,
           stableName: r.stableName,
           owner: r.owner,
           points: r.points ?? 0,
