@@ -40,27 +40,31 @@ export default function PausedPage() {
 
         <div className="w-full rounded-[24px] bg-white/95 px-6 py-8 shadow-[0_8px_28px_rgba(23,48,60,0.18)] backdrop-blur-sm sm:px-8 sm:py-10">
           <div className="inline-block rounded-full bg-[#eaf7f0] px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#04b56b]">
-            Kick-off Saturday
+            Friday 7pm
           </div>
           <h1 className="mt-4 text-[26px] font-extrabold uppercase leading-tight tracking-tight sm:text-[34px]">
-            Back this Saturday
+            Game will be live
             <br />
-            for the real thing.
+            Friday night from 7pm.
           </h1>
           <p className="mx-auto mt-4 max-w-[420px] text-[14.5px] leading-relaxed text-[#7d919c]">
-            The launch card goes up on Saturday morning. Testing wrapped today — we&rsquo;re
-            putting the finishing touches on for the first proper race week.
+            The card for Saturday goes up Friday evening. You can sign in and have a look
+            round in the meantime — pitch, rules, leagues, all live.
           </p>
-          <p className="mx-auto mt-3 max-w-[420px] text-[13px] leading-relaxed text-[#7d919c]">
-            Already tested? Your sign-in still works on Saturday morning — no need to do
-            anything.
-          </p>
-          <Link
-            href="/"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(180deg,#1adc86,#04b56b)] px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_14px_rgba(4,181,107,0.35)]"
-          >
-            Back to homepage
-          </Link>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/game/sign-in"
+              className="inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(180deg,#1adc86,#04b56b)] px-6 py-2.5 text-[13.5px] font-extrabold text-white shadow-[0_4px_14px_rgba(4,181,107,0.35)]"
+            >
+              Sign in and look around
+            </Link>
+            <Link
+              href="/"
+              className="text-[13px] font-bold text-[#7d919c] underline underline-offset-2"
+            >
+              Back to homepage
+            </Link>
+          </div>
         </div>
       </div>
     </main>
