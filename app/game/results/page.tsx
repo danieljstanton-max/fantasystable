@@ -22,6 +22,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { GameShell, SubpageHeader } from "@/components/game/game-shell";
+import { AutoRefresh } from "@/components/game/auto-refresh";
 import { loadCard, raceWeekFor, today } from "@/lib/game-data";
 import { loadStable } from "@/lib/stable";
 import {
@@ -220,6 +221,7 @@ export default async function ResultsPage({
 
   return (
     <GameShell>
+      <AutoRefresh intervalMs={30_000} />
       <SubpageHeader title={`Results · Race Week ${raceWeekFor(date)}`} />
 
       {/* Total */}

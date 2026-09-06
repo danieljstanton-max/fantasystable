@@ -17,6 +17,8 @@ import { currentUser } from "@/lib/auth";
 import { db, announcements, stables, users } from "@/db";
 import { desc, eq, sql } from "drizzle-orm";
 import { GameShell, SubpageHeader } from "@/components/game/game-shell";
+import { nextGameDate } from "@/lib/game-data";
+import { SettleButton } from "./settle-button";
 
 export const metadata: Metadata = { title: "Admin — Fantasy Stable" };
 export const dynamic = "force-dynamic";
@@ -29,6 +31,8 @@ export default async function AdminPage() {
     await db.select({ isAdmin: users.isAdmin }).from(users).where(eq(users.id, me.id)).limit(1)
   )[0];
   if (!admin?.isAdmin) redirect("/game");
+
+  const settleDefaultDate = await nextGameDate();
 
   const [userRows, stableCountRow, latestStables, sends] = await Promise.all([
     db
@@ -174,6 +178,10 @@ export default async function AdminPage() {
               ))}
             </ul>
           )}
+        </Card>
+
+        <Card title="Settle a card" subtitle="Idempotent — safe to hit again">
+          <SettleButton defaultDate={settleDefaultDate} />
         </Card>
 
         <Card title="How to send a broadcast" subtitle="Run this from your terminal">

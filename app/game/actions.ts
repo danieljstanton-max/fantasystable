@@ -238,3 +238,30 @@ export async function loadJockeyStatsAction(
   const record = await loadJockeyRecord(jockeyId, today?.courseId ?? null, 10);
   return { record, courseName: today?.courseName ?? null };
 }
+
+/**
+ * Admin-only: settle every stable for a given race date.
+ *
+ * Same result as `npm run settle:game -- <date>` from a laptop but reachable
+ * from the site, so Dan can trigger a settlement pass from a phone the
+ * moment a race lands. Idempotent — safe to hit repeatedly through the
+ * afternoon as more results settle.
+ */
+export async function settleGameAction(
+  date: string
+): Promise<{ ok: boolean; stables?: number; points?: number; error?: string }> {
+  const user = await currentUser();
+  if (!user) return { ok: false, error: "Sign in first." };
+  const { db, users } = await import("@/db");
+  const { eq } = await import("drizzle-orm");
+  const [me] = await db.select({ isAdmin: users.isAdmin }).from(users).where(eq(users.id, user.id)).limit(1);
+  if (!me?.isAdmin) return { ok: false, error: "Admin only." };
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: "Bad date." };
+  const { settleDate } = await import("@/lib/settlement");
+  const report = await settleDate(date);
+  revalidatePath("/game/admin");
+  revalidatePath("/game/leaderboard");
+  revalidatePath("/game/results");
+  return { ok: true, stables: report.perStable.length, points: report.totalPointsAwarded };
+}
