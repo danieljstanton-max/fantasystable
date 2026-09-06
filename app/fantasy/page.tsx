@@ -218,19 +218,22 @@ function Hero({ signedIn }: { signedIn: boolean }) {
 function HowItWorks() {
   const steps = [
     {
-      n: "01",
+      n: 1,
       title: "Build your stable",
-      body: `Pick ${N_HORSES} horses (one per race) and ${N_JOCKEYS} jockeys from a £${BUDGET}m budget. Prices come off the overnight show — favourites cost dear, longer prices leave you room to spend on a star.`,
+      body: `Pick ${N_HORSES} horses (one per race) and ${N_JOCKEYS} jockeys from £${BUDGET}m. Favourites cost dear, longshots leave room to spend on a star.`,
+      icon: <HorseIcon />,
     },
     {
-      n: "02",
-      title: "Name a NAP",
-      body: "One of your six is the NAP and scores double. Get it right and you set the tone for the week; get it wrong and there's no hiding it.",
+      n: 2,
+      title: "Name your NAP",
+      body: "One of your six is the NAP. It scores double — the swing between right and wrong is where the week is won.",
+      icon: <NapIcon />,
     },
     {
-      n: "03",
-      title: "Watch it run",
-      body: "Points for winners, place-getters and jockey wins. Fallers cost you. The leaderboard settles when the last race is off — mini-leagues too, so you can play against your mates or your office.",
+      n: 3,
+      title: "Race day",
+      body: "Points for winners, places and jockey wins. Fallers cost you. Mini-leagues settle live so you can wind up your mates on the way home.",
+      icon: <TrophyIcon />,
     },
   ];
 
@@ -238,22 +241,33 @@ function HowItWorks() {
     <section className="bg-white px-4 py-14 sm:py-20">
       <div className="mx-auto max-w-3xl">
         <p className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-[var(--go-deep)]">
-          How it works
+          How to play
         </p>
         <h2 className="mt-2 text-[28px] font-extrabold leading-tight tracking-tight text-[var(--slate)] sm:text-[36px]">
-          Three rules, one team, one Saturday.
+          Six horses. One NAP. One Saturday.
         </h2>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3 sm:gap-5">
+        <div className="mt-8 grid gap-3 sm:grid-cols-3 sm:gap-5">
           {steps.map((s) => (
-            <div key={s.n} className="rounded-2xl border border-[#eef2f6] bg-white p-5">
-              <div className="text-[11px] font-extrabold tracking-wider text-[var(--go-deep)]">
+            <div
+              key={s.n}
+              className="relative overflow-hidden rounded-2xl bg-[#f6f4f8] p-5 sm:p-6"
+            >
+              {/* Big transparent step number behind the content, so the card
+                  reads as a step even at a glance. */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -right-3 -top-4 select-none text-[110px] font-extrabold leading-none tracking-tight text-white sm:text-[130px]"
+              >
                 {s.n}
+              </span>
+              <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-[linear-gradient(180deg,#1adc86,#04b56b)] text-white shadow-[0_2px_6px_rgba(4,181,107,0.35)]">
+                {s.icon}
               </div>
-              <h3 className="mt-1 text-[19px] font-extrabold leading-tight text-[var(--slate)]">
+              <h3 className="relative mt-4 text-[18px] font-extrabold leading-tight text-[var(--slate)] sm:text-[19px]">
                 {s.title}
               </h3>
-              <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--slate-soft)]">
+              <p className="relative mt-1.5 text-[13.5px] leading-relaxed text-[var(--slate-soft)]">
                 {s.body}
               </p>
             </div>
@@ -261,6 +275,45 @@ function HowItWorks() {
         </div>
       </div>
     </section>
+  );
+}
+
+/* -------------------------------------------------------- step icons */
+
+function HorseIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden>
+      <path
+        d="M7 27c-.6-4.2.4-7.6 2.2-10.2 1.2-1.7 1.5-2.7 1-4.2-.5-1.5-.2-3 .9-4.3l1.1-1.3c.5-.6 1.4-.6 1.9 0l.7.8 2.6-2.5c.6-.6 1.6-.4 1.9.4l.9 2.4 2.6 1.1c2.4 1 3.9 3.3 3.9 5.9 0 1.6-.6 3-1.7 4.1l-.9.9c-.8.8-1.3 1.9-1.4 3l-.4 3.9h-4l.4-4.2c.05-.6-.6-1-1.1-.6l-2.3 1.8c-.5.4-.8 1-.8 1.6V27H7Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+function NapIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 2 14.9 8.6 22 9.5l-5.4 4.9 1.6 7.1L12 17.8 5.8 21.5 7.4 14.4 2 9.5l7.1-.9L12 2Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+function TrophyIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M7 4h10v3a5 5 0 0 1-10 0V4Z"
+        fill="currentColor"
+      />
+      <path
+        d="M4 5h3v1a3 3 0 0 1-3 3V5Zm16 0h-3v1a3 3 0 0 0 3 3V5Z"
+        fill="currentColor"
+      />
+      <path d="M9 13h6v3l1 4H8l1-4v-3Z" fill="currentColor" />
+      <rect x="7" y="20" width="10" height="2" rx="1" fill="currentColor" />
+    </svg>
   );
 }
 

@@ -88,8 +88,9 @@ export async function mergeSavedIntoCard(
 
   // Fall back to whatever we stored on `stable_picks` — that record was
   // written at save time with the price the player paid, so it's the honest
-  // source of truth here. We just need the race + jockey/horse names for a
-  // presentable pitch card; silk is left null and shows a placeholder.
+  // source of truth here for the SPEND. We also want the horse's silk so
+  // the card doesn't render as a blank green square when it slips off the
+  // main card, so join to `runners` for the silk_url too.
   const picks = missingHorses.length > 0
     ? await db
         .select({
@@ -97,8 +98,14 @@ export async function mergeSavedIntoCard(
           subjectName: stablePicks.subjectName,
           raceId: stablePicks.raceId,
           priceM: stablePicks.priceM,
+          silkUrl: runners.silkUrl,
+          isNonRunner: runners.isNonRunner,
         })
         .from(stablePicks)
+        .leftJoin(
+          runners,
+          and(eq(runners.horseId, stablePicks.subjectId), eq(runners.raceId, stablePicks.raceId))
+        )
         .where(and(eq(stablePicks.kind, "horse"), inArray(stablePicks.subjectId, missingHorses)))
     : [];
 
@@ -126,10 +133,11 @@ export async function mergeSavedIntoCard(
 
   const extraRaces: GameCard["races"] = [];
   for (const [raceId, group] of byRace) {
+    const anyNonRunner = group.some((p) => p.isNonRunner);
     extraRaces.push({
       raceId,
-      course: "Non-runner",
-      name: "Withdrawn or off-card",
+      course: anyNonRunner ? "Non-runner" : "Off-card",
+      name: anyNonRunner ? "Withdrawn from the race" : "Race no longer on the card",
       offTime: "—",
       prizeValue: null,
       runners: group.map((p) => ({
@@ -139,7 +147,7 @@ export async function mergeSavedIntoCard(
         jockeyId: null,
         jockey: null,
         trainer: null,
-        silkUrl: null,
+        silkUrl: p.silkUrl,
         oddsDec: 0,
         frac: "—",
         p: 0,
