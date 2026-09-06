@@ -18,7 +18,7 @@ import { loadCard, mergeSavedIntoCard, nextGameDate, raceWeekFor } from "@/lib/g
 import { cardLockTime, isLocked, lockLabel } from "@/lib/lock";
 import { loadStable } from "@/lib/stable";
 import { loadHorseOwnership, loadJockeyOwnership } from "@/lib/game-stats";
-import { loadHorseResults } from "@/lib/game-data";
+import { loadHorseResults, loadJockeyResults } from "@/lib/game-data";
 import type { HorseResult } from "@/lib/game-data";
 import { db, stables, users } from "@/db";
 import { desc, eq } from "drizzle-orm";
@@ -111,6 +111,10 @@ export default async function GamePage({
       .filter((p) => p.raceId);
     const map = await loadHorseResults(saved.id, pairs);
     horseResults = Object.fromEntries(map);
+  }
+  let jockeyPoints: Record<string, number | null> = {};
+  if (saved) {
+    jockeyPoints = Object.fromEntries(await loadJockeyResults(saved.id));
   }
   // Admin pill in the header nav is opt-in per user — fetched here so the
   // Header component (which is a client component) doesn't have to touch
@@ -215,6 +219,7 @@ export default async function GamePage({
                 horseOwnership={Object.fromEntries(horseOwnership)}
                 jockeyOwnership={Object.fromEntries(jockeyOwnership)}
                 horseResults={horseResults}
+                jockeyPoints={jockeyPoints}
               />
             </div>
           </div>

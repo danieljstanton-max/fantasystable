@@ -94,9 +94,12 @@ export function Pitch({
 export function Bench({
   jockeys,
   handlers,
+  points = {},
 }: {
   jockeys: GameJockey[];
   handlers?: JockeyHandlers;
+  /** Per-jockey settled points, keyed by jockeyId. Empty pre-settlement. */
+  points?: Record<string, number | null>;
 }) {
   return (
     <section className="rounded-[22px] bg-white/90 px-3 py-2.5 shadow-[0_2px_8px_rgba(23,48,60,0.06)] backdrop-blur-sm">
@@ -111,7 +114,7 @@ export function Bench({
         {Array.from({ length: N_JOCKEYS }, (_, i) => {
           const j = jockeys[i];
           return j ? (
-            <JockeyCard key={j.id} jockey={j} handlers={handlers} />
+            <JockeyCard key={j.id} jockey={j} handlers={handlers} points={points[j.id] ?? null} />
           ) : (
             <EmptyJockey key={`empty-${i}`} onClick={handlers?.onPickEmpty} />
           );
@@ -273,9 +276,12 @@ function EmptyHorse({ onClick }: { onClick?: () => void }) {
 function JockeyCard({
   jockey,
   handlers,
+  points,
 }: {
   jockey: GameJockey;
   handlers?: JockeyHandlers;
+  /** Settled points if the day's rides have run. Null pre-settlement. */
+  points: number | null;
 }) {
   const interactive = !!handlers?.onRemove && !handlers.locked;
   return (
@@ -312,12 +318,21 @@ function JockeyCard({
         <div className="truncate text-[11.5px] font-semibold leading-tight text-[var(--slate)] sm:text-[13px]">
           {jockeyLabel(jockey.name)}
         </div>
-        <div
-          className="text-[18px] font-extrabold leading-none tracking-tight text-[var(--slate)] sm:text-[22px]"
-          style={{ fontVariantNumeric: "tabular-nums" }}
-        >
-          {money(jockey.price)}
-        </div>
+        {points != null ? (
+          <div
+            className="text-[18px] font-extrabold leading-none tracking-tight text-[var(--go-deep)] sm:text-[22px]"
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            {points} pts
+          </div>
+        ) : (
+          <div
+            className="text-[18px] font-extrabold leading-none tracking-tight text-[var(--slate)] sm:text-[22px]"
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            {money(jockey.price)}
+          </div>
+        )}
       </div>
     </article>
   );

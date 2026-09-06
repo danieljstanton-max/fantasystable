@@ -40,6 +40,8 @@ type Props = {
   jockeyOwnership?: Record<string, number>;
   /** Per-horse settled result (position, points) — populated post-race. */
   horseResults?: Record<string, import("@/lib/game-data").HorseResult>;
+  /** Per-jockey settled points from stable_picks. Empty until settlement runs. */
+  jockeyPoints?: Record<string, number | null>;
 };
 
 export function StableEditor({
@@ -50,6 +52,7 @@ export function StableEditor({
   horseOwnership = {},
   jockeyOwnership = {},
   horseResults = {},
+  jockeyPoints = {},
 }: Props) {
   const [horseIds, setHorseIds] = useState<string[]>(initial.horseIds);
   const [jockeyIds, setJockeyIds] = useState<string[]>(initial.jockeyIds);
@@ -250,6 +253,7 @@ export function StableEditor({
 
       <Bench
         jockeys={jockeys}
+        points={jockeyPoints}
         handlers={{
           onRemove: toggleJockey,
           onPickEmpty: () => setPickerOpen("jockeys"),

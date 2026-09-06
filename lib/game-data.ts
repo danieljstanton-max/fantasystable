@@ -291,3 +291,18 @@ export async function loadHorseResults(
   return out;
 }
 
+/**
+ * Per-jockey settled points for a stable. Written by settleDate on the
+ * stable_picks row; keyed by jockeyId here for a quick lookup on the bench.
+ * Returns an empty map for a stable with no picks (or before settlement).
+ */
+export async function loadJockeyResults(stableId: string): Promise<Map<string, number | null>> {
+  const rows = await db
+    .select({ subjectId: stablePicks.subjectId, points: stablePicks.points })
+    .from(stablePicks)
+    .where(and(eq(stablePicks.stableId, stableId), eq(stablePicks.kind, "jockey")));
+  const out = new Map<string, number | null>();
+  for (const r of rows) out.set(r.subjectId, r.points);
+  return out;
+}
+
