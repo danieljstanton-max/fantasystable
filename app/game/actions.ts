@@ -265,3 +265,44 @@ export async function settleGameAction(
   revalidatePath("/game/results");
   return { ok: true, stables: report.perStable.length, points: report.totalPointsAwarded };
 }
+
+/**
+ * Admin: sweep non-runners out of every active stable and email the
+ * players affected. Idempotent — a second run does nothing.
+ */
+export async function nrSweepAction(): Promise<{ ok: boolean; swept?: number; emailed?: number; error?: string }> {
+  const user = await currentUser();
+  if (!user) return { ok: false, error: "Sign in first." };
+  const { db, users } = await import("@/db");
+  const { eq } = await import("drizzle-orm");
+  const [me] = await db.select({ isAdmin: users.isAdmin }).from(users).where(eq(users.id, user.id)).limit(1);
+  if (!me?.isAdmin) return { ok: false, error: "Admin only." };
+  const { sweepNonRunners } = await import("@/lib/nr-sweep");
+  const r = await sweepNonRunners(await origin());
+  revalidatePath("/game/admin");
+  return { ok: true, swept: r.swept.length, emailed: r.emailed };
+}
+
+/**
+ * Admin: post-day recap. Sends every player who saved a stable for the
+ * given date a personalised summary with the day's highlights.
+ */
+export async function recapAction(
+  date: string
+): Promise<{ ok: boolean; entrants?: number; emailed?: number; winner?: string; error?: string }> {
+  const user = await currentUser();
+  if (!user) return { ok: false, error: "Sign in first." };
+  const { db, users } = await import("@/db");
+  const { eq } = await import("drizzle-orm");
+  const [me] = await db.select({ isAdmin: users.isAdmin }).from(users).where(eq(users.id, user.id)).limit(1);
+  if (!me?.isAdmin) return { ok: false, error: "Admin only." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: "Bad date." };
+  const { sendDayRecap } = await import("@/lib/recap");
+  const r = await sendDayRecap(date);
+  return {
+    ok: true,
+    entrants: r.entrants,
+    emailed: r.emailed,
+    winner: r.winner ? `${r.winner.stableName} (${r.winner.points} pts)` : undefined,
+  };
+}

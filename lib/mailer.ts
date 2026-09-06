@@ -16,6 +16,48 @@ const FROM = process.env.MAIL_FROM ?? "Fantasy Stable <noreply@fantasystable.co.
 
 export type SendResult = { delivered: boolean; via: "resend" | "log" };
 
+/**
+ * Send an arbitrary transactional email. Uses the same Resend endpoint as
+ * the sign-in link and falls back to a stderr warning when no API key is
+ * configured, so tests and dev environments never silently think a mail
+ * went out. Callers own the subject/text/html — this function only cares
+ * that Resend accepted it.
+ */
+export async function sendMail(opts: {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+}): Promise<SendResult> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) {
+    console.warn(
+      [
+        "",
+        "  ┌─ NO RESEND_API_KEY — mail not sent ─────────────────────────",
+        `  │  to:      ${opts.to}`,
+        `  │  subject: ${opts.subject}`,
+        "  └────────────────────────────────────────────────────────────",
+        "",
+      ].join("\n")
+    );
+    return { delivered: false, via: "log" };
+  }
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      from: FROM,
+      to: [opts.to],
+      subject: opts.subject,
+      text: opts.text,
+      html: opts.html,
+    }),
+  });
+  if (!response.ok) throw new Error(`Resend rejected the send (${response.status})`);
+  return { delivered: true, via: "resend" };
+}
+
 export async function sendSignInLink(email: string, url: string): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY;
 

@@ -19,6 +19,7 @@ import { desc, eq, sql } from "drizzle-orm";
 import { GameShell, SubpageHeader } from "@/components/game/game-shell";
 import { nextGameDate } from "@/lib/game-data";
 import { SettleButton } from "./settle-button";
+import { NrSweepButton, RecapButton } from "./ops-buttons";
 
 export const metadata: Metadata = { title: "Admin — Fantasy Stable" };
 export const dynamic = "force-dynamic";
@@ -182,6 +183,14 @@ export default async function AdminPage() {
 
         <Card title="Settle a card" subtitle="Idempotent — safe to hit again">
           <SettleButton defaultDate={settleDefaultDate} />
+        </Card>
+
+        <Card title="Non-runners" subtitle="Sweep + notify affected players">
+          <NrSweepButton />
+        </Card>
+
+        <Card title="Post-day recap" subtitle="One summary email per entrant">
+          <RecapButton defaultDate={settleDefaultDate} />
         </Card>
 
         <Card title="How to send a broadcast" subtitle="Run this from your terminal">

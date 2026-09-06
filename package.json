@@ -51,6 +51,8 @@
     "snapshot:prices": "tsx --env-file=.env.local scripts/game-prices-snapshot.ts",
     "users": "tsx --env-file=.env.local scripts/users.ts",
     "admin": "tsx --env-file=.env.local scripts/make-admin.ts",
+    "nr:sweep": "tsx --env-file=.env.local scripts/nr-sweep.ts",
+    "recap": "tsx --env-file=.env.local scripts/recap.ts",
     "announce": "tsx --env-file=.env.local scripts/announce.ts"
   },
   "dependencies": {
