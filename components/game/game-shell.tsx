@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * The wrapper every /game/* page uses so they share one background, one
  * palette, one header. If a page renders inside this it inherits the
@@ -12,6 +10,8 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { gamePaused } from "@/lib/pause";
+import { LaunchBanner } from "./launch-banner";
 
 const TRACK_IMAGE = "/img/track.png";
 
@@ -35,6 +35,7 @@ export function GameShell({ children, wide }: { children: ReactNode; wide?: bool
       }
     >
       <div className={`mx-auto flex flex-col gap-2.5 ${wide ? "max-w-6xl" : "max-w-2xl"}`}>
+        {gamePaused() && <LaunchBanner />}
         {children}
       </div>
     </main>

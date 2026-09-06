@@ -25,6 +25,8 @@ import { desc, eq } from "drizzle-orm";
 import { Bench, Pitch } from "@/components/game/pitch-view";
 import { Header, StatBar, TrophyMark } from "@/components/game/game-chrome";
 import { AutoRefresh } from "@/components/game/auto-refresh";
+import { LaunchBanner } from "@/components/game/launch-banner";
+import { gamePaused } from "@/lib/pause";
 import { GameSidebar } from "@/components/game/game-sidebar";
 import { money } from "@/components/game/format";
 import { BUDGET } from "@/lib/game-pricing";
@@ -162,6 +164,7 @@ export default async function GamePage({
       }
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-2.5">
+        {gamePaused() && <LaunchBanner />}
         {locked && <AutoRefresh intervalMs={30_000} />}
         <Header
           date={date}
