@@ -173,14 +173,12 @@ function Hero({ signedIn }: { signedIn: boolean }) {
             Free-to-play · New card every Saturday
           </div>
 
-          <h1 className="mt-4 text-[22px] font-extrabold uppercase leading-[1.05] tracking-tight text-[var(--slate)] sm:text-[30px]">
-            Pick 6 Horses.
+          <h1 className="mt-4 text-[24px] font-extrabold uppercase leading-[1.05] tracking-tight text-[var(--slate)] sm:text-[34px]">
+            Build Your Stable.
             <br />
-            Choose 2 Jockeys.
+            Beat Your Mates.
             <br />
-            Select Your NAP.
-            <br />
-            <span className="text-[var(--go-deep)]">Let&rsquo;s go, Champ!</span>
+            Claim the <span className="text-[var(--go-deep)]">BRR-Nagging Rights</span>.
           </h1>
 
           <p className="mx-auto mt-4 max-w-[440px] text-[14px] leading-relaxed text-[var(--slate-soft)] sm:text-[15px]">
@@ -245,8 +243,9 @@ function HowItWorks() {
         <p className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-[var(--go-deep)]">
           How to play
         </p>
-        <h2 className="mt-2 text-[28px] font-extrabold leading-tight tracking-tight text-[var(--slate)] sm:text-[36px]">
-          Six horses. One NAP. One Saturday.
+        <h2 className="mt-2 text-[26px] font-extrabold leading-tight tracking-tight text-[var(--slate)] sm:text-[34px]">
+          Pick 6 Horses. Choose 2 Jockeys. Select Your NAP.{" "}
+          <span className="text-[var(--go-deep)]">Let&rsquo;s go, Champ!</span>
         </h2>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-3 sm:gap-5">
