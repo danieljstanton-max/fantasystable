@@ -173,12 +173,14 @@ function Hero({ signedIn }: { signedIn: boolean }) {
             Free-to-play · New card every Saturday
           </div>
 
-          <h1 className="mt-4 text-[24px] font-extrabold uppercase leading-[1.05] tracking-tight text-[var(--slate)] sm:text-[34px]">
-            Build Your Stable.
+          <h1 className="mt-4 text-[22px] font-extrabold uppercase leading-[1.05] tracking-tight text-[var(--slate)] sm:text-[30px]">
+            Pick 6 Horses.
             <br />
-            Beat Your Mates.
+            Choose 2 Jockeys.
             <br />
-            Claim the <span className="text-[var(--go-deep)]">BRR-Nagging Rights</span>.
+            Select Your NAP.
+            <br />
+            <span className="text-[var(--go-deep)]">Let&rsquo;s go, Champ!</span>
           </h1>
 
           <p className="mx-auto mt-4 max-w-[440px] text-[14px] leading-relaxed text-[var(--slate-soft)] sm:text-[15px]">
