@@ -21,3 +21,4 @@ model/
 .claude/
 .vercel
 .env*
+.neon-check.*.mts
