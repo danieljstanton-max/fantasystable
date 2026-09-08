@@ -27,8 +27,8 @@
  */
 
 import { readFileSync, existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
+import { OUT_DIR } from "./published";
 
 export interface Veto {
   date: string;
@@ -37,7 +37,7 @@ export interface Veto {
 }
 
 export function vetoesPath(): string {
-  return join(homedir(), "Desktop", "Racing Tips", "VETOES.txt");
+  return join(OUT_DIR, "VETOES.txt");
 }
 
 /** Normalised for comparison — the files are not consistent about case. */

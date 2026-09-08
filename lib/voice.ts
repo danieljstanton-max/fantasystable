@@ -58,6 +58,37 @@ export const OPENERS_PLAIN = [
  */
 export const OPENER_HAND = "is one I have taken on myself here";
 
+/**
+ * A horse in the middle of a winning run, and the rise that came with it.
+ *
+ * Dan, 2026-09-08: "a streak needs to be written as — he is in hot form and won
+ * his last 2 — a X amount of rise still might not be able to stop him — but mix
+ * the wording up so [it is] not so repetitive."
+ *
+ * Sixteen selections across twelve days were horses on a run of wins where the
+ * write-up never mentioned it once, including one that had won its last four.
+ * Nothing false was printed; the best fact in the form was simply left out.
+ *
+ * Written as a positive with the rise acknowledged rather than as a warning —
+ * a handicapper putting a horse up is the price of being in form, not evidence
+ * against it. Five phrasings, chosen on a seed so the same horse reads the same
+ * way on every re-run but a card does not repeat itself.
+ *
+ * {n} is the streak word ("two", "three"), {lb} the rise in pounds.
+ */
+export const STREAK_LINES = [
+  "He is in hot form, winning his last {n}, and a {lb}lb rise might not be enough to stop him.",
+  "He has won his last {n} and is clearly going the right way — the handicapper has taken {lb}lb for it, but a horse in this mood takes some beating.",
+  "Winning his last {n} tells you he is thriving, and while {lb}lb more is a real ask, momentum counts for plenty.",
+  "He arrives on the back of {n} straight wins. The {lb}lb rise is the obvious worry, though he has been beating that sort of raise all summer.",
+  "{n} wins on the bounce, and up {lb}lb for the trouble — but a horse in form is a different animal to one trying to recapture it.",
+];
+
+/** "two", "three", … for a streak length. */
+export function streakWord(n: number): string {
+  return ["", "one", "two", "three", "four", "five", "six"][n] ?? String(n);
+}
+
 export const ALL_OPENERS = [
   ...OPENERS_PRIME,
   ...OPENERS_ELIGIBLE,

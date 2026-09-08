@@ -21,13 +21,13 @@ import "dotenv/config";
 import postgres from "postgres";
 
 import {
-  filterRace, scoreHorse, wellHandicapped, groundGate, isHandicap, REJECT_LABELS,
-  type PastRun, type HorseToday, type RaceToday,
-} from "../lib/selection";
+  filterRace, scoreHorse, wellHandicapped, groundGate, streakGate, isHandicap, REJECT_LABELS,
+  sameDiscipline,
+  type PastRun, type HorseToday, type RaceToday } from "../lib/selection";
 import { readComment, racePaceShape, runStyleHabit } from "../lib/form-reading";
 import type { GoingBand } from "../lib/going";
 import { betFor, placeTerms } from "../lib/staking";
-import { OPENERS_PRIME, OPENERS_ELIGIBLE, OPENERS_PLAIN, pickOpener, OPENER_HAND } from "../lib/voice";
+import { OPENERS_PRIME, OPENERS_ELIGIBLE, OPENERS_PLAIN, pickOpener, OPENER_HAND, STREAK_LINES, streakWord } from "../lib/voice";
 import { courseGuide, goingNote } from "../lib/course-guide";
 import { loadHandPicks, handPickFor } from "../lib/hand-picks";
 import { projectCard, applyGoingOverrides, bandAtOff, changesDuringCard,
@@ -421,7 +421,15 @@ async function main() {
     const groundFails = new Map(
       scored.map((x) => [x.r.horseId, groundGate(x.h, raceToday.goingBand)] as const)
     );
-    const passes = (x: (typeof scored)[number]) => groundFails.get(x.r.horseId) === null;
+    // Dan's streak rule applies to the tip in every race, not just the five —
+    // the same reasoning as the ground rule, and for the same reason: two
+    // documents on one site must not disagree about who we are backing.
+    const streakFails = new Map(
+      scored.map((x) => [x.r.horseId,
+        streakGate(x.h, x.r.ofr ?? null, ra.raceType ?? null)] as const)
+    );
+    const passes = (x: (typeof scored)[number]) =>
+      groundFails.get(x.r.horseId) === null && streakFails.get(x.r.horseId) === null;
     const cleared = bySc.filter(passes);
     const noneProven = cleared.length === 0;
 
@@ -435,6 +443,14 @@ async function main() {
 
     const top = handRunner ?? cleared[0] ?? bySc[0];
     const experienced = scored.filter((x) => x.h.length >= 3).length;
+
+    // How many wins the selection is on. Needed before the reason phrases are
+    // built so "won last time out" can stand down for the streak sentence.
+    let winStreak = 0;
+    for (const r of top.h) {
+      if (r.positionNum === 1) winStreak++;
+      else break;
+    }
 
     /* ---- the paragraph ---- */
 
@@ -714,6 +730,11 @@ async function main() {
       // says it won, the win signal adds nothing.
       if (x.key === "last-run-won" && parts.some((pt) => /^won by /.test(pt))) continue;
 
+      // A streak sentence follows that says the same thing better. "He won last
+      // time out ... Winning his last four tells you he is thriving" is one
+      // fact twice, and the weaker phrasing comes first.
+      if (x.key === "last-run-won" && winStreak >= 2) continue;
+
       const ph = phrase(x.key, x.label, x.detail);
       if (ph) parts.push(humaniseDates(ph));
     }
@@ -764,13 +785,64 @@ async function main() {
     if (handRunner && hand && hand.reason) {
       say(hand.reason);
     }
+
+    // A horse in the middle of a winning run says so, with the rise it earned.
+    //
+    // Dan, 2026-09-08: "a streak needs to be written as — he is in hot form and
+    // won his last 2 — a X amount of rise still might not be able to stop him."
+    //
+    // Across twelve days of published cards, sixteen selections were horses on
+    // a run of wins whose write-up never mentioned it — one of them had won its
+    // last four. Nothing false was printed; the strongest fact in the form was
+    // simply absent. See scripts/audit-all.ts, which now checks for it.
+    {
+      const streak = winStreak;
+      if (streak >= 2) {
+        // Marks never cross disciplines.
+        //
+        // The first version of this took the lowest mark in the streak whatever
+        // code it was earned in. STELLARMASTERPIECE had won a Flat handicap off
+        // 63 and three hurdles off 71-85, and runs today in a CHASE off 93 — so
+        // it printed "30lb more is a real ask", subtracting a Flat rating from
+        // a Chase one. wonOffHigherMark() has guarded against exactly this since
+        // August; this new code did not, and it went live.
+        const sameCode = top.h.slice(0, streak).filter(
+          (r) => r.ofr !== null && sameDiscipline(r.raceType, ra.raceType)
+        );
+        const marks = sameCode.map((r) => r.ofr).filter((n): n is number => n !== null);
+        const wonOff = marks.length ? Math.min(...marks) : null;
+        const rise = wonOff !== null && top.r.ofr !== null
+          ? Number(top.r.ofr) - wonOff
+          : null;
+
+        // Only claim a rise when there is one to claim.
+        if (rise !== null && rise > 0) {
+          say(
+            pickOpener(STREAK_LINES, `${name}|${ra.offTime}|streak`)
+              .replace("{n}", streakWord(streak))
+              .replace("{lb}", String(rise))
+          );
+        } else {
+          // No comparable mark — say the form, claim no number.
+          say(
+            `He is in hot form, winning his last ${streakWord(streak)}, and arrives ` +
+            `here with his confidence high.`
+          );
+        }
+      }
+    }
     if (neg.length) say(`The one worry is ${listNames(neg.map((n) => n.label.toLowerCase()))}.`);
 
     // Where the ground rule moved the tip off the top-scorer, say so and name
     // the horse it moved off. A selection that quietly differs from the score
     // reads as an error; a selection that explains itself reads as a judgement.
     const displaced = bySc[0] && bySc[0] !== top ? bySc[0] : null;
-    if (displaced && groundFails.get(displaced.r.horseId)) {
+    if (displaced && streakFails.get(displaced.r.horseId)) {
+      say(
+        `${String(displaced.r.horseName).toUpperCase()} rates higher on our figures but is passed over — ` +
+        `${String(streakFails.get(displaced.r.horseId)).toLowerCase()}.`
+      );
+    } else if (displaced && groundFails.get(displaced.r.horseId)) {
       say(
         `${String(displaced.r.horseName).toUpperCase()} rates higher on our figures but is passed over on the ground — ` +
         `${String(groundFails.get(displaced.r.horseId)).toLowerCase()}.`
@@ -795,7 +867,9 @@ async function main() {
     // dangers are ANNANDALE" reads as the file forgetting its own argument.
     // Each horse is named once, in one role.
     const dangers = bySc
-      .filter((x) => x !== top && x.s.score > 0 && groundFails.get(x.r.horseId) === null)
+      .filter((x) => x !== top && x.s.score > 0
+        && groundFails.get(x.r.horseId) === null
+        && streakFails.get(x.r.horseId) === null)
       .slice(0, 2);
     if (dangers.length) {
       // Short reasons only. A danger described in a full clause each turns the

@@ -19,7 +19,7 @@ import "dotenv/config";
 import postgres from "postgres";
 
 import {
-  filterRace, scoreHorse, wellHandicapped, groundGate,
+  filterRace, scoreHorse, wellHandicapped, groundGate, streakGate,
   type PastRun, type HorseToday, type RaceToday,
 } from "../lib/selection";
 import { readComment, racePaceShape, runStyleHabit } from "../lib/form-reading";
@@ -187,6 +187,7 @@ async function main() {
     handPick: { horse: string; reason: string } | null;
     groundRecord: string;
     groundFail: string | null;
+    streakFail: string | null;
     goingBand: GoingBand;
     pace: string;
     /** Stall number, and how that side of the track fares here. */
@@ -325,6 +326,7 @@ async function main() {
       handPick: handRunner && hand ? { horse: hand.horse, reason: hand.reason } : null,
       groundRecord: best.s.groundRecord,
       groundFail: groundGate(best.h, raceToday.goingBand),
+      streakFail: streakGate(best.h, best.r.ofr ?? null, ra.raceType ?? null),
       goingBand: raceToday.goingBand,
       draw: best.r.draw ?? null, drawIv: best.drawIv ?? null,
       drawIvBand: best.drawIvBand ?? null,
@@ -588,9 +590,13 @@ async function main() {
   const vetoed = picks.filter(
     (p) => !severeStyle(p) && isVetoed(vetoes, String(p.r.horseName))
   );
+  // Dan's streak rule. See streakGate() in lib/selection.ts.
+  const onAStreak = (p: (typeof picks)[number]) => p.streakFail !== null;
+
   const offGround = rest.filter(wrongGround);
-  const crowded = rest.filter((p) => !wrongGround(p) && bigField(p));
-  const eligible = rest.filter((p) => !wrongGround(p) && !bigField(p));
+  const streaky = rest.filter((p) => !wrongGround(p) && onAStreak(p));
+  const crowded = rest.filter((p) => !wrongGround(p) && !onAStreak(p) && bigField(p));
+  const eligible = rest.filter((p) => !wrongGround(p) && !onAStreak(p) && !bigField(p));
 
   // Strength first, decisiveness second.
   eligible.sort(
@@ -768,6 +774,18 @@ async function main() {
       say(`   ${o.groundFail}`);
       say(`   Ground: ${o.groundRecord}`);
       say(`   Scored ${o.score}, which would otherwise have made the five.`);
+      say();
+    }
+  }
+
+  if (streaky.length) {
+    say("-".repeat(72));
+    say("SET ASIDE — on a winning run");
+    say();
+    for (const x of streaky.sort((a, b) => b.score - a.score)) {
+      say(`${String(x.r.horseName).toUpperCase()}   ${x.race.offTime} ${x.race.courseName}`);
+      say(`   ${x.streakFail}`);
+      say(`   Scored ${x.score}, which would otherwise have made the five.`);
       say();
     }
   }

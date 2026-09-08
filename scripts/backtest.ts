@@ -31,6 +31,7 @@ import {
   type PastRun,
   type HorseToday,
   type RaceToday,
+  sameDiscipline,
 } from "../lib/selection";
 import type { GoingBand } from "../lib/going";
 
@@ -245,6 +246,10 @@ async function main() {
   priceRank?: number;
   /** Runners in the race — a race-level fact, kept for segmenting. */
   fieldSize?: number | null;
+  /** Consecutive wins going into today. */
+  winStreak?: number;
+  /** Pounds above the mark that run was won off, same discipline. */
+  streakRise?: number | null;
   /** The going band of the race, for segmenting by ground. */
   goingBand?: string | null;
   /** Form on soft/heavy: proven, tried without going close, or never seen. */
@@ -340,10 +345,27 @@ async function main() {
       const outOfDepth =
         todayCls !== null && bestWon !== null && bestWon - todayCls >= 2 && noDrop;
 
+      // Wins in a row going into today, for the streak segment.
+      let winStreak = 0;
+      for (const h of history) {
+        if (h.positionNum === 1) winStreak++;
+        else break;
+      }
+      // The lowest mark the current run was won off, in TODAY'S discipline —
+      // marks never cross codes.
+      const streakMarks = history.slice(0, winStreak)
+        .filter((h) => h.ofr !== null && sameDiscipline(h.raceType, first.raceType))
+        .map((h) => h.ofr as number);
+      const streakRise = streakMarks.length && r.ofr !== null
+        ? r.ofr - Math.min(...streakMarks)
+        : null;
+
       scored.push({
         horseName: r.horseName,
         raceName: r.raceName,
         fieldSize: r.fieldSize ?? null,
+        winStreak,
+        streakRise,
         goingBand: first.goingBand ?? null,
         softBest: (() => {
           const on = history.filter((h) => (h.goingBand === "soft" || h.goingBand === "heavy")
@@ -679,6 +701,45 @@ async function main() {
     for (const k of [...g.keys()].sort())
       console.log(`  ${k.padEnd(16)} ${String(g.get(k)!.length).padStart(4)} bets   strike ${srT(g.get(k)!).toFixed(1).padStart(5)}%   ROI ${roiT(g.get(k)!).toFixed(1).padStart(6)}%`);
     console.log();
+  }
+
+  // Dan, 2026-09-08: "I really don't want to pick horses that have won 2 or
+  // more on the bounce." Measured before it is implemented, same as the ground
+  // rule — he should know the price of his own instruction.
+  {
+    const band = (n: number) => n === 0 ? "a no win last time"
+      : n === 1 ? "b won last time"
+      : n === 2 ? "c won last two"
+      : "d won last three or more";
+    const g = new Map<string, Bet[]>();
+    for (const b of topPicks) {
+      const k = band(b.winStreak ?? 0);
+      if (!g.has(k)) g.set(k, []);
+      g.get(k)!.push(b);
+    }
+    const roiS = (xs: Bet[]) =>
+      xs.length ? ((xs.reduce((a, b) => a + (b.won ? b.spDec ?? 0 : 0), 0) - xs.length) / xs.length) * 100 : 0;
+    const srS = (xs: Bet[]) => (xs.length ? (xs.filter((b) => b.won).length / xs.length) * 100 : 0);
+
+    console.log("-".repeat(70));
+    console.log("OUR PICKS BY WINNING STREAK\n");
+    for (const k of [...g.keys()].sort())
+      console.log(`  ${k.slice(2).padEnd(24)} ${String(g.get(k)!.length).padStart(5)} bets   strike ${srS(g.get(k)!).toFixed(1).padStart(5)}%   ROI ${roiS(g.get(k)!).toFixed(1).padStart(7)}%`);
+
+    console.log();
+    console.log("DAN'S RULE — no 3-timers, and a recent winner only off a similar mark\n");
+    console.log(`  ${"tolerance".padEnd(14)} ${"bets".padStart(6)} ${"strike".padStart(7)} ${"ROI".padStart(8)}   ${"removed".padStart(7)}`);
+    for (const tol of [0, 2, 3, 5, 7]) {
+      const kept = topPicks.filter((b) => {
+        const n = b.winStreak ?? 0;
+        if (n === 0) return true;
+        if (n >= 3) return false;
+        const rise = b.streakRise;
+        return rise !== null && rise !== undefined && rise <= tol;
+      });
+      console.log(`  within ${String(tol).padStart(2)}lb     ${String(kept.length).padStart(6)} ${srS(kept).toFixed(1).padStart(6)}% ${roiS(kept).toFixed(1).padStart(7)}%   ${String(topPicks.length - kept.length).padStart(7)}`);
+    }
+    console.log(`  ${"as it stands".padEnd(14)} ${String(topPicks.length).padStart(6)} ${srS(topPicks).toFixed(1).padStart(6)}% ${roiS(topPicks).toFixed(1).padStart(7)}%         0\n`);
   }
 
   // Dan, 2026-08-30, on Rating in the Chepstow Mile Series Final: "its a series

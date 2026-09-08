@@ -346,10 +346,34 @@ export interface BestOdds {
  *
  * They stay in the `odds` jsonb; they simply never become the headline price.
  */
-const EXCHANGES = new Set(["matchbook", "smarkets", "betfair exchange", "betdaq"]);
+/**
+ * Matched on a normalised PREFIX, not an exact string.
+ *
+ * Dan, 2026-09-08, on Dream Forever advised at 5/1: "I can't see this was ever
+ * 5/1... exclude exchanges, it has to be available."
+ *
+ * It never was. Twenty-two genuine bookmakers had the horse between 3/1 and
+ * 7/2 — thirteen of them at 10/3 — and the 5/1 came from one source,
+ * "SmarketsSBK", quoting 6.00 to the decimal against Smarkets' own exchange
+ * price of 6.00, Betfair Exchange 5.8 and Matchbook 5.4. It sat with the
+ * exchanges and a full point clear of every real price.
+ *
+ * The old test was `EXCHANGES.has(name.toLowerCase())`, an exact match, so
+ * "smarketssbk" was not "smarkets" and went through as a bookmaker. Punctuation
+ * and spacing are now stripped and the comparison is a prefix, which catches
+ * "Smarkets SBK", "SmarketsSBK", "Betfair Exchange", "BetfairExchange" and
+ * anything else the feed decides to call them tomorrow.
+ */
+const EXCHANGES = ["matchbook", "smarkets", "betfair", "betdaq"];
+
+/** Sportsbooks that would otherwise be caught by a Betfair prefix. */
+const NOT_EXCHANGES = ["betfairsportsbook"];
 
 function isExchange(bookmaker: string | null): boolean {
-  return bookmaker !== null && EXCHANGES.has(bookmaker.trim().toLowerCase());
+  if (bookmaker === null) return false;
+  const k = bookmaker.toLowerCase().replace(/[^a-z]/g, "");
+  if (NOT_EXCHANGES.includes(k)) return false;
+  return EXCHANGES.some((e) => k.startsWith(e));
 }
 
 /**

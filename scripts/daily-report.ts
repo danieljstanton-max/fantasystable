@@ -20,14 +20,16 @@
 
 import "dotenv/config";
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
+import { sendDailyReport, type GateResult } from "../lib/daily-email";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { OUT_DIR as PUBLISHED_DIR } from "../lib/published";
 
 const args = process.argv.slice(2);
 const arg = (k: string, d: string) => args.find((a) => a.startsWith(`--${k}=`))?.split("=")[1] ?? d;
 
-const OUT_DIR = arg("out", join(homedir(), "Desktop", "Racing Tips"));
+const OUT_DIR = arg("out", PUBLISHED_DIR);
 const SKIP_INGEST = args.includes("--no-ingest");
 
 function targetDate(): string {
@@ -199,14 +201,20 @@ async function main() {
   // checks now gate the publish directly, so live mode means "live if it
   // passes" and nothing else.
   let checksPassed = true;
+  const gates: GateResult[] = [];
+  let publishedLive = false;
+  let publishedUrl: string | null = null;
+  const runErrors: string[] = [];
 
   console.log("\n  pre-flight checks...");
   try {
     const report = run("npx", ["tsx", "--env-file=.env.local", "scripts/preflight.ts", date]);
     console.log(report.split("\n").filter(Boolean).slice(-3).join("\n"));
+    gates.push({ name: "Pre-flight (20 checks)", passed: true });
   } catch (e) {
     const detail = (e as Error).message;
     checksPassed = false;
+    gates.push({ name: "Pre-flight (20 checks)", passed: false, detail: (e as Error).message });
     console.error("  PRE-FLIGHT FAILED — do not send without checking");
     console.error(detail);
 
@@ -235,9 +243,11 @@ async function main() {
   try {
     const audit = run("npx", ["tsx", "--env-file=.env.local", "scripts/audit-writeups.ts", date]);
     console.log(audit.split("\n").filter(Boolean).slice(-2).join("\n"));
+    gates.push({ name: "Contradiction audit", passed: true });
   } catch (e) {
     const detail = (e as Error).message;
     checksPassed = false;
+    gates.push({ name: "Contradiction audit", passed: false, detail: (e as Error).message });
     console.error("  AUDIT FAILED — the write-ups contradict the form somewhere");
     console.error(detail.split("\n").slice(-14).join("\n"));
 
@@ -248,6 +258,32 @@ async function main() {
       `!!\n${detail.split("\n").map((l) => `!! ${l}`).join("\n")}\n\n` +
       readFileSync(upPath, "utf8")
     );
+  }
+
+  // 6c. The cross-check: right facts, not just true ones.
+  //
+  // Dan, 2026-09-08, on Lucky Hero: "we need to run a check on all write-ups as
+  // this is not acceptable."
+  //
+  // Pre-flight asks whether a claim is contradicted by the record. The audit
+  // asks whether the prose argues with itself. Neither could catch a write-up
+  // that cited a real win from April while the horse had won its last two off a
+  // different mark — nothing false, the wrong true thing. Across twelve days
+  // this found sixteen selections on a winning run that the prose never
+  // mentioned, one of them on a run of four.
+  console.log("\n  fact cross-check...");
+  const crossCheckFailure: string[] = [];
+  try {
+    const cross = run("npx", ["tsx", "--env-file=.env.local", "scripts/audit-all.ts", date]);
+    console.log(cross.split("\n").filter(Boolean).slice(-2).join("\n"));
+    gates.push({ name: "Fact cross-check", passed: true });
+  } catch (e) {
+    const detail = (e as Error).message;
+    checksPassed = false;
+    gates.push({ name: "Fact cross-check", passed: false, detail });
+    crossCheckFailure.push(detail);
+    console.error("  CROSS-CHECK FAILED — a write-up is missing or misstating a fact");
+    console.error(detail.split("\n").slice(-20).join("\n"));
   }
 
   // 7. Push to the site.
@@ -263,15 +299,32 @@ async function main() {
     const live = wanted && checksPassed;
 
     if (wanted && !checksPassed) {
-      console.error("  HELD AS DRAFT — autopublish is on, but the checks did not pass.");
-      console.error("  Fix what is flagged above, then publish by hand:");
+      console.error("");
+      console.error("  " + "=".repeat(70));
+      console.error("  NOT PUBLISHED — APPROVAL NEEDED");
+      console.error("  " + "=".repeat(70));
+      console.error("");
+      console.error(`  ${date} did not pass its checks, so nothing has gone to the site.`);
+      console.error("  The card is written and sitting on the Desktop with the failures");
+      console.error("  marked in the write-ups file.");
+      console.error("");
+      console.error("  Read what is flagged above. If it is acceptable, publish by hand:");
+      console.error("");
       console.error(`    npx tsx --env-file=.env.local scripts/publish.ts ${date} --live`);
+      console.error("");
+      console.error("  Nothing on the site has changed. Yesterday's card is still up.");
+      console.error("  " + "=".repeat(70));
+      console.error("");
     }
     console.log(`\n  publishing to the site (${live ? "live" : "draft"})...`);
     try {
       const args = ["tsx", "--env-file=.env.local", "scripts/publish.ts", date];
       if (live) args.push("--live");
-      console.log(run("npx", args).split("\n").filter(Boolean).slice(-2).join("\n"));
+      const pubOut = run("npx", args);
+      console.log(pubOut.split("\n").filter(Boolean).slice(-2).join("\n"));
+      publishedLive = live;
+      publishedUrl = (pubOut.match(/https:\/\/\S+/) ?? [])[0] ?? null;
+      gates.push({ name: "Published and verified live", passed: live });
 
       // Form profiles for the horses declared, so a name on a racecard has
       // somewhere to click through to. Always published — a reference page is
@@ -294,9 +347,36 @@ async function main() {
     } catch (e) {
       // A publishing failure must never lose the day's work — the files are
       // already written to the Desktop by this point.
+      const msg = (e as Error).message.split("\n")[0];
+      publishedLive = false;
+      runErrors.push(`publish failed: ${msg}`);
+      gates.push({ name: "Published and verified live", passed: false, detail: msg });
       console.error("  publish failed (the files are still on the Desktop):");
-      console.error("   ", (e as Error).message.split("\n")[0]);
+      console.error("   ", msg);
     }
+  }
+
+  // 8. Tell Dan what happened, whether or not he goes looking.
+  //
+  // Dan, 2026-09-08: "can you confirm daily you will run the script and check
+  // list." I cannot — I only exist when he messages me. The job can, so the job
+  // reports itself.
+  try {
+    const napName = (bets.match(/^1\.\s+([A-Z][A-Z0-9' \-]+?)\s{2,}/m) ?? [])[1] ?? null;
+    const selections = (writeups.match(/^VERDICT:/gm) ?? []).length;
+    await sendDailyReport({
+      date,
+      label,
+      races: Number((writeups.match(/^(\d+) races across/m) ?? [])[1] ?? 0),
+      selections,
+      nap: napName ? napName.trim() : null,
+      gates,
+      published: publishedLive,
+      url: publishedUrl,
+      errors: runErrors,
+    });
+  } catch (e) {
+    console.error("  daily report email failed:", (e as Error).message.split("\n")[0]);
   }
 
   console.log("");

@@ -53,7 +53,8 @@
     "admin": "tsx --env-file=.env.local scripts/make-admin.ts",
     "nr:sweep": "tsx --env-file=.env.local scripts/nr-sweep.ts",
     "recap": "tsx --env-file=.env.local scripts/recap.ts",
-    "announce": "tsx --env-file=.env.local scripts/announce.ts"
+    "announce": "tsx --env-file=.env.local scripts/announce.ts",
+    "audit:all": "tsx --env-file=.env.local scripts/audit-all.ts"
   },
   "dependencies": {
     "next": "^15.1.6",

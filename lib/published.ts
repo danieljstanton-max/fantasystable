@@ -16,7 +16,18 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-export const OUT_DIR = join(homedir(), "Desktop", "Racing Tips");
+/**
+ * Where the published files live — the one place that decides it.
+ *
+ * On the Mac this is the Desktop folder Dan actually reads. The server has no
+ * Desktop, so HRT_OUT_DIR names the directory there. Settlement, vetoes and
+ * hand picks all have to agree about what "published" means: when the server
+ * looked in a Desktop folder that did not exist it found no files, concluded
+ * nothing had ever been advised, and pushed a month of zeros to the live
+ * widget. One constant, imported everywhere, so that cannot happen again.
+ */
+export const OUT_DIR =
+  process.env.HRT_OUT_DIR?.trim() || join(homedir(), "Desktop", "Racing Tips");
 
 const DAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 const MONTHS = ["January", "February", "March", "April", "May", "June",

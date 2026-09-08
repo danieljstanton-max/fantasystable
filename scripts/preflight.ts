@@ -181,6 +181,27 @@ type Check = {
   // One bad plural on the biggest bet of the day is the sentence a reader
   // remembers, so every countable noun the generator prints is checked, not
   // just the two that had already gone wrong.
+  // 0. There is a card at all.
+  //
+  // Dan, 2026-09-08: "don't update the site if you find an error — ask for
+  // approval." The first thing to check is that there is something to approve.
+  //
+  // On 7 September the daily job ran before Tuesday's declarations reached the
+  // database. The write-ups file contained one line — "No races stored for
+  // 2026-09-08" — and every one of these checks PASSED, because each looks for
+  // a bad thing and an empty file has none. Only publish.ts noticed, and only
+  // because it could not find write-ups to send. A check that cannot fail on an
+  // empty input is not a check.
+  add("has-a-card", "2026-09-08",
+    "The card has selections in it at all",
+    (() => {
+      const verdicts = (up.match(/^VERDICT:/gm) ?? []).length;
+      if (verdicts === 0) return ["the write-ups file contains no verdicts at all"];
+      if (verdicts < (races as any[]).length)
+        return [`${verdicts} verdicts for ${(races as any[]).length} races — the file is incomplete`];
+      return [];
+    })());
+
   add("grammar", "2026-08-30",
     "Singular/plural agreement on every counted noun",
     // The word boundary alone is not enough: \b sits happily after the decimal

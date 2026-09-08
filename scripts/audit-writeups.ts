@@ -14,10 +14,10 @@
 import "dotenv/config";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import postgres from "postgres";
 import { readComment } from "../lib/form-reading";
 import { writeUpsPath } from "../lib/published";
+import { OUT_DIR } from "../lib/published";
 
 type Fault = { race: string; horse: string; claim: string; problem: string };
 
@@ -58,10 +58,29 @@ const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
   // The NAP note is a separate file and was never audited — which is exactly
   // where the Cosmos Raj contradiction lived. The biggest bet of the day was
   // the one piece of prose nothing was checking.
-  const dir = join(homedir(), "Desktop", "Racing Tips");
+  const selfContradicting: string[] = [];
+  const dir = OUT_DIR;
   for (const f of readdirSync(dir)) {
     if (!f.startsWith(`${date} VIP `) || !f.endsWith(".txt")) continue;
     const body = readFileSync(join(dir, f), "utf8");
+
+    // A note that opens as the play and signs off telling the reader not to
+    // back it is broken whatever else it says.
+    //
+    // Dan, 2026-09-08, on Lucky Hero: "I'm a little concerned on tomorrow's NAP
+    // write-up, very negative ending — especially for a NAP." The note argued
+    // the horse up in paragraph one, argued it down in paragraph two, and
+    // signed off "NOT A NAP — one to watch rather than back" on the strongest
+    // bet of the day. Every existing check passed it, because each one looks
+    // for a claim the record does not support and none of them read the note
+    // as a whole.
+    if (/^NOT A (?:NAP|VIP PLAY) —/m.test(body)) {
+      selfContradicting.push(
+        `${f.replace(`${date} VIP `, "").replace(".txt", "")} — the note signs off ` +
+        `"NOT A ${/^NOT A (NAP|VIP PLAY)/m.exec(body)?.[1]}" on the day's own selection`
+      );
+    }
+
     const horse = (body.match(/^VIP PLAY — .*? — ([A-Z][A-Z' ]+) —/m) ?? [])[1];
     if (!horse) continue;
     // The whole note is one claim: a contradiction anywhere in it is a
@@ -206,8 +225,15 @@ const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
   console.log("=".repeat(78));
   console.log(`  ${checked} selections checked\n`);
 
-  if (!faults.length) {
+  if (selfContradicting.length) {
+    console.log(`  ${selfContradicting.length} note${selfContradicting.length === 1 ? "" : "s"} that argue against their own selection:\n`);
+    for (const n of selfContradicting) console.log(`    ${n}\n`);
+  }
+
+  if (!faults.length && !selfContradicting.length) {
     console.log("  No unsupported claims found.\n");
+  } else if (!faults.length) {
+    // nothing else to add
   } else {
     console.log(`  ${faults.length} problem${faults.length === 1 ? "" : "s"}:\n`);
     for (const f of faults) {
@@ -218,5 +244,5 @@ const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
   }
 
   await sql.end();
-  process.exit(faults.length ? 1 : 0);
+  process.exit(faults.length || selfContradicting.length ? 1 : 0);
 })();

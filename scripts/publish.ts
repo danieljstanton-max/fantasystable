@@ -23,8 +23,9 @@ import postgres from "postgres";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { OUT_DIR } from "../lib/published";
 
-const OUT_DIR = join(homedir(), "Desktop", "Racing Tips");
+
 
 type Selection = {
   horse: string; time?: string; course?: string; price?: string;

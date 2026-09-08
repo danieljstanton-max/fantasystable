@@ -22,6 +22,7 @@ import postgres from "postgres";
 import { readComment } from "../lib/form-reading";
 import { betFor, placeTerms } from "../lib/staking";
 import { isHandicap, drawDistBand } from "../lib/selection";
+import { OUT_DIR } from "../lib/published";
 
 const arg = (name: string) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -166,15 +167,28 @@ const lengths = (n: number) => {
   // eight months ago. Nothing about a horse's recent form can be dismissed
   // when the most recent thing it did was win.
   const wonLast = runs.length > 0 && Number(runs[0].pos) === 1;
+
+  // How many wins the horse is on right now, counting back from its last run.
+  // Declared here because the opening paragraph needs it too — it must not say
+  // "off the back of a win" when the next sentence says he has won two.
+  let streak = 0;
+  for (const r of runs) {
+    if (Number(r.pos) === 1) streak++;
+    else break;
+  }
   const lastInFrame = runs.length > 0 && inFrame(runs[0]);
 
   /* --------------------------------------------- paragraph 1: the handicap */
   const p1: string[] = [];
 
   if (wonLast) {
+    // The opener must not say "a win" when the sentence after it says two.
     p1.push(
-      `He goes into this off the back of a win, and the handicapper has still ` +
-      `left him with a chance.`
+      streak >= 2
+        ? `He arrives here in the form of his life, and the handicapper has had to ` +
+          `take notice.`
+        : `He goes into this off the back of a win, and the handicapper has still ` +
+          `left him with a chance.`
     );
   } else if (poorRun >= 2 && !lastInFrame) {
     p1.push(
@@ -204,11 +218,34 @@ const lengths = (n: number) => {
     (Date.parse(`${date}T00:00:00Z`) - Date.parse(String(d))) / 2_629_800_000;
 
   const recentWins = wins.filter((r) => monthsBackFrom(r.d) <= 18);
-  const bestWin = recentWins.length
+
+  // The win the handicapper actually reacted to — the LATEST one, not the
+  // highest-rated.
+  //
+  // Dan, 2026-09-08, on Lucky Hero: "he has won 2 on the bounce and gone up
+  // 10lb into the handicap."
+  //
+  // He had, and the note said none of it. Picking the win off the biggest
+  // rating reached back to a Redcar win in April off 77 and reported the rise
+  // as 8lb, while the horse had actually won its last two off 75 and gone up
+  // 10lb for them. Both the headline fact and the number were wrong, on the
+  // NAP. A mark set eight months and two wins ago is not the mark the
+  // handicapper is responding to.
+  const bestWin = streak > 0
+    ? runs.find((r) => Number(r.pos) === 1 && r.ofr !== null) ?? null
+    : recentWins.length
     ? recentWins.reduce((a, b) => (Number(b.ofr) > Number(a.ofr) ? b : a))
     : wins.length
     ? wins[0]
     : null;
+
+  // The mark the current sequence was won off, for the rise. On a two-timer
+  // both wins usually come off the same figure; the first of them is the one
+  // the horse was rated at before the handicapper moved.
+  const streakWins = runs.slice(0, streak).filter((r) => r.ofr !== null);
+  const markWonOff = streakWins.length
+    ? Math.min(...streakWins.map((r) => Number(r.ofr)))
+    : bestWin ? Number(bestWin.ofr) : today;
 
   if (bestWin) {
     const diff = Number(bestWin.ofr) - today;
@@ -223,14 +260,28 @@ const lengths = (n: number) => {
     const whenWon = MONTHS[winDate.getUTCMonth()] +
       (monthsBackFrom(bestWin.d) >= 10 ? ` ${winDate.getUTCFullYear()}` : "");
 
-    p1.push(
-      `He was winning a ${grade} ${where} off ${bestWin.ofr} back in ${whenWon}` +
-      (diff > 0
-        ? `, and gets in here off ${today}, so he's ${diff}lb lower now.`
-        : diff === 0
-        ? `, and runs off exactly the same mark today.`
-        : `, and the handicapper has put him up ${Math.abs(diff)}lb since.`)
-    );
+    // A horse on a run of wins leads with the run, not with one of them.
+    if (streak >= 2) {
+      const up = today - markWonOff;
+      p1.push(
+        `He has won his last ${streak === 2 ? "two" : streak === 3 ? "three" : String(streak)}, ` +
+        `the latest a ${grade} ${where} off ${bestWin.ofr}` +
+        (up > 0
+          ? `, and the handicapper has put him up ${up}lb into this off ${today}.`
+          : up === 0
+          ? `, and he runs off the same mark today.`
+          : `, and he is ${Math.abs(up)}lb lower today.`)
+      );
+    } else {
+      p1.push(
+        `He was winning a ${grade} ${where} off ${bestWin.ofr} back in ${whenWon}` +
+        (diff > 0
+          ? `, and gets in here off ${today}, so he's ${diff}lb lower now.`
+          : diff === 0
+          ? `, and runs off exactly the same mark today.`
+          : `, and the handicapper has put him up ${Math.abs(diff)}lb since.`)
+      );
+    }
   }
 
   // Placed off big marks, as bare numbers. Three clauses become one.
@@ -389,7 +440,7 @@ const lengths = (n: number) => {
     (r) => Number(r.ofr ?? -999) >= today &&
            r.pos !== null && (Number(r.pos) === 1 || (Number(r.pos) <= 3 && Number(r.btn ?? 99) <= 3))
   );
-  const rise = bestWin ? today - Number(bestWin.ofr ?? today) : 0;
+  const rise = bestWin ? today - markWonOff : 0;
 
   // A horse that won last time is not being asked to "find a bit more than he
   // has shown" — it showed it. Same fault as the opening: poorRun counts the
@@ -403,6 +454,25 @@ const lengths = (n: number) => {
     p2.push(
       `Off this mark, and running the way he has been, he looks the one to be with ` +
       `at ${price}${terms && bet.type === "ew" ? ` with ${terms.places} places` : ""}.`
+    );
+  } else if (wonLast && rise > 0) {
+    // A last-time-out winner is ALWAYS higher than the mark it won off — that
+    // is what winning does. The old text charged the horse for the rise its own
+    // win caused, and did it two paragraphs after saying "he goes into this off
+    // the back of a win, and the handicapper has still left him with a chance".
+    //
+    // Dan, 2026-09-08, on Lucky Hero: "I'm a little concerned on tomorrow's NAP
+    // write-up, very negative ending — especially for a NAP."
+    //
+    // The comment above provenOffMark already named this fault and the fix was
+    // only ever applied to the opening paragraph. The risk is real and still
+    // gets stated; what changes is that it is stated as the question the bet
+    // turns on rather than as a reason not to have the bet.
+    p2.push(
+      `The handicapper has taken ${rise}lb for ${streak >= 2 ? "those two" : "that win"}, ` +
+      `so he does have to prove himself off a mark he has not won from before. That is ` +
+      `the one question — but he answered the last one, and a horse going the right way ` +
+      `is a better proposition than one trying to repeat an old figure.`
     );
   } else if (rise > 0) {
     p2.push(
@@ -423,8 +493,12 @@ const lengths = (n: number) => {
   // The sign-off has to agree with the note. Stamping "VIP PLAY" on an argument
   // that has just talked the horse down is the kind of contradiction a paying
   // subscriber notices immediately.
+  // Winning last time is proof in current form, even off a mark never won from.
+  // Requiring provenOffMark alone stamped "NOT A NAP" on the strongest bet of
+  // the day because the horse had the temerity to win and go up for it.
+  const standsUp = provenOffMark || wonLast;
   say(
-    provenOffMark
+    standsUp
       ? `${tag} — ${NAME} — ${price} — ${stake}`
       : `NOT A ${tag} — ${NAME} — ${price} — one to watch rather than back`
   );
@@ -433,7 +507,7 @@ const lengths = (n: number) => {
   console.log("\n" + out + "\n");
 
   if (process.argv.includes("--save")) {
-    const p = join(homedir(), "Desktop", "Racing Tips", `${date} VIP ${off.replace(":", "")} ${horse.name}.txt`);
+    const p = join(OUT_DIR, `${date} VIP ${off.replace(":", "")} ${horse.name}.txt`);
     writeFileSync(p, out + "\n");
     console.log(`saved: ${p}\n`);
   }

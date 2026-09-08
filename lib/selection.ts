@@ -920,7 +920,32 @@ const FAILS_NEAR_2: Weights = { ...LIVE_WEIGHTS, "fails-near-ground": -2 };
 const FAILS_NEAR_3: Weights = { ...LIVE_WEIGHTS, "fails-near-ground": -3 };
 const FAILS_NEAR_4: Weights = { ...LIVE_WEIGHTS, "fails-near-ground": -4 };
 
+/**
+ * LIVE with the last-time-out winner bonus removed.
+ *
+ * Dan, 2026-09-08: "why are we picking so many horses that won last time
+ * anyway?"
+ *
+ * Because we pay for it. Over Sep-Feb `last-run-won` fired on 3,439 runners —
+ * the fifth most-fired signal in the set — and lifted strike by 6.6pp, the
+ * second-biggest lift there is. It also returned -17.9%. Winning last time is
+ * the single most legible fact in a form book, so it is the one the market
+ * prices hardest, and we are buying it at full retail.
+ */
+const NO_LAST_WIN_WEIGHTS: Weights = {
+  ...LIVE_WEIGHTS,
+  "last-run-won": 0,
+};
+
+/** LIVE with the last-time-out bonus halved rather than removed. */
+const HALF_LAST_WIN_WEIGHTS: Weights = {
+  ...LIVE_WEIGHTS,
+  "last-run-won": 1,
+};
+
 export const WEIGHT_PROFILES: Record<string, Weights> = {
+  "no-last-win": NO_LAST_WIN_WEIGHTS,
+  "half-last-win": HALF_LAST_WIN_WEIGHTS,
   live: LIVE_WEIGHTS,
   class: CLASS_WEIGHTS,
   "ground-right": GROUND_RIGHT_WEIGHTS,
@@ -2562,6 +2587,71 @@ export function groundGate(history: PastRun[], band: GoingBand): string | null {
     return `Every win (${wins.length}) has come on soft or heavy — and today is ${pretty(band)}`;
   }
 
+  return null;
+}
+
+/** How far above the winning mark still counts as "a similar mark". */
+const STREAK_MARK_TOLERANCE = 3;
+
+/**
+ * Dan's streak rule, 2026-09-08.
+ *
+ *   "I just don't want horses in the search that are on a 3-timer or more. If a
+ *    horse won well and he runs off a similar mark as he won off then fine —
+ *    but anything else I don't like and I wouldn't pick."
+ *
+ * So:
+ *   - three wins in a row or more  -> out, no exceptions
+ *   - one or two wins in a row     -> only if today's mark is within
+ *                                     STREAK_MARK_TOLERANCE of the mark that
+ *                                     run was won off
+ *   - no win last time             -> unaffected
+ *
+ * A gate, not a weight, like the ground rule. Stated as a personal preference
+ * and taken as one — he asked for it without wanting it measured first, and
+ * that is his call to make about his own site.
+ *
+ * Marks never cross disciplines, so the comparison only uses wins in today's
+ * code. A horse whose winning run was over hurdles has no comparable mark for a
+ * chase, and an incomparable mark is treated as failing the test rather than
+ * passing it by default — the rule is a preference for horses the handicapper
+ * has not yet caught, and "we cannot tell" is not that.
+ *
+ * Returns the reason to set the horse aside, or null to let it through.
+ */
+export function streakGate(
+  history: PastRun[],
+  todayOfr: number | null,
+  todayType: string | null
+): string | null {
+  let streak = 0;
+  for (const r of history) {
+    if (r.positionNum === 1) streak++;
+    else break;
+  }
+  if (streak === 0) return null;
+
+  // "Won its last one" is not English. A single win is "last time".
+  const word = ["", "", "two", "three", "four", "five", "six"][streak] ?? String(streak);
+  const ran = streak === 1 ? "Won last time" : `Won its last ${word}`;
+
+  if (streak >= 3) {
+    return `${ran} — a ${streak}-timer, and the handicapper has had ${streak} goes at it`;
+  }
+
+  const marks = history.slice(0, streak)
+    .filter((r) => r.ofr !== null && sameDiscipline(r.raceType, todayType))
+    .map((r) => r.ofr as number);
+
+  if (!marks.length || todayOfr === null) {
+    return `${ran}, and there is no comparable mark in this code to judge the rise`;
+  }
+
+  const wonOff = Math.min(...marks);
+  const rise = todayOfr - wonOff;
+  if (rise > STREAK_MARK_TOLERANCE) {
+    return `${ran} off ${wonOff} and runs off ${todayOfr} — up ${rise}lb`;
+  }
   return null;
 }
 

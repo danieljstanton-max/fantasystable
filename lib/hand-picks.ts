@@ -28,8 +28,8 @@
  */
 
 import { readFileSync, existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
+import { OUT_DIR } from "./published";
 
 export interface HandPick {
   date: string;
@@ -40,7 +40,7 @@ export interface HandPick {
 }
 
 export function picksPath(): string {
-  return join(homedir(), "Desktop", "Racing Tips", "PICKS.txt");
+  return join(OUT_DIR, "PICKS.txt");
 }
 
 const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
