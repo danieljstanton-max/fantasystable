@@ -166,7 +166,7 @@ export default async function GamePage({
         {locked && <AutoRefresh intervalMs={30_000} />}
         <Header
           date={date}
-          raceweekLabel={`Race Week ${raceWeekFor(date)}`}
+          raceweekLabel={`Game Week ${raceWeekFor(date)}`}
           deadlineLabel={deadlineLabel}
           locked={locked}
           session={
@@ -332,7 +332,7 @@ function RulesPreview() {
         <li>Non-completion (F, PU, UR): −5</li>
         <li>Your NAP scores double</li>
         <li>Jockey wins: 8 pts each</li>
-        <li>2 sales per race week at live market price</li>
+        <li>2 sales per game week at live market price</li>
       </ul>
     </section>
   );
@@ -428,7 +428,7 @@ function ScoreStrip({
     <section className="grid grid-cols-2 rounded-[22px] bg-white px-4 py-3 shadow-[0_2px_8px_rgba(23,48,60,0.06)]">
       <div>
         <div className="text-[10.5px] font-bold uppercase tracking-[0.09em] text-[var(--slate-soft)]">
-          Race Week points
+          Game Week points
         </div>
         <div
           className="mt-0.5 text-[26px] font-extrabold leading-none text-[var(--slate)]"

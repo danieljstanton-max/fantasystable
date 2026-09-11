@@ -222,7 +222,7 @@ export default async function ResultsPage({
   return (
     <GameShell>
       <AutoRefresh intervalMs={30_000} />
-      <SubpageHeader title={`Results · Race Week ${raceWeekFor(date)}`} />
+      <SubpageHeader title={`Results · Game Week ${raceWeekFor(date)}`} />
 
       {/* Total */}
       <section className="rounded-[22px] bg-[linear-gradient(180deg,#fff7dd,#ffffff)] p-6 text-center shadow-[0_2px_8px_rgba(23,48,60,0.06)]">

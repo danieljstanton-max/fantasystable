@@ -42,7 +42,7 @@ export default function RulesPage() {
         <>
           <P>
             Your stable is <b>{N_HORSES} horses</b> and <b>{N_JOCKEYS} jockeys</b>, chosen from the
-            game card each race week. You have a total budget of <b>£{BUDGET}m</b> to spend across
+            game card each game week. You have a total budget of <b>£{BUDGET}m</b> to spend across
             the whole stable. You can spend it all or hold some back — a full bank sits with you and
             can be used later in the week if you sell a horse (see Sales).
           </P>
@@ -254,11 +254,11 @@ export default function RulesPage() {
     {
       id: "sales",
       title: "Sales",
-      summary: `${N_SALES} per race week — sell at current market price.`,
+      summary: `${N_SALES} per game week — sell at current market price.`,
       body: (
         <>
           <P>
-            You get <b>{N_SALES} sales</b> to use each race week. Tap <b>Sell a Horse</b> from your
+            You get <b>{N_SALES} sales</b> to use each game week. Tap <b>Sell a Horse</b> from your
             stable, pick which one, and the auction hammer shows what it&rsquo;s worth at the
             current market price. Confirm the sale and the money goes straight to your bank.
           </P>
@@ -316,7 +316,7 @@ export default function RulesPage() {
       body: (
         <>
           <P>
-            Each race week runs on the <b>four richest meetings</b> in Britain and Ireland that day,
+            Each game week runs on the <b>four richest meetings</b> in Britain and Ireland that day,
             up to <b>12 featured races</b> in total. The pool is the entire field of every race on
             those meetings — that&rsquo;s where the six horses come from, and where a jockey&rsquo;s
             rides count.

@@ -96,7 +96,7 @@ export default async function PlayerPage({
         <div className="flex items-center justify-between">
           <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-[0.11em] text-[var(--slate-soft)]">
-              Race Week points
+              Game Week points
             </p>
             <p
               className="text-[32px] font-extrabold leading-none text-[var(--slate)]"
@@ -154,7 +154,7 @@ function NoStable({ name }: { name: string }) {
           {name} hasn&rsquo;t built a stable yet
         </h1>
         <p className="mx-auto mt-2 max-w-md text-[13.5px] leading-relaxed text-[var(--slate-soft)]">
-          Nothing to show for this race week — check back after the next deadline.
+          Nothing to show for this game week — check back after the next deadline.
         </p>
       </div>
     </GameShell>

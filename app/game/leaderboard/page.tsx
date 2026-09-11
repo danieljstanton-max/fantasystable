@@ -87,7 +87,7 @@ export default async function LeaderboardPage({
           <BigTrophy />
         </div>
         <h1 className="mt-3 text-[24px] font-extrabold text-[var(--slate)]">
-          {league ? `${league}` : "Overall"} · Race Week {week}
+          {league ? `${league}` : "Overall"} · Game Week {week}
         </h1>
         <p className="mt-1 text-[13px] text-[var(--slate-soft)]">
           {locked

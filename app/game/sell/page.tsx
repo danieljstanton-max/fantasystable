@@ -78,7 +78,7 @@ export default async function SellPage({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.11em] text-[var(--slate-soft)]">
-              This race week
+              This game week
             </p>
             <p className="text-[15px] font-extrabold text-[var(--slate)]">
               Sales left: {salesLeft} of {N_SALES}
@@ -88,7 +88,7 @@ export default async function SellPage({
         </div>
         <p className="mt-2 text-[12.5px] leading-relaxed text-[var(--slate-soft)]">
           Tap a horse to see what it will fetch at auction. You can sell up to {N_SALES} horses per
-          race week — the money goes back into your bank so you can buy an upgrade.
+          game week — the money goes back into your bank so you can buy an upgrade.
         </p>
         {madeSales.length > 0 && (
           <ul className="mt-3 divide-y divide-[#eef2f6] border-t border-[#eef2f6] pt-2">

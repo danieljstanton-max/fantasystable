@@ -213,22 +213,20 @@ export async function nextGameDate(now: Date = new Date()): Promise<string> {
 }
 
 /**
- * Which race week is this?
+ * Which game week is this?
  *
- * The Saturday game numbers weeks from the start of the turf/national-hunt
- * season. We pick a Sunday-of-week-1 as the epoch so every date maps to a
- * simple integer via a difference in weeks. The chosen epoch is Monday
- * 2025-09-01, so 2025-09-06 (the first Saturday of the season) is Week 1.
+ * Numbered from the first Saturday the game went live. The epoch is the
+ * Monday before that Saturday, so 2026-09-12 is Game Week 1, 2026-09-19 is
+ * Game Week 2, and so on. The launch week is the identity anchor for
+ * "how did I do in Week 1"; there is no pre-history to number.
  *
- * The number is purely cosmetic — it appears in the header for identity, and
- * later on the leaderboard so people can talk about "how you did in Week 3".
- * Rolling it over year-on-year is a decision to make when the season
- * genuinely restarts, not something to overthink now.
+ * The number is purely cosmetic and rolls forward indefinitely. Reset the
+ * epoch when the season genuinely restarts — not before.
  */
-const RACE_WEEK_EPOCH = Date.UTC(2025, 8, 1); // Mon 1 Sep 2025
+const GAME_WEEK_EPOCH = Date.UTC(2026, 8, 7); // Mon 7 Sep 2026
 export function raceWeekFor(date: string): number {
   const t = Date.parse(`${date}T12:00:00Z`);
-  const weeks = Math.floor((t - RACE_WEEK_EPOCH) / (7 * 86_400_000));
+  const weeks = Math.floor((t - GAME_WEEK_EPOCH) / (7 * 86_400_000));
   return Math.max(1, weeks + 1);
 }
 
