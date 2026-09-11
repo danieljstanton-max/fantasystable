@@ -46,15 +46,18 @@ export default async function SellPage({
   const madeSales = saved ? await loadSales(saved.id) : [];
   const salesLeft = Math.max(0, N_SALES - madeSales.length);
 
-  // In preview or before saving, use the optimiser's stable so the page has
-  // something to render. In real play the stable exists as soon as the user
-  // has saved once.
+  // Real stables only. Falling back to a preview stable of "horses from
+  // the card" was actively misleading — a player who hadn't saved would
+  // see six horses that weren't theirs and tap Sell, which the server
+  // then correctly refuses. Preview mode still uses a demo stable so the
+  // design can be inspected without a real save.
   const horses = saved?.horseIds ?? [];
   const stableRunners = horses
     .map((id) => card.races.flatMap((r) => r.runners).find((r) => r.horseId === id))
     .filter(Boolean) as ReturnType<typeof extractRunners>[number][];
 
-  const example = stableRunners.length ? stableRunners : previewStable(card);
+  const example =
+    stableRunners.length > 0 ? stableRunners : preview ? previewStable(card) : [];
 
   // What each horse cost the player when they bought it. For preview mode we
   // fabricate a slight discount so the profit/loss UI has something to show.
@@ -111,7 +114,22 @@ export default async function SellPage({
         )}
       </div>
 
-      {salesLeft <= 0 ? (
+      {example.length === 0 ? (
+        <div className="rounded-[22px] bg-white p-6 text-center shadow-[0_2px_8px_rgba(23,48,60,0.06)]">
+          <p className="text-[14.5px] font-extrabold text-[var(--slate)]">
+            Nothing to sell yet.
+          </p>
+          <p className="mx-auto mt-1 max-w-[320px] text-[12.5px] leading-relaxed text-[var(--slate-soft)]">
+            Build your stable first — the auction opens as soon as you&rsquo;ve got horses in there.
+          </p>
+          <a
+            href="/game"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(180deg,#1adc86,#04b56b)] px-5 py-2.5 text-[13px] font-extrabold text-white shadow-[0_2px_6px_rgba(4,181,107,0.35)]"
+          >
+            Build my stable
+          </a>
+        </div>
+      ) : salesLeft <= 0 ? (
         <div className="rounded-[22px] bg-white p-5 text-center shadow-[0_2px_8px_rgba(23,48,60,0.06)]">
           <p className="text-[13.5px] font-bold text-[var(--slate)]">
             You&rsquo;ve used both sales this week.
