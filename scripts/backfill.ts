@@ -154,10 +154,51 @@ async function loadStore() {
  * Chunked because Postgres caps a statement at 65,535 bind parameters and
  * these tables are wide -- a race row carries ~35 columns, a runner ~40.
  */
+/**
+ * Foreign courses are kept by name, not by link.
+ *
+ * `/horses/{id}/results` returns a horse's whole career, and the good ones
+ * have run abroad — Chantilly, Longchamp, Meydan, Riyadh. The API gives those
+ * a course_id, but `courses` holds the 101 UK and Irish tracks and nothing
+ * else, so inserting the row violated races_course_id_courses_id_fk.
+ *
+ * The cost was out of all proportion to the cause. Races insert in chunks of
+ * 400 and the whole chunk fails together, then the catch upstream counts one
+ * errored horse and moves on — so a single French run discarded that horse's
+ * entire career form, silently. Every night, on horses like Scottish Anthem
+ * with 20 of its 34 runs abroad.
+ *
+ * Null is the established shape here: the foreign races already in the table
+ * carry a course name and no id. This makes every path agree on that, so the
+ * run is still counted in a horse's record — which is what the ground rule
+ * and the trip and class reads all depend on.
+ */
+async function knownCourseIds(store: Store): Promise<Set<string>> {
+  if (courseIdCache) return courseIdCache;
+  const rows: any[] = await store.db.select({ id: store.schema.courses.id }).from(store.schema.courses);
+  courseIdCache = new Set(rows.map((r) => String(r.id)));
+  return courseIdCache;
+}
+let courseIdCache: Set<string> | null = null;
+
+/** Drop a course link we cannot satisfy, keeping the race and its name. */
+function unlinkUnknownCourses(rows: any[], known: Set<string>): number {
+  let dropped = 0;
+  for (const r of rows) {
+    if (r.courseId != null && !known.has(String(r.courseId))) {
+      r.courseId = null;
+      dropped++;
+    }
+  }
+  return dropped;
+}
+
 async function persistBatch(store: Store | null, raceRows: any[], runnerRows: any[]) {
   if (!store || (!raceRows.length && !runnerRows.length)) return;
   const { db, schema } = store;
   const { sql } = await import("drizzle-orm");
+
+  unlinkUnknownCourses(raceRows, await knownCourseIds(store));
 
   for (let i = 0; i < raceRows.length; i += 400) {
     const chunk = raceRows.slice(i, i + 400);
@@ -219,6 +260,8 @@ async function persistRace(store: Store | null, race: any, runnerRows: any[]) {
   if (!store) return; // dry run
   const { db, schema } = store;
   const { sql } = await import("drizzle-orm");
+
+  unlinkUnknownCourses([race], await knownCourseIds(store));
 
   await db
     .insert(schema.races)
