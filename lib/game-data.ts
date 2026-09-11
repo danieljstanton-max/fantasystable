@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
 import { db, races, runners, stablePicks } from "@/db";
 import { buildCard, type GameCard } from "./game-card";
 import { LOCK_OFFSET_MS } from "./lock";
@@ -191,12 +191,14 @@ export async function mergeSavedIntoCard(
 /**
  * The card a signed-in player should see by default.
  *
- * Not "today" — the game is a build-then-lock flow, so as soon as today's
- * deadline has passed the card is a fait accompli and the punter wants the
- * NEXT race day, ready to build. This picks the earliest date that:
+ * Not "today" — the game is a build-then-lock flow, and picking a race day
+ * whose FIRST race has already gone off would land the player on a card
+ * that reads as locked before they've even seen it.
  *
- *   • has at least one GB/IRE race in the database, and
- *   • hasn't yet locked (i.e. first race is more than LOCK_OFFSET_MS away).
+ * We pick the earliest date whose FIRST GB/IRE race is more than
+ * LOCK_OFFSET_MS in the future. That way a Friday afternoon visit still
+ * skips to Saturday's card even though Friday has races later that
+ * afternoon — Friday's first race went off at breakfast.
  *
  * Falls back to `today()` if nothing upcoming is ingested — the page will
  * then show an empty-card state, which is honest.
@@ -204,12 +206,21 @@ export async function mergeSavedIntoCard(
 export async function nextGameDate(now: Date = new Date()): Promise<string> {
   const cutoff = new Date(now.getTime() + LOCK_OFFSET_MS);
   const rows = await db
-    .select({ raceDate: races.raceDate, offDt: races.offDt })
+    .select({
+      raceDate: races.raceDate,
+      firstOff: sql<Date>`min(${races.offDt})`,
+    })
     .from(races)
-    .where(and(inArray(races.region, ["GB", "IRE"]), gte(races.offDt, cutoff)))
-    .orderBy(asc(races.offDt))
-    .limit(1);
-  return rows[0]?.raceDate ?? today();
+    .where(inArray(races.region, ["GB", "IRE"]))
+    .groupBy(races.raceDate)
+    .orderBy(asc(races.raceDate));
+
+  for (const r of rows) {
+    if (r.firstOff && new Date(r.firstOff).getTime() >= cutoff.getTime()) {
+      return r.raceDate;
+    }
+  }
+  return today();
 }
 
 /**
