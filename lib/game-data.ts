@@ -43,7 +43,7 @@ export async function loadCard(
     .innerJoin(races, eq(races.id, runners.raceId))
     .where(and(eq(races.raceDate, date), inArray(races.region, ["GB", "IRE"])));
 
-  const card = buildCard(rows, { date, meetings: 4 });
+  const card = buildCard(rows, { date });
   const offDtByRaceId = new Map<string, Date>();
   for (const row of rows) {
     if (row.offDt && !offDtByRaceId.has(row.raceId)) {

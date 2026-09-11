@@ -117,11 +117,10 @@ export function buildCard(
   opts: { date: string; races?: number; meetings?: number } = { date: "" }
 ): GameCard {
   // Cap of 0 (or undefined) means "no cap" — take every qualifying race
-  // from the chosen meetings, so a full Saturday at Doncaster/Leopardstown
-  // shows every card race, not just the richest. Players still only pick
-  // six, but the choice matches how a punter reads a meeting.
+  // from every qualifying meeting. Players still pick six, but the choice
+  // covers the whole Saturday board rather than just a curated subset.
   const wantRaces = opts.races && opts.races > 0 ? opts.races : Infinity;
-  const wantMeetings = opts.meetings ?? 4;
+  const wantMeetings = opts.meetings && opts.meetings > 0 ? opts.meetings : Infinity;
 
   const races = new Map<string, GameRunnerInput[]>();
   for (const row of rows) {
