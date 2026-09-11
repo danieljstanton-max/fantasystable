@@ -14,7 +14,14 @@ not wait.
 ## The two jobs
 
     */10 7-23 * * *   npm run sweep    card, prices and results
-    15 22 * * *       npm run daily    tomorrow's card, after the last race
+    0 18 * * *        npm run daily    tomorrow's card, before the site rolls over
+
+The build time is not arbitrary. WordPress switches the homepage to tomorrow's
+card at 19:00 (`hrt_switch_hour`). While the build ran at 22:15 there was a
+three-hour window every evening where the site wanted tomorrow's card, found
+none and stayed on today's — which reads as a site that has stopped updating.
+Declarations are long out by 18:00, and today's results are not needed for
+tomorrow's form. If you move one of these, move the other.
 
 `sweep` appends to `/root/Racing Tips/_results-log.txt`, `daily` to `_log.txt`.
 Read those first when something looks wrong; they are the whole story.
