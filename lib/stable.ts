@@ -136,13 +136,61 @@ export async function saveStable(
 
   const stableId = existing?.id ?? randomBytes(16).toString("hex");
 
-  // Replace rather than diff. A stable is six horses and two jockeys, so the
-  // whole thing is smaller than the code to work out what changed.
+  // Locked-price semantics: once a horse/jockey is on the stable at price
+  // £X, it stays at £X until the player sells it. Re-saving keeps kept
+  // picks at their original price and only pays the current market rate on
+  // NEW picks. This means the balance can only move via the Sell flow —
+  // never as a side-effect of ambient odds movement.
+  const priorHorse = new Map<string, number>();
+  const priorJockey = new Map<string, number>();
+  if (existing) {
+    const prior = await db
+      .select({ kind: stablePicks.kind, subjectId: stablePicks.subjectId, priceM: stablePicks.priceM })
+      .from(stablePicks)
+      .where(eq(stablePicks.stableId, stableId));
+    for (const p of prior) {
+      if (p.kind === "horse") priorHorse.set(p.subjectId, p.priceM);
+      else priorJockey.set(p.subjectId, p.priceM);
+    }
+  }
+
+  // Build the final rows with locked prices where the pick survives.
+  const horsePicks = checked.horses.map((h) => ({
+    stableId,
+    kind: "horse" as const,
+    subjectId: h.horseId,
+    subjectName: h.horse,
+    raceId: h.raceId,
+    priceM: priorHorse.get(h.horseId) ?? h.price,
+  }));
+  const jockeyPicks = checked.jockeys.map((j) => ({
+    stableId,
+    kind: "jockey" as const,
+    subjectId: j.id,
+    subjectName: j.name,
+    raceId: null,
+    priceM: priorJockey.get(j.id) ?? j.price,
+  }));
+
+  const spend = Math.round(
+    ([...horsePicks, ...jockeyPicks].reduce((s, p) => s + p.priceM, 0)) * 10
+  ) / 10;
+
+  // Re-check the budget against locked prices (validate() saw the current
+  // card prices, which might disagree with what the player is actually being
+  // charged after kept-pick locks).
+  if (spend > BUDGET + 1e-6) {
+    return {
+      ok: false as const,
+      error: `That is £${spend.toFixed(1)}m — the budget is £${BUDGET}m.`,
+    };
+  }
+
   await db.transaction(async (tx) => {
     if (existing) {
       await tx
         .update(stables)
-        .set({ napHorseId: selection.napHorseId, spendM: checked.spend, updatedAt: new Date() })
+        .set({ napHorseId: selection.napHorseId, spendM: spend, updatedAt: new Date() })
         .where(eq(stables.id, stableId));
       await tx.delete(stablePicks).where(eq(stablePicks.stableId, stableId));
     } else {
@@ -151,29 +199,11 @@ export async function saveStable(
         userId,
         raceDate: card.date,
         napHorseId: selection.napHorseId,
-        spendM: checked.spend,
+        spendM: spend,
       });
     }
-
-    await tx.insert(stablePicks).values([
-      ...checked.horses.map((h) => ({
-        stableId,
-        kind: "horse",
-        subjectId: h.horseId,
-        subjectName: h.horse,
-        raceId: h.raceId,
-        priceM: h.price,
-      })),
-      ...checked.jockeys.map((j) => ({
-        stableId,
-        kind: "jockey",
-        subjectId: j.id,
-        subjectName: j.name,
-        raceId: null,
-        priceM: j.price,
-      })),
-    ]);
+    await tx.insert(stablePicks).values([...horsePicks, ...jockeyPicks]);
   });
 
-  return { ok: true, spend: checked.spend };
+  return { ok: true, spend };
 }
