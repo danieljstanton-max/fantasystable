@@ -18,7 +18,7 @@ import { redirect } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 import { GameShell, SubpageHeader } from "@/components/game/game-shell";
 import { AutoRefresh } from "@/components/game/auto-refresh";
-import { loadCard, mergeSavedIntoCard, nextGameDate } from "@/lib/game-data";
+import { loadCard, mergeSavedIntoCard, nextGameDate, loadHorseResults, loadJockeyResults } from "@/lib/game-data";
 import { cardLockTime, isLocked } from "@/lib/lock";
 import type { GameCard, PricedRunner } from "@/lib/game-card";
 import { loadStable } from "@/lib/stable";
@@ -87,6 +87,18 @@ export default async function PlayerPage({
   // the NAP horse won: it must be pickable AND its runner is on the card.
   const napHorse = saved.napHorseId ? byHorse.get(saved.napHorseId) ?? null : null;
 
+  // Per-horse results + per-jockey points so the pitch dims each runner
+  // that has finished and prints the points it earned. Same shape as the
+  // owner's view.
+  const raceByHorse = new Map(
+    card.races.flatMap((r) => r.runners.map((x) => [x.horseId, r.raceId] as const))
+  );
+  const horsePairs = saved.horseIds
+    .map((hid) => ({ horseId: hid, raceId: raceByHorse.get(hid) ?? "" }))
+    .filter((p) => p.raceId);
+  const horseResults = Object.fromEntries(await loadHorseResults(saved.id, horsePairs));
+  const jockeyPoints = Object.fromEntries(await loadJockeyResults(saved.id));
+
   return (
     <GameShell>
       <AutoRefresh intervalMs={30_000} />
@@ -124,8 +136,8 @@ export default async function PlayerPage({
         )}
       </div>
 
-      <Pitch horses={horses} napHorseId={saved.napHorseId} />
-      <Bench jockeys={jockeys} />
+      <Pitch horses={horses} napHorseId={saved.napHorseId} results={horseResults} />
+      <Bench jockeys={jockeys} points={jockeyPoints} />
 
       <p className="px-1 pb-2 text-[11px] text-[var(--slate-soft)]">
         Read-only view. Individual race points arrive with settlement — see the Results page for the
