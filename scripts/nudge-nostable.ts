@@ -14,6 +14,9 @@ import { and, eq, isNull, notInArray, sql } from "drizzle-orm";
 import { db, stables, users } from "../db";
 import { sendMail } from "../lib/mailer";
 
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
 (async () => {
   const date = process.argv[2];
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -85,5 +88,3 @@ import { sendMail } from "../lib/mailer";
   process.exit(errors.length ? 1 : 0);
 })();
 
-const escapeHtml = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
