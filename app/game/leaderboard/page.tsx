@@ -59,21 +59,18 @@ export default async function LeaderboardPage({
   // during design and preview.
   let leagueName = league ?? null;
   const boardRows = await loadBoardRows({ date, leagueCode: league });
-  const rows =
-    boardRows.length > 0
-      ? boardRows.map((r) => ({
-          // The profile link needs the USER id, not the stable id — the
-          // player page is /game/player/[userId], scoped so any of the
-          // user's stables (past or present) is reachable from the link.
-          id: r.userId,
-          stableName: r.stableName,
-          owner: r.owner,
-          points: r.points ?? 0,
-          lastPoints: r.points ?? 0,
-          napHit: false,
-          isMe: user?.id === r.userId,
-        }))
-      : mockBoard(user?.email ?? "you@example.com");
+  const rows = boardRows.map((r) => ({
+    // The profile link needs the USER id, not the stable id — the
+    // player page is /game/player/[userId], scoped so any of the
+    // user's stables (past or present) is reachable from the link.
+    id: r.userId,
+    stableName: r.stableName,
+    owner: r.owner,
+    points: r.points ?? 0,
+    lastPoints: r.points ?? 0,
+    napHit: false,
+    isMe: user?.id === r.userId,
+  }));
   if (league && boardRows.length === 0) leagueName = leagueName; // no-op: keep header
 
   return (
@@ -97,16 +94,23 @@ export default async function LeaderboardPage({
 
         <div className="mt-4 grid grid-cols-3 gap-3 rounded-2xl bg-[#fff2d6] p-3 text-center">
           <Stat label="Players" value={rows.length.toLocaleString("en-GB")} />
-          <Stat label="Leader" value={`${rows[0].points}`} tone="go" />
+          <Stat label="Leader" value={`${rows[0]?.points ?? 0}`} tone="go" />
           <Stat label="Your rank" value={`${rows.findIndex((r) => r.isMe) + 1 || "—"}`} />
         </div>
       </section>
 
-      <BoardList rows={rows} locked={locked} />
-
-      <p className="px-1 pb-2 text-[11px] leading-relaxed text-[var(--slate-soft)]">
-        Placeholder standings until Week 1 settles. Ranks move as each race is scored.
-      </p>
+      {rows.length > 0 ? (
+        <BoardList rows={rows} locked={locked} />
+      ) : (
+        <section className="rounded-[22px] bg-white p-6 text-center shadow-[0_2px_8px_rgba(23,48,60,0.06)]">
+          <p className="text-[14px] font-extrabold text-[var(--slate)]">
+            No stables saved for this week yet.
+          </p>
+          <p className="mx-auto mt-1 max-w-[320px] text-[12.5px] leading-relaxed text-[var(--slate-soft)]">
+            The board fills in as players save their picks and the races settle.
+          </p>
+        </section>
+      )}
     </GameShell>
   );
 }
@@ -300,26 +304,5 @@ async function loadBoardRows({ date, leagueCode }: { date: string; leagueCode?: 
   }));
 }
 
-/* ------------------------------------------------------------------ mock */
-
-function mockBoard(myEmail: string): Row[] {
-  const names = [
-    ["Frankie's Boys", "d@igamingaffiliates.io"],
-    ["Willie’s Way", "will@ex.co"],
-    ["The Turf Cartel", "sara@ex.co"],
-    ["Northern Rock", "mike@ex.co"],
-    ["Small Stakes Gang", "jo@ex.co"],
-    ["Point To Point", "ali@ex.co"],
-    ["Bunbury Yard", "tom@ex.co"],
-    ["Ivy Sports Bar FL Champs", "phil@ex.co"],
-  ];
-  return names.map((n, i) => ({
-    id: `stb_${i + 1}`,
-    stableName: n[0],
-    owner: n[1],
-    points: 148 - i * 11 - (i % 2 ? 3 : 0),
-    lastPoints: 148 - i * 11 - (i % 2 ? 3 : 0) + (i % 3 === 0 ? 4 : i % 3 === 1 ? -6 : 0),
-    napHit: i === 1 || i === 4,
-    isMe: n[1] === myEmail,
-  }));
-}
+// Mock leaderboard removed — showing fake players with high points confuses
+// real users. If there are no saved stables the page now says so honestly.

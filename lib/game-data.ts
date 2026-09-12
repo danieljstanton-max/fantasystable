@@ -191,24 +191,26 @@ export async function mergeSavedIntoCard(
 /**
  * The card a signed-in player should see by default.
  *
- * Not "today" — the game is a build-then-lock flow, and picking a race day
- * whose FIRST race has already gone off would land the player on a card
- * that reads as locked before they've even seen it.
+ * Rule: the earliest race day whose LAST race is still ahead of us.
  *
- * We pick the earliest date whose FIRST GB/IRE race is more than
- * LOCK_OFFSET_MS in the future. That way a Friday afternoon visit still
- * skips to Saturday's card even though Friday has races later that
- * afternoon — Friday's first race went off at breakfast.
+ *   • Friday afternoon → Saturday (Friday's last race already went off in
+ *     the small hours of the afternoon, or is about to).
+ *   • Saturday morning → Saturday (build the card).
+ *   • Saturday lunchtime, right around the deadline → Saturday (the pitch
+ *     shows the locked stable; users are following along, not building).
+ *   • Saturday late evening after the last race → Sunday.
  *
- * Falls back to `today()` if nothing upcoming is ingested — the page will
- * then show an empty-card state, which is honest.
+ * The earlier heuristic (first race > lock cutoff) skipped ahead one day
+ * the instant the first race was inside the hour, taking users away from
+ * their saved stable while racing was still ongoing.
+ *
+ * Falls back to `today()` if nothing upcoming is ingested.
  */
 export async function nextGameDate(now: Date = new Date()): Promise<string> {
-  const cutoff = new Date(now.getTime() + LOCK_OFFSET_MS);
   const rows = await db
     .select({
       raceDate: races.raceDate,
-      firstOff: sql<Date>`min(${races.offDt})`,
+      lastOff: sql<Date>`max(${races.offDt})`,
     })
     .from(races)
     .where(inArray(races.region, ["GB", "IRE"]))
@@ -216,7 +218,7 @@ export async function nextGameDate(now: Date = new Date()): Promise<string> {
     .orderBy(asc(races.raceDate));
 
   for (const r of rows) {
-    if (r.firstOff && new Date(r.firstOff).getTime() >= cutoff.getTime()) {
+    if (r.lastOff && new Date(r.lastOff).getTime() >= now.getTime()) {
       return r.raceDate;
     }
   }
