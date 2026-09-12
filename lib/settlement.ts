@@ -66,17 +66,22 @@ export async function settleDate(date: string): Promise<SettlementReport> {
   const horseSubjectIds = [...new Set(picks.filter((p) => p.kind === "horse").map((p) => p.subjectId))];
   const jockeySubjectIds = [...new Set(picks.filter((p) => p.kind === "jockey").map((p) => p.subjectId))];
 
-  // Horse results — keyed by horseId, filtered by raceId (a horse races many
-  // times per season, so horseId alone would pull in unrelated rows).
+  // Horse results — keyed by horseId, scoped by the raceIds ACTUALLY on the
+  // picks. Using card.races.raceId would silently miss any horse whose race
+  // dropped off the game card after the pick was saved (e.g. a race that
+  // fell short on coverage overnight but still ran and settled). The pick's
+  // raceId is the source of truth for what was bought.
   //
   // We also fetch every runner in each race so we can count dead-heat ties.
   // If two horses share position 1 in a race, each gets half points.
-  const cardRaceIdList = card.races.map((r) => r.raceId);
+  const pickRaceIdList = [
+    ...new Set(picks.filter((p) => p.kind === "horse" && p.raceId).map((p) => p.raceId as string)),
+  ];
   const horseResultByHorse = new Map<string, RunnerResult>();
   const raceHorseKey = (raceId: string, horseId: string) => `${raceId}|${horseId}`;
   const raceHorseToRaceId = new Map<string, string>();
   const positionCounts = new Map<string, number>(); // raceId + "|" + positionNum → count
-  if (horseSubjectIds.length && cardRaceIdList.length) {
+  if (horseSubjectIds.length && pickRaceIdList.length) {
     const rows = await db
       .select({
         raceId: runnersT.raceId,
@@ -90,7 +95,7 @@ export async function settleDate(date: string): Promise<SettlementReport> {
       .where(
         and(
           inArray(runnersT.horseId, horseSubjectIds),
-          inArray(runnersT.raceId, cardRaceIdList)
+          inArray(runnersT.raceId, pickRaceIdList)
         )
       );
     for (const r of rows) {
@@ -122,11 +127,15 @@ export async function settleDate(date: string): Promise<SettlementReport> {
     }
   }
 
-  // Jockey rides — every ride on the game card. Any ride off-card ignored.
-  const cardRaceIds = new Set(cardRaceIdList);
+  // Jockey rides — every ride on the game card, plus any race a horse pick
+  // references (so if a race dropped off the card overnight, its jockey rides
+  // still count for anyone who was riding one of those horses' peers).
+  const cardRaceIdList = card.races.map((r) => r.raceId);
+  const settleRaceIdList = [...new Set([...cardRaceIdList, ...pickRaceIdList])];
+  const cardRaceIds = new Set(settleRaceIdList);
   type RideResult = RunnerResult & { raceId: string; deadHeatShare?: number };
   const ridesByJockey = new Map<string, RideResult[]>();
-  if (jockeySubjectIds.length && cardRaceIdList.length) {
+  if (jockeySubjectIds.length && settleRaceIdList.length) {
     const rows = await db
       .select({
         jockeyId: runnersT.jockeyId,
@@ -140,7 +149,7 @@ export async function settleDate(date: string): Promise<SettlementReport> {
       .where(
         and(
           inArray(runnersT.jockeyId, jockeySubjectIds),
-          inArray(runnersT.raceId, cardRaceIdList)
+          inArray(runnersT.raceId, settleRaceIdList)
         )
       );
     // Ensure positionCounts covers jockey ride races too.
