@@ -89,8 +89,8 @@ export async function sweepNonRunners(origin: string): Promise<NrSweepReport> {
     if (nrPicks.length === 0) continue;
 
     const removedNames: { name: string; refunded: number }[] = [];
-    let newSpend = st.spendM;
     let napWiped = false;
+    let newSpend = st.spendM;
     await db.transaction(async (tx) => {
       for (const p of nrPicks) {
         await tx
@@ -102,10 +102,19 @@ export async function sweepNonRunners(origin: string): Promise<NrSweepReport> {
               eq(stablePicks.subjectId, p.subjectId)
             )
           );
-        newSpend = Math.round((newSpend - p.priceM) * 10) / 10;
         removedNames.push({ name: p.subjectName, refunded: p.priceM });
         if (st.napHorseId === p.subjectId) napWiped = true;
       }
+
+      // Recompute spendM from what's actually left in stable_picks — trusting
+      // an accumulator on `st.spendM` would double-count if a concurrent
+      // sweep or a save was mid-flight. This is the honest number.
+      const rest = await tx
+        .select({ priceM: stablePicks.priceM })
+        .from(stablePicks)
+        .where(eq(stablePicks.stableId, st.id));
+      newSpend = Math.round(rest.reduce((s, r) => s + r.priceM, 0) * 10) / 10;
+
       const patch: Record<string, unknown> = { spendM: newSpend, updatedAt: new Date() };
       if (napWiped) patch.napHorseId = null;
       await tx.update(stables).set(patch).where(eq(stables.id, st.id));

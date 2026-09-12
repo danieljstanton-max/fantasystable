@@ -52,6 +52,8 @@
     "users": "tsx --env-file=.env.local scripts/users.ts",
     "admin": "tsx --env-file=.env.local scripts/make-admin.ts",
     "nr:sweep": "tsx --env-file=.env.local scripts/nr-sweep.ts",
+    "nudge": "tsx --env-file=.env.local scripts/nudge-nostable.ts",
+    "reconcile": "tsx --env-file=.env.local scripts/reconcile-spend.ts",
     "recap": "tsx --env-file=.env.local scripts/recap.ts",
     "announce": "tsx --env-file=.env.local scripts/announce.ts",
     "audit:all": "tsx --env-file=.env.local scripts/audit-all.ts"
