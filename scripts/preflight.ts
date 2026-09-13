@@ -110,7 +110,18 @@ type Check = {
       new RegExp(`^([A-Z][A-Z0-9' ]+[A-Z0-9]) at .*?(?:${openerAlternation()})\\.\\s*(.*)$`)
     );
     if (m) {
-      const v = upLines.slice(i, i + 6).find((l) => l.startsWith("VERDICT:")) ?? "";
+      // Scan to the end of THIS race, not a fixed number of lines.
+      //
+      // This was slice(i, i + 6). Adding one sentence to a write-up — the pace
+      // risk, moved to sit after the selection on 2026-09-13 — pushed the
+      // verdict to the seventh line and the check reported "verdict carries no
+      // stake" on a race whose verdict was right there. A lookahead measured in
+      // lines breaks every time the prose grows; the race boundary does not.
+      let v = "";
+      for (let j = i + 1; j < upLines.length; j++) {
+        if (/^\d{2}:\d{2}\s{2,}/.test(upLines[j])) break; // next race
+        if (upLines[j].startsWith("VERDICT:")) { v = upLines[j]; break; }
+      }
       sels.push({ race, horse: m[1].trim(), sentence: m[2], verdict: v });
     }
   }

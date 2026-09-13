@@ -529,6 +529,10 @@ async function main() {
     // where that figure is 1.4. Asserting "an uncontested lead could be worth
     // plenty" everywhere was stating a conclusion the data does not support at
     // most tracks, and it opened a quarter of the write-ups identically.
+    // Held back so it can run after the selection it is a risk to.
+    let paceRisk: string | null = null;
+    const sayPaceRisk = () => { if (paceRisk) { say(paceRisk); paceRisk = null; } };
+
     if (shape.verdict === "lone-leader") {
       const band = paceDist(ra.distanceF);
       const ledIv = band && ra.raceType
@@ -550,24 +554,42 @@ async function main() {
       const leadName = leader ? String(leader.r.horseName).toUpperCase() : null;
       const ours = leader && top && leader.r.horseId === top.r.horseId;
 
+      // Where this sits matters as much as what it says.
+      //
+      // Dan, 2026-09-13, on "AVATAR JET is the only confirmed front-runner, and
+      // he is not our selection": "what is the point of this information". The
+      // point was real — a rival getting a soft lead was the main risk to THE
+      // CHILDE OF HALE — but the sentence ran BEFORE the selection was named,
+      // so it told the reader what a horse was not before telling them what our
+      // horse was. Read in order, it is a non-sequitur.
+      //
+      // So when the leader is ours it still opens the race, because there it is
+      // an argument for the bet. When it is not ours it is held back and runs
+      // after the selection, as the risk to it — which is what it actually is.
       if (leadName) {
-        const who = ours
-          ? `${leadName} is the only confirmed front-runner`
-          : `${leadName} is the only confirmed front-runner, and he is not our selection`;
-
-        if (ledIv !== null && ledIv >= 2.2) {
-          say(
-            `${who} — and this is a track where that matters: front-runners here win ` +
-            `${ledIv.toFixed(1)} times their share of these races. An uncontested lead ` +
-            `could be decisive${ours ? "" : ", which is the risk to ours"}.`
-          );
+        if (ours) {
+          if (ledIv !== null && ledIv >= 2.2) {
+            say(
+              `${leadName} is the only confirmed front-runner — and this is a track where ` +
+              `that matters: front-runners here win ${ledIv.toFixed(1)} times their share of ` +
+              `these races. An uncontested lead could be decisive.`
+            );
+          } else if (ledIv !== null && ledIv >= 1.8) {
+            say(
+              `${leadName} is the only confirmed front-runner, at a track where making the ` +
+              `running is worth a little (front-runners win ${ledIv.toFixed(1)} times their share).`
+            );
+          } else if (ledIv !== null) {
+            say(`${leadName} is the only confirmed front-runner, though an uncontested lead counts for less here than it does elsewhere.`);
+          }
         } else if (ledIv !== null && ledIv >= 1.8) {
-          say(
-            `${who}, at a track where making the running is worth a little ` +
-            `(front-runners win ${ledIv.toFixed(1)} times their share).`
-          );
-        } else if (ledIv !== null) {
-          say(`${who}, though an uncontested lead counts for less here than it does elsewhere.`);
+          // Below 1.8 a rival's lead is a fact with no consequence — this track
+          // does not reward making the running, so naming the horse would be
+          // exactly the pointless information Dan objected to. Say nothing.
+          paceRisk =
+            `The risk is ${leadName}, the only confirmed front-runner here — ` +
+            `front-runners at this track win ${ledIv.toFixed(1)} times their share of these races, ` +
+            `and an uncontested lead could be decisive.`;
         }
       }
       // No pace data for this course and distance, or no readable leader: say
@@ -593,6 +615,7 @@ async function main() {
           `${fav.r.trainerName ? ` for ${fav.r.trainerName}` : ""}` +
           `${(fav.r.t14Runs ?? 0) >= 10 && (fav.r.t14Pct ?? 0) >= 18 ? `, whose yard is running at ${fav.r.t14Pct}%` : ""}.`
       );
+      sayPaceRisk();
       const others = byPrice.slice(1, 3);
       if (others.length)
         say(`${others.length > 1 ? "The dangers are" : "The main danger is"} ` +
@@ -782,6 +805,7 @@ async function main() {
     // The horse is "he", never "it". That one pronoun is most of the difference
     // between a form-book readout and a person talking about a horse.
     say(opener + (parts.length ? ` He ${listNames(parts.slice(0, 3))}.` : ""));
+    sayPaceRisk();
     if (handRunner && hand && hand.reason) {
       say(hand.reason);
     }
