@@ -36,6 +36,21 @@ export type Bet = {
  * so the boundary is clean. Anything a bookmaker prices between the two is
  * treated as a win bet, which is the more conservative reading.
  */
+
+/**
+ * "7/2", "EVS", "4.5" -> decimal odds. Trailing F/J/C (favourite, joint,
+ * co-favourite) are SP annotations, not part of the price.
+ */
+export function fracToDec(frac: string | null | undefined): number | null {
+  if (!frac) return null;
+  const s = String(frac).trim().toUpperCase().replace(/F$|J$|C$/g, "");
+  if (/^EV(N|NS|S|ENS)?$/.test(s)) return 2;
+  const m = s.match(/^(\d+)\/(\d+)$/);
+  if (m) return 1 + parseInt(m[1], 10) / parseInt(m[2], 10);
+  const n = Number(s);
+  return Number.isFinite(n) && n > 1 ? n : null;
+}
+
 export function betFor(priceDec: number | null): Bet {
   // No price, no stake. The bet depends entirely on which side of 5/1 the price
   // falls, so advising one without a price is guessing.

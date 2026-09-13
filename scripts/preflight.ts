@@ -18,7 +18,7 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import postgres from "postgres";
 import { readComment } from "../lib/form-reading";
-import { betFor } from "../lib/staking";
+import { betFor, fracToDec } from "../lib/staking";
 
 const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
@@ -155,7 +155,13 @@ type Check = {
       if (/no price yet/.test(s.verdict)) continue;
       const m = s.verdict.match(/^VERDICT:\s+.+?\s+(\S+)\s+—\s+(.+)$/);
       if (!m) { bad.push(`${s.race} ${s.horse}: verdict carries no stake`); continue; }
-      const priceDec = idByName.get(norm(s.horse))?.priceDec ?? null;
+      // Judge the file against the price the file itself prints, not against
+      // whatever the market is doing when this runs. The advised price is the
+      // one a reader sees, so that is the one the stake has to agree with —
+      // and it keeps the check stable, where reading live odds made every past
+      // card "fail" the moment the market moved away from it.
+      const printed = fracToDec(m[1]);
+      const priceDec = printed ?? (idByName.get(norm(s.horse))?.priceDec ?? null);
       const want = betFor(priceDec === null ? null : Number(priceDec));
       if (want.type !== "none" && !m[2].startsWith(want.label))
         bad.push(`${s.race} ${s.horse}: stake is "${m[2]}", plan says "${want.label}"`);
