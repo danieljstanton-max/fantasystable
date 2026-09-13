@@ -128,9 +128,13 @@ type Check = {
   }
 
   // 2
+  // Word boundaries matter here. Without them "avoid" matches inside a horse's
+  // name: SAX AVOIDANCE, 20:00 Kempton on 2026-09-14, read as a hedged verdict
+  // and held the whole card off the site overnight. The verdict was
+  // "SAX AVOIDANCE 4/1 — 1pt win", as committed as they come.
   add("no-hedging", "2026-08-27",
     'No "no bet" or hedged verdicts — the site commits to every race',
-    (up.match(/^VERDICT:.*(no bet|nothing to back|avoid)/gim) ?? []));
+    (up.match(/^VERDICT:.*\b(no bet|nothing to back|avoid)\b/gim) ?? []));
 
   // 3
   {

@@ -212,9 +212,20 @@ async function main() {
     console.log(report.split("\n").filter(Boolean).slice(-3).join("\n"));
     gates.push({ name: "Pre-flight (20 checks)", passed: true });
   } catch (e) {
-    const detail = (e as Error).message;
+    // execFileSync puts the command's own output on .stdout; the Error message
+    // is only "Command failed: npx tsx ...". Reporting that told us a check had
+    // failed and nothing about which one, so the held card had to be
+    // re-diagnosed by hand before anyone could decide whether to publish.
+    const out = String((e as any).stdout ?? "") + String((e as any).stderr ?? "");
+    const failures = out
+      .split("\n")
+      .filter((l, i, all) => /^\s*FAIL\s/.test(l) || (/^\s{8,}\S/.test(l) && /^\s*FAIL\s/.test(all[i - 1] ?? "")))
+      .map((l) => l.trim());
+    const detail = failures.length
+      ? failures.join("\n")
+      : (out.trim() || (e as Error).message);
     checksPassed = false;
-    gates.push({ name: "Pre-flight (20 checks)", passed: false, detail: (e as Error).message });
+    gates.push({ name: "Pre-flight (20 checks)", passed: false, detail });
     console.error("  PRE-FLIGHT FAILED — do not send without checking");
     console.error(detail);
 
