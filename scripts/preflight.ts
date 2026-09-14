@@ -92,8 +92,39 @@ type Check = {
     from runners r join races ra on ra.id = r.race_id
     where ra.race_date = ${date}`;
 
+  // A horse can be declared in two races on the same day, and routinely is —
+  // 41 of tomorrow's runners are, mostly on the Irish cards, where a trainer
+  // enters in two and withdraws from one on the day.
+  //
+  // Keyed by name alone this map kept whichever entry was read last, so every
+  // one of those horses could answer with the wrong race's price, the wrong
+  // withdrawal status and the wrong runner row. On 2026-09-15 it reported
+  // MOLTO AMICHI, our live selection wearing number 1 in the 14:40 at
+  // Punchestown, as a non-runner — because it was also declared in the 15:40
+  // and withdrawn from that one. The card was held off the site for it.
+  //
+  // So the lookup is scoped to the race the selection is actually in. The
+  // name-only map stays as a fallback for when a race label cannot be matched:
+  // a wrong answer there is no worse than what this did everywhere.
   const idByName = new Map<string, any>();
   for (const r of runners as any[]) idByName.set(norm(r.name), r);
+
+  const raceLabel = (off: string, name: string) => `${off} ${String(name).slice(0, 38)}`;
+  const raceByLabel = new Map<string, any>();
+  for (const ra of races as any[]) raceByLabel.set(raceLabel(ra.off, ra.name), ra);
+
+  const byRaceAndName = new Map<string, any>();
+  for (const r of runners as any[]) byRaceAndName.set(`${r.raceId}|${norm(r.name)}`, r);
+
+  /** The runner row for this selection, in the race it was actually made in. */
+  const runnerFor = (sel: { race: string; horse: string }): any | undefined => {
+    const ra = raceByLabel.get(sel.race);
+    if (ra) {
+      const hit = byRaceAndName.get(`${ra.id}|${norm(sel.horse)}`);
+      if (hit) return hit;
+    }
+    return idByName.get(norm(sel.horse));
+  };
 
   // Selection sentences, by race.
   type Sel = { race: string; horse: string; sentence: string; verdict: string };
@@ -172,7 +203,7 @@ type Check = {
       // and it keeps the check stable, where reading live odds made every past
       // card "fail" the moment the market moved away from it.
       const printed = fracToDec(m[1]);
-      const priceDec = printed ?? (idByName.get(norm(s.horse))?.priceDec ?? null);
+      const priceDec = printed ?? (runnerFor(s)?.priceDec ?? null);
       const want = betFor(priceDec === null ? null : Number(priceDec));
       if (want.type !== "none" && !m[2].startsWith(want.label))
         bad.push(`${s.race} ${s.horse}: stake is "${m[2]}", plan says "${want.label}"`);
@@ -287,7 +318,7 @@ type Check = {
   const nonRunner: string[] = [];
 
   for (const s of sels) {
-    const r = idByName.get(norm(s.horse));
+    const r = runnerFor(s);
     if (!r) { nonRunner.push(`${s.race}: ${s.horse} is not a declared runner`); continue; }
     if (r.nr) { nonRunner.push(`${s.race}: ${s.horse} is a non-runner`); continue; }
 
