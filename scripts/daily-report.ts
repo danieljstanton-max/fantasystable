@@ -55,6 +55,37 @@ function esc(s: string): string {
   );
 }
 
+
+/**
+ * The public URL of a day's card, built the way hrt_day_slug() builds it in the
+ * plugin: horse-racing-tips-thursday-17th-september-2026.
+ */
+function dayPageUrl(site: string, date: string): string {
+  const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const MONTHS = ["january", "february", "march", "april", "may", "june", "july",
+    "august", "september", "october", "november", "december"];
+  const d = new Date(`${date}T12:00:00Z`);
+  const n = d.getUTCDate();
+  const suf = n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th";
+  return `${site.replace(/\/$/, "")}/horse-racing-tips-${WEEKDAYS[d.getUTCDay()]}-${n}${suf}-${MONTHS[d.getUTCMonth()]}-${d.getUTCFullYear()}/`;
+}
+
+/** "live", "absent", or "unknown" when the site could not be asked. */
+async function dayPageState(site: string, date: string): Promise<"live" | "absent" | "unknown"> {
+  try {
+    // A query string bypasses the LiteSpeed cache, so this is the origin's
+    // answer rather than a cached one from before the page existed.
+    const res = await fetch(`${dayPageUrl(site, date)}?hrt-check=${Date.now()}`, {
+      method: "HEAD", redirect: "manual",
+    });
+    if (res.status === 200) return "live";
+    if (res.status === 404) return "absent";
+    return "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 async function main() {
   const date = targetDate();
   const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
@@ -327,6 +358,31 @@ async function main() {
       console.error("  " + "=".repeat(70));
       console.error("");
     }
+    // A held rebuild must never touch a card that is already live.
+    //
+    // Dan, 2026-09-16, asked for tomorrow's prices to be refreshed after the
+    // card had gone up. A rebuild runs every check again, and if one holds it,
+    // this used to push a draft over the day. The plugin will not set a live
+    // post back to draft — but for a draft push it dates the post noon on race
+    // day, and WordPress treats a published post with a future date as
+    // scheduled. The live card would have 404'd until noon.
+    //
+    // So a draft is only sent when the site says, for certain, that this day is
+    // not live. Live, or no answer: the card that is up stays exactly as it is.
+    const state = live ? "absent" : await dayPageState(process.env.HRT_URL!, date);
+    if (!live && state !== "absent") {
+      console.log(`\n  not publishing: ${date} ${state === "live"
+        ? "is already live, and the rebuilt card did not pass its checks"
+        : "could not be confirmed as not live"}.`);
+      console.log("  The card on the site has been left exactly as it was.");
+      gates.push({
+        name: "Published and verified live",
+        passed: false,
+        detail: state === "live"
+          ? "Rebuild held — the card already live was left in place"
+          : "Held, and the site could not be checked, so nothing was pushed",
+      });
+    } else {
     console.log(`\n  publishing to the site (${live ? "live" : "draft"})...`);
     try {
       const args = ["tsx", "--env-file=.env.local", "scripts/publish.ts", date];
@@ -364,6 +420,7 @@ async function main() {
       gates.push({ name: "Published and verified live", passed: false, detail: msg });
       console.error("  publish failed (the files are still on the Desktop):");
       console.error("   ", msg);
+    }
     }
   }
 
