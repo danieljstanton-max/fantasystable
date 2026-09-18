@@ -23,11 +23,11 @@ on:
     # Prices: every 15 minutes from 08:00 UTC through 15:00 UTC on Saturday
     # and Sunday. Covers the whole build window from breakfast to the first
     # off. (BST → 09:00-16:00 local; GMT → 08:00-15:00 local.)
-    - cron: "*/15 8-15 * * 6,0"
+    - cron: "*/15 8-15 * * 6"
     # Settle: every 30 minutes from 13:00 UTC through 22:00 UTC on race days.
     # First race normally goes off around 13:00-14:00 UTC; last race around
     # 20:00-21:00. Later invocations pick up any late corrections.
-    - cron: "*/30 13-22 * * 6,0"
+    - cron: "*/30 13-22 * * 6"
 
 jobs:
   snapshot-prices:

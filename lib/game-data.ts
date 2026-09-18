@@ -1,5 +1,5 @@
 import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
-import { db, races, runners, stablePicks } from "@/db";
+import { db, races, runners, stablePicks, stables } from "@/db";
 import { buildCard, type GameCard } from "./game-card";
 import { LOCK_OFFSET_MS } from "./lock";
 
@@ -191,38 +191,26 @@ export async function mergeSavedIntoCard(
 /**
  * The card a signed-in player should see by default.
  *
- * Rule: the earliest race day whose LAST race is still ahead of us.
- *
- *   • Friday afternoon → Saturday (Friday's last race already went off in
- *     the small hours of the afternoon, or is about to).
- *   • Saturday morning → Saturday (build the card).
- *   • Saturday lunchtime, right around the deadline → Saturday (the pitch
- *     shows the locked stable; users are following along, not building).
- *   • Saturday late evening after the last race → Sunday.
- *
- * The earlier heuristic (first race > lock cutoff) skipped ahead one day
- * the instant the first race was inside the hour, taking users away from
- * their saved stable while racing was still ongoing.
- *
- * Falls back to `today()` if nothing upcoming is ingested.
+ * The game runs Saturdays only. This returns the coming Saturday's date
+ * (YYYY-MM-DD, Europe/London), or if today IS Saturday and racing hasn't
+ * finished yet, today. Sunday morning through Friday all point at the
+ * next Saturday so the pitch always shows something buildable.
  */
 export async function nextGameDate(now: Date = new Date()): Promise<string> {
-  const rows = await db
-    .select({
-      raceDate: races.raceDate,
-      lastOff: sql<Date>`max(${races.offDt})`,
-    })
-    .from(races)
-    .where(inArray(races.region, ["GB", "IRE"]))
-    .groupBy(races.raceDate)
-    .orderBy(asc(races.raceDate));
+  // Europe/London wall-clock components. The DOW for Sat is 6.
+  const uk = new Date(now.toLocaleString("en-US", { timeZone: "Europe/London" }));
+  const dow = uk.getDay();
+  // On Saturday, stay on today until 23:00 UK — after that flip to next Sat.
+  if (dow === 6 && uk.getHours() < 23) return today();
+  const daysUntilNextSat = ((6 - dow + 7) % 7) || 7;
+  const nextSat = new Date(now.getTime() + daysUntilNextSat * 86_400_000);
+  return nextSat.toLocaleDateString("en-CA", { timeZone: "Europe/London" });
+}
 
-  for (const r of rows) {
-    if (r.lastOff && new Date(r.lastOff).getTime() >= now.getTime()) {
-      return r.raceDate;
-    }
-  }
-  return today();
+/** Kept for the /game caller which imports this — always returns null now
+ *  (the Saturday-only default handles the "stick with my stable" case). */
+export async function activeStableDate(_userId: string | null): Promise<string | null> {
+  return null;
 }
 
 /**

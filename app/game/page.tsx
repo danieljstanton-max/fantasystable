@@ -50,6 +50,10 @@ export default async function GamePage({
   // Default to the next race day that's still open for building, not to
   // "today" — the game is a build-then-lock flow and once today's deadline
   // has passed, a signed-in player wants tomorrow's card ready to work on.
+  // Signed-in players who saved a stable for a race day whose last race is
+  // still ahead of now stay on that day (they want to watch their picks land
+  // and see the leaderboard fill in). Everyone else defaults to whichever
+  // day is next up to build.
   const date = requested ?? (await nextGameDate());
 
   const realUser = await currentUser();
