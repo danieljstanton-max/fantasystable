@@ -57,6 +57,25 @@ function esc(s: string): string {
 
 
 /**
+ * What a failed check actually said.
+ *
+ * execFileSync throws with the command's output on .stdout; the Error message
+ * is only "Command failed: npx tsx ...". Every gate reported that line until
+ * 2026-09-13 for the pre-flight and 2026-09-18 for the other two — the
+ * cross-check held the 18th's card overnight and the log and the email said
+ * nothing about why. Keeps the report, drops the progress chatter.
+ */
+function failureOutput(e: unknown): string {
+  const out = String((e as any)?.stdout ?? "") + String((e as any)?.stderr ?? "");
+  const body = out
+    .split("\n")
+    .filter((l) => !/^\s*\d+ distinct horses|historic runs loaded|^\s*$/.test(l))
+    .join("\n")
+    .trim();
+  return body || (e as Error).message;
+}
+
+/**
  * The public URL of a day's card, built the way hrt_day_slug() builds it in the
  * plugin: horse-racing-tips-thursday-17th-september-2026.
  */
@@ -287,9 +306,9 @@ async function main() {
     console.log(audit.split("\n").filter(Boolean).slice(-2).join("\n"));
     gates.push({ name: "Contradiction audit", passed: true });
   } catch (e) {
-    const detail = (e as Error).message;
+    const detail = failureOutput(e);
     checksPassed = false;
-    gates.push({ name: "Contradiction audit", passed: false, detail: (e as Error).message });
+    gates.push({ name: "Contradiction audit", passed: false, detail });
     console.error("  AUDIT FAILED — the write-ups contradict the form somewhere");
     console.error(detail.split("\n").slice(-14).join("\n"));
 
@@ -320,7 +339,7 @@ async function main() {
     console.log(cross.split("\n").filter(Boolean).slice(-2).join("\n"));
     gates.push({ name: "Fact cross-check", passed: true });
   } catch (e) {
-    const detail = (e as Error).message;
+    const detail = failureOutput(e);
     checksPassed = false;
     gates.push({ name: "Fact cross-check", passed: false, detail });
     crossCheckFailure.push(detail);

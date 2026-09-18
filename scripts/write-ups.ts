@@ -607,7 +607,20 @@ async function main() {
     if (!sig.length) {
       // Still commit. The top of the market with the best stable behind it is
       // a defensible call, and saying nothing is not.
-      const fav = byPrice[0] ?? scored[0];
+      //
+      // The market is the fallback, but Dan's gates still stand in front of it.
+      //
+      // This took byPrice[0] — the favourite from the whole field — and never
+      // asked the ground rule or the streak rule. On 2026-09-18 it tipped
+      // DONTLOOKANYFURTHER at 11/8 in the 13:55 Ayr nursery: won his last two,
+      // the latest off 78, running off 91. Up 13lb on a streak is exactly the
+      // horse Dan said he would never pick. The main path had always filtered
+      // on the gates; this path went round them whenever no signal scored.
+      //
+      // So it takes the shortest-priced horse that passes. Only if nothing in
+      // the race passes does it fall back to the favourite — the same policy
+      // the main path uses, where a gated horse is demoted rather than deleted.
+      const fav = byPrice.find(passes) ?? byPrice[0] ?? scored[0];
       const nm = String(fav.r.horseName).toUpperCase();
       say(`A tricky race on paper with little between them on our figures.`);
       say(
@@ -615,8 +628,34 @@ async function main() {
           `${fav.r.trainerName ? ` for ${fav.r.trainerName}` : ""}` +
           `${(fav.r.t14Runs ?? 0) >= 10 && (fav.r.t14Pct ?? 0) >= 18 ? `, whose yard is running at ${fav.r.t14Pct}%` : ""}.`
       );
+
+      // A streak is written into the prose wherever it is picked — Dan's rule,
+      // and the cross-check fails the card if it is missing.
+      let favStreak = 0;
+      for (const r of fav.h) { if (r.positionNum === 1) favStreak++; else break; }
+      if (favStreak >= 2) {
+        const marks = fav.h.slice(0, favStreak)
+          .filter((r) => r.ofr !== null && sameDiscipline(r.raceType, ra.raceType))
+          .map((r) => r.ofr).filter((n): n is number => n !== null);
+        const wonOff = marks.length ? Math.min(...marks) : null;
+        const rise = wonOff !== null && fav.r.ofr != null ? Number(fav.r.ofr) - wonOff : null;
+        say(rise !== null && rise > 0
+          ? pickOpener(STREAK_LINES, `${nm}|${ra.offTime}|streak`)
+              .replace("{n}", streakWord(favStreak)).replace("{lb}", String(rise))
+          : `He is in hot form, winning his last ${streakWord(favStreak)}, and arrives here with his confidence high.`);
+      }
+
+      // Say why the favourite is not the pick, so it reads as a judgement.
+      const jolly = byPrice[0];
+      if (jolly && jolly !== fav) {
+        const why = streakFails.get(jolly.r.horseId) ?? groundFails.get(jolly.r.horseId);
+        if (why) {
+          say(`${String(jolly.r.horseName).toUpperCase()} heads the market but is passed over — ` +
+              `${why.charAt(0).toLowerCase()}${why.slice(1)}.`);
+        }
+      }
       sayPaceRisk();
-      const others = byPrice.slice(1, 3);
+      const others = byPrice.filter((x) => x !== fav).slice(0, 2);
       if (others.length)
         say(`${others.length > 1 ? "The dangers are" : "The main danger is"} ` +
             listNames(others.map((x) => `${String(x.r.horseName).toUpperCase()} at ${price(x.r.priceFrac, x.r.priceDec)}`)) + `.`);
