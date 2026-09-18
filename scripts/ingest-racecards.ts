@@ -187,8 +187,27 @@ async function ingestDate(date: string) {
 
         // Anything previously declared but absent from this sweep is a
         // withdrawal. Mark it; never delete it.
+        //
+        // "Declared" is the operative word. Big handicaps are balloted: the
+        // card for the Ayr Bronze Cup on 2026-09-18 first came through as the
+        // whole entry — about 190 horses, none with a saddle-cloth number —
+        // and then as the 24 who actually got in. Every horse that missed the
+        // cut was marked a non-runner, and the race page listed 165 of them
+        // under "Non-runners", most of them running elsewhere or nowhere.
+        //
+        // An entry that never got a number was never a runner, so it was never
+        // withdrawn — it is removed, not marked. A horse that did have a number
+        // and then vanished is a real withdrawal and is kept, as before: a
+        // reader following a link to it should still see "non-runner".
         const present = runnerRows.map((r) => r.horseId);
         if (present.length) {
+          await tx
+            .delete(runners)
+            .where(and(
+              eq(runners.raceId, race.id),
+              notInArray(runners.horseId, present),
+              sql`coalesce(${runners.raw}->>'number', '') = ''`,
+            ));
           await tx
             .update(runners)
             .set({ isNonRunner: true })
