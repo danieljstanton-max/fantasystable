@@ -107,6 +107,25 @@ async function dayPageState(site: string, date: string): Promise<"live" | "absen
 
 async function main() {
   const date = targetDate();
+
+  // A card that is already live is not rebuilt unless someone asks for it.
+  //
+  // Dan, 2026-09-18: a rebuild re-scores every race at the current prices. One
+  // run mid-morning, to fix a display problem, moved the NAP from ICE CUBE to
+  // INTERSTATE three hours after ICE CUBE had gone up at 5/1. The same thing
+  // would happen whenever Dan asks for tomorrow's card early and the 18:00 job
+  // then builds it again over the top of the one he has already checked.
+  //
+  // So the scheduled run stands down when the day is live. Pass --rebuild to
+  // re-score deliberately, e.g. when Dan asks for the prices to be run again.
+  if (!args.includes("--rebuild") && process.env.HRT_URL) {
+    if ((await dayPageState(process.env.HRT_URL, date)) === "live") {
+      console.log(`\nDAILY REPORT — ${date}`);
+      console.log(`  already live on the site — not rebuilding it, so nothing on it changes.`);
+      console.log(`  To re-score it anyway: npm run daily -- ${date} --rebuild\n`);
+      return;
+    }
+  }
   const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
   mkdirSync(OUT_DIR, { recursive: true });
 
