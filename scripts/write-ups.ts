@@ -30,6 +30,7 @@ import { betFor, placeTerms } from "../lib/staking";
 import { OPENERS_PRIME, OPENERS_ELIGIBLE, OPENERS_PLAIN, pickOpener, OPENER_HAND, STREAK_LINES, streakWord } from "../lib/voice";
 import { courseGuide, goingNote } from "../lib/course-guide";
 import { loadHandPicks, handPickFor } from "../lib/hand-picks";
+import { loadVetoes, isVetoed } from "../lib/vetoes";
 import { projectCard, applyGoingOverrides, bandAtOff, changesDuringCard,
          type GoingProjection } from "../lib/weather";
 
@@ -300,6 +301,7 @@ async function main() {
   const pick = <T>(opts: T[]) => opts[raceNo % opts.length];
 
   const handPicks = loadHandPicks();
+  const vetoes = loadVetoes(date);
 
   for (const ra of races) {
     raceNo++;
@@ -428,8 +430,23 @@ async function main() {
       scored.map((x) => [x.r.horseId,
         streakGate(x.h, x.r.ofr ?? null, ra.raceType ?? null)] as const)
     );
+    // A hand veto applies to the tip in every race, not just to the five.
+    //
+    // Dan, 2026-09-20, vetoed IMPRESSOR in the 17:02 Hamilton — he had won
+    // there the day before and looked likely to come out. The best-bets file
+    // set him aside by hand and said why; the race page went on tipping him at
+    // 7/2. The two documents argued with each other on the same site, which is
+    // the exact failure the ground rule was moved here to stop on 2026-09-01,
+    // and vetoes were simply never wired in alongside it.
+    const vetoFails = new Map(
+      scored.map((x) => {
+        const v = isVetoed(vetoes, String(x.r.horseName));
+        return [x.r.horseId, v ? v.reason : null] as const;
+      })
+    );
     const passes = (x: (typeof scored)[number]) =>
-      groundFails.get(x.r.horseId) === null && streakFails.get(x.r.horseId) === null;
+      groundFails.get(x.r.horseId) === null && streakFails.get(x.r.horseId) === null &&
+      vetoFails.get(x.r.horseId) === null;
     const cleared = bySc.filter(passes);
     const noneProven = cleared.length === 0;
 
@@ -900,7 +917,12 @@ async function main() {
     // the horse it moved off. A selection that quietly differs from the score
     // reads as an error; a selection that explains itself reads as a judgement.
     const displaced = bySc[0] && bySc[0] !== top ? bySc[0] : null;
-    if (displaced && streakFails.get(displaced.r.horseId)) {
+    if (displaced && vetoFails.get(displaced.r.horseId)) {
+      say(
+        `${String(displaced.r.horseName).toUpperCase()} rates higher on our figures but has been ` +
+        `set aside by hand — ${String(vetoFails.get(displaced.r.horseId))}`
+      );
+    } else if (displaced && streakFails.get(displaced.r.horseId)) {
       say(
         `${String(displaced.r.horseName).toUpperCase()} rates higher on our figures but is passed over — ` +
         `${String(streakFails.get(displaced.r.horseId)).toLowerCase()}.`
