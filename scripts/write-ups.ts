@@ -376,8 +376,27 @@ async function main() {
       };
       const band = drawBand(r.draw, live.length);
       const dB = drawDist(ra.distanceF);
-      const iv = band && dB
-        ? drawMap.get(`${ra.courseSlug}|${dB}|${ra.goingBand ?? "unknown"}|${band}`) ?? null : null;
+      // Look the draw up on the going the race will be run on, exactly as
+      // best-bets.ts does — projected first, declared as the fallback because
+      // the table is sparse.
+      //
+      // This asked only for the declared band. On 2026-09-23 the 17:17 Redcar
+      // was declared good to firm and projected to dry to good; the draw table
+      // holds a row for good and none for good to firm, so best-bets found
+      // SANDRET "favoured by the draw, that side wins 1.46x its share" and the
+      // write-up found nothing, scored him below NIGHT EMPEROR, and the two
+      // files named different horses in the same race. Pre-flight held the card
+      // overnight for it, correctly.
+      const projBand = bandAtOff(goingProjection.get(String(ra.courseName)), ra.offTime)
+        ?? ra.goingBand ?? "unknown";
+      const drawKey = (g: string) => `${ra.courseSlug}|${dB}|${g}|${band}`;
+      let iv: number | null = null;
+      if (band && dB) {
+        const onProjected = drawMap.get(drawKey(projBand));
+        iv = onProjected !== undefined
+          ? onProjected
+          : drawMap.get(drawKey(ra.goingBand ?? "unknown")) ?? null;
+      }
       const styles = h.slice(0, 5).map((x) => readComment(x.comment).runStyle).filter(Boolean) as string[];
       const cnt = new Map<string, number>();
       for (const st of styles) cnt.set(st, (cnt.get(st) ?? 0) + 1);
