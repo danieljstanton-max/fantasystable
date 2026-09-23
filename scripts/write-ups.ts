@@ -707,6 +707,18 @@ async function main() {
     // every time. They are mentioned only when little else is there.
     const COMMON = new Set(["going", "trip", "jockey"]);
     const distinctive = sig.filter((x) => !COMMON.has(x.key));
+
+    // A win last time out leads, because only three signals get printed.
+    //
+    // Dan, 2026-09-23, on FISCAL POLICY in the 17:03 Pontefract: "this won last
+    // time out." He had — seven days earlier, at this track, off today's exact
+    // mark. The prose said he was "7lb below the 77 it won from back in May
+    // 2025" and never mentioned the recent win at all, because the signals were
+    // printed in whatever order they were emitted and this one fell outside the
+    // first three. The most recent win is the first thing a reader wants.
+    distinctive.sort(
+      (a, b) => Number(b.key === "last-run-won") - Number(a.key === "last-run-won")
+    );
     const commonplace = sig.filter((x) => COMMON.has(x.key));
 
     const phrase = (key: string, label: string, detail: string): string => {

@@ -1368,6 +1368,21 @@ export function wonOffHigherMark(
     return { found: false, lbsBelow: 0, lastWinningMark: null, when: null, discipline: null };
   }
 
+  // The mark he LAST won off, not the highest he ever won off.
+  //
+  // Dan, 2026-09-23, on FISCAL POLICY: "this won last time out." He had — seven
+  // days earlier, off 70, which is his mark today. This function reached back
+  // for the biggest winning mark in the window and produced "7lb below the 77
+  // it won from back in May 2025", an argument that he is well treated, while
+  // saying nothing about the win a week ago off exactly today's figure.
+  //
+  // The handicapper reassesses from the most recent win; so does Dan's streak
+  // rule, which compares today's mark to the one he won off last. Citing an
+  // older, higher mark overstates the case whenever a horse has won since off
+  // something lower — and on 2026-09-24 two write-ups on the live card did
+  // exactly that.
+  //
+  // winningRuns() is newest first.
   let bestMark: number | null = null;
   let when: string | null = null;
   for (const r of winningRuns(history)) {
@@ -1376,10 +1391,9 @@ export function wonOffHigherMark(
     if (monthsBetween(r.raceDate, today) > withinMonths) continue;
     // Marks never cross disciplines. See sameDiscipline().
     if (todayType && !sameDiscipline(r.raceType, todayType)) continue;
-    if (bestMark === null || r.ofr > bestMark) {
-      bestMark = r.ofr;
-      when = r.raceDate;
-    }
+    bestMark = r.ofr;
+    when = r.raceDate;
+    break;
   }
 
   const discipline = todayType ? normaliseDiscipline(todayType) : null;

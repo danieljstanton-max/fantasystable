@@ -96,7 +96,17 @@ const iso = (d: any) => new Date(d).toISOString().slice(0, 10);
       if (!runs.length) continue;
 
       // 1. A cited winning mark that is not the most recent win.
-      const cite = para.match(/winning mark of (\d+)\s*back in ([A-Z][a-z]+)/);
+      // Both phrasings, because the prose was reworded and the check was not.
+      //
+      // scoreHorse produces "7lb below its flat winning mark of 77", and
+      // write-ups.ts rewrites that to "races off a mark 7lb below the 77 it won
+      // from back in May 2025". This only ever matched the first form, so from
+      // the day of that rewrite the check was blind: FISCAL POLICY, 17:03
+      // Pontefract on 2026-09-24, cited a May 2025 win off 77 while the horse
+      // had won seven days earlier off 70 — today's exact mark — and the audit
+      // reported all clear.
+      const cite = para.match(/winning mark of (\d+)\s*back in ([A-Z][a-z]+)/)
+        ?? para.match(/below the (\d+) it won from back in ([A-Z][a-z]+)/);
       if (cite) {
         const citedMark = Number(cite[1]);
         const wins = runs.filter((r) => r.position === "1" && r.ofr !== null);
