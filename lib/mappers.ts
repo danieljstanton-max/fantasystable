@@ -377,6 +377,49 @@ function isExchange(bookmaker: string | null): boolean {
 }
 
 /**
+ * The firms we are willing to quote a price from.
+ *
+ * Dan, 2026-09-23: "brosay in the 17:00 is not 6/1 as shown." It was — at
+ * Hollywood Bets, and nowhere else. Every mainstream book was 9/2. Taking the
+ * best price anywhere meant a single outlier at a firm most readers have no
+ * account with became the advised price, and the published record then settled
+ * at a price almost nobody could have taken.
+ *
+ * On 2026-09-23 half of all quoted bests came from Hollywood Bets, 10 Bet or
+ * 7Bet. Restricting the list costs a little price and buys a record that means
+ * something.
+ *
+ * Add or remove a firm by editing this list — nothing else needs to change.
+ * Spread firms (Sporting Index, Spreadex) stay out because a spread quote is
+ * not a fixed-odds price. Exchanges are excluded separately, above.
+ */
+const QUOTABLE = [
+  "bet365",
+  "betvictor",
+  "betfairsportsbook",
+  "betfred",
+  "betmgm",
+  "betano",
+  "boylesports",
+  "coral",
+  "ladbrokes",
+  "livescorebet",
+  "paddypower",
+  "quinnbet",
+  "skybet",
+  "unibet",
+  "virginbet",
+  "williamhill",
+];
+
+/** Is this a firm we will advise a price from? */
+function isQuotable(bookmaker: string | null): boolean {
+  if (bookmaker === null) return false;
+  const k = bookmaker.toLowerCase().replace(/[^a-z]/g, "");
+  return QUOTABLE.includes(k);
+}
+
+/**
  * Pick the best bookmaker price, and the each-way terms, from the odds array.
  *
  * Each-way terms are taken by consensus rather than from whichever book
@@ -409,6 +452,7 @@ export function bestOdds(odds: unknown): BestOdds {
 
     if (dec === null || dec <= 1) continue;
     if (isExchange(bookmaker)) continue;
+    if (!isQuotable(bookmaker)) continue;
     if (best.dec !== null && dec <= best.dec) continue;
 
     const updated = str(o.updated);
