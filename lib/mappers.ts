@@ -412,10 +412,17 @@ const QUOTABLE = [
   "williamhill",
 ];
 
-/** Is this a firm we will advise a price from? */
+/**
+ * Is this a firm we will advise a price from?
+ *
+ * Digits are kept. The exchange test strips them because no exchange has one,
+ * but reusing that normaliser here turned "Bet365" into "bet", which matched
+ * nothing — so the list shipped on 2026-09-23 silently excluded the biggest
+ * bookmaker in the country, and "10 Bet" and "7Bet" collapsed to "bet" too.
+ */
 function isQuotable(bookmaker: string | null): boolean {
   if (bookmaker === null) return false;
-  const k = bookmaker.toLowerCase().replace(/[^a-z]/g, "");
+  const k = bookmaker.toLowerCase().replace(/[^a-z0-9]/g, "");
   return QUOTABLE.includes(k);
 }
 
