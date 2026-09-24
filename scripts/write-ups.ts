@@ -514,13 +514,18 @@ async function main() {
       //
       // The stand-down stays: in a race where most have barely run, a gate can
       // empty the shortlist, and we still owe the reader a selection.
-      const ok = <T extends { r: { horseId: string } }>(xs: T[]) => {
-        const kept = xs.filter((x) =>
+      // Stand down only if the WHOLE RACE fails, not if one shortlist does.
+      //
+      // The stand-down was applied per list. In the 15:35 Newmarket on
+      // 2026-09-25 the hot-yard list held only gated horses, so it stood down
+      // and reinstated CASTLEMONT — while ARCHERS BAY, in the same race, passed
+      // every gate. A gate that empties one shortlist has not emptied the race.
+      const anyClean = scored.some(passes);
+      const ok = <T extends { r: { horseId: string } }>(xs: T[]) =>
+        anyClean ? xs.filter((x) =>
           groundFails.get(x.r.horseId) === null &&
           streakFails.get(x.r.horseId) === null &&
-          vetoFails.get(x.r.horseId) === null);
-        return kept.length ? kept : xs;
-      };
+          vetoFails.get(x.r.horseId) === null) : xs;
       const fav = ok(byPrice)[0];
       const hotYard = ok(scored
         .filter((x) => (x.r.t14Runs ?? 0) >= 10 && (x.r.t14Pct ?? 0) >= 18)
