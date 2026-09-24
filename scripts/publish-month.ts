@@ -62,6 +62,31 @@ async function main() {
   let outlay = 0, returned = 0, wins = 0, places = 0, settled = 0, pending = 0;
   let priceSum = 0, priced = 0, voids = 0;
 
+  // The NAP, tracked on its own.
+  //
+  // Dan, 2026-09-25, asked for it on the month card. It is the selection the
+  // site leads with every day, so a reader is entitled to see how the headline
+  // bet has gone rather than only the five together. It is picks[0] — the same
+  // horse publish.ts puts in the NAP slot.
+  let napOut = 0, napRet = 0, napWins = 0, napPlaces = 0, napSettled = 0;
+  // Each-way places, all of which make money under this staking plan.
+  //
+  // Dan, 2026-09-25: "we need the place info only if we tipped it each-way and
+  // profited." So this counts places that finished in front — and Dan's reply
+  // when I claimed a place could lose was right: "we only go each-way at 11/2
+  // so it can't."
+  //
+  // Break-even on the place part of a 0.5pt each-way bet at 1/5 is exactly
+  // 5/1: the return is 0.5 x (1 + odds/5), which equals the 1pt stake only at
+  // odds of 5. The plan goes each-way at 11/2 and up, so a place always pays —
+  // 1.05pts at 11/2 on 1/5 terms, 1.19pts at 1/4. September bore that out: 15
+  // each-way places, none losing, the slimmest +0.05pts.
+  //
+  // Kept as its own count anyway, because it is what the widget reads and
+  // because the guarantee is a property of the staking plan, not of the maths.
+  // Change the plan to go each-way at 9/2 and these numbers part company.
+  let napEwPaid = 0;
+
   for (let d = 1; d <= days; d++) {
     const date = `${month}-${String(d).padStart(2, "0")}`;
     if (!bestBetsPath(date)) continue;
@@ -93,6 +118,7 @@ async function main() {
     }
 
     for (const p of picks) {
+      const isNap = p === picks[0];
       const hit = byHorse.get(norm(p.horse));
       const ourDec = fracToDec(p.priceFrac);
       const bet = betFor(ourDec);
@@ -135,6 +161,15 @@ async function main() {
       outlay += s.outlay;
       returned += s.returned;
 
+      if (isNap) {
+        napSettled++;
+        if (won) napWins++;
+        if (placed) napPlaces++;
+        if (placed && bet.type === "ew" && s.profit > 0) napEwPaid++;
+        napOut += s.outlay;
+        napRet += s.returned;
+      }
+
       // A horse in the results with a non-numeric position — pulled up, fell,
       // unseated — RAN. The bet lost; it is not void.
       //
@@ -161,6 +196,17 @@ async function main() {
     profit,
     roi: outlay > 0 ? Number(((profit / outlay) * 100).toFixed(1)) : 0,
     settled, pending, voids, wins, places,
+    nap: {
+      settled: napSettled,
+      wins: napWins,
+      places: napPlaces,
+      ewPaid: napEwPaid,
+      staked: Number(napOut.toFixed(2)),
+      returned: Number(napRet.toFixed(2)),
+      profit: Number((napRet - napOut).toFixed(2)),
+      roi: napOut > 0 ? Number((((napRet - napOut) / napOut) * 100).toFixed(1)) : 0,
+      strike: napSettled > 0 ? Number(((napWins / napSettled) * 100).toFixed(1)) : 0,
+    },
     avgPrice: priced > 0 ? Number((priceSum / priced).toFixed(2)) : 0,
     strike: settled > 0 ? Number(((wins / settled) * 100).toFixed(1)) : 0,
     // Newest day first, but the day's own order kept inside it.
@@ -175,6 +221,7 @@ async function main() {
 
   console.log(
     `${month}: ${settled} settled, ${wins} won, ${places} placed, ` +
+    `[NAP ${napWins}/${napSettled}] ` +
     `${profit >= 0 ? "+" : ""}${profit.toFixed(2)}pts (ROI ${payload.roi}%)` +
     (pending ? `, ${pending} still to run` : "") +
     (voids ? `, ${voids} non-runner${voids === 1 ? "" : "s"}` : "")
