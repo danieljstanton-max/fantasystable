@@ -502,8 +502,23 @@ async function main() {
       // barely run, "never won or placed on soft" is usually just "never run".
       // So the gate filters the shortlist where it leaves anyone standing, and
       // is stood down where it would empty the race.
+      // Every gate applies here, not just the ground one.
+      //
+      // Dan, 2026-09-24: the cross-check held the card because CASTLEMONT, in
+      // the 15:35 Newmarket, had won his last two and the write-up never said
+      // so. He should not have been the pick at all — both wins came in
+      // non-handicaps with no rating, so the streak rule has no comparable mark
+      // and excludes him. This filter only ever looked at groundFails, so an
+      // unexposed race was a way round the streak rule and round a hand veto,
+      // exactly as the no-signal fallback was until 2026-09-18.
+      //
+      // The stand-down stays: in a race where most have barely run, a gate can
+      // empty the shortlist, and we still owe the reader a selection.
       const ok = <T extends { r: { horseId: string } }>(xs: T[]) => {
-        const kept = xs.filter((x) => groundFails.get(x.r.horseId) === null);
+        const kept = xs.filter((x) =>
+          groundFails.get(x.r.horseId) === null &&
+          streakFails.get(x.r.horseId) === null &&
+          vetoFails.get(x.r.horseId) === null);
         return kept.length ? kept : xs;
       };
       const fav = ok(byPrice)[0];
@@ -528,8 +543,13 @@ async function main() {
       ];
       say(unexposed[oh % unexposed.length]);
 
-      // Pick on stable form first, then the market.
-      const pickWrap = hotYard ?? fav ?? scored[0];
+      // Pick on stable form first, then the market — but a hand pick wins.
+      //
+      // handRunner is honoured in the main path and was not here, so a PICKS.txt
+      // entry in a maiden or novice race would have been quietly overridden by
+      // the yard's strike rate. Dan overriding the model knowingly has to hold
+      // wherever he does it.
+      const pickWrap = handRunner ?? hotYard ?? fav ?? scored[0];
       const pk = pickWrap.r;
       const pkName = String(pk.horseName).toUpperCase();
       const reasons: string[] = [];
@@ -540,11 +560,29 @@ async function main() {
       if (fav && fav.r === pk) reasons.push(`the market makes it favourite`);
       if (pk.headgearFirst) reasons.push(`it wears headgear for the first time`);
 
+      // If a gate had to stand down and the pick is on a run, say so. Dan's
+      // rule is that a streak is always written into the prose, and the
+      // cross-check fails the card when it is not.
+      let novStreak = 0;
+      for (const rr of pickWrap.h) { if (rr.positionNum === 1) novStreak++; else break; }
+
       say(
         `${pkName} gets the vote at ${price(pk.priceFrac, pk.priceDec)}${pk.trainerName ? ` for ${pk.trainerName}` : ""}` +
           `${pk.jockeyName ? `, ridden by ${pk.jockeyName}` : ""}.` +
           (reasons.length ? ` ${reasons[0].charAt(0).toUpperCase()}${reasons.slice(0, 2).join(", and ").slice(1)}.` : "")
       );
+
+      if (novStreak >= 2) {
+        const marks = pickWrap.h.slice(0, novStreak)
+          .filter((rr) => rr.ofr !== null && sameDiscipline(rr.raceType, ra.raceType))
+          .map((rr) => rr.ofr).filter((n): n is number => n !== null);
+        const wonOff = marks.length ? Math.min(...marks) : null;
+        const rise = wonOff !== null && pk.ofr != null ? Number(pk.ofr) - wonOff : null;
+        say(rise !== null && rise > 0
+          ? pickOpener(STREAK_LINES, `${pkName}|${ra.offTime}|streak`)
+              .replace("{n}", streakWord(novStreak)).replace("{lb}", String(rise))
+          : `He is in hot form, winning his last ${streakWord(novStreak)}, and arrives here with his confidence high.`);
+      }
 
       const others = byPrice.filter((x) => x.r !== pk).slice(0, 2);
       if (others.length)
