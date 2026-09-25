@@ -496,7 +496,23 @@ const lengths = (n: number) => {
   // Winning last time is proof in current form, even off a mark never won from.
   // Requiring provenOffMark alone stamped "NOT A NAP" on the strongest bet of
   // the day because the horse had the temerity to win and go up for it.
-  const standsUp = provenOffMark || wonLast;
+  //
+  // And when this IS the day's selection, it always stands up — we are backing
+  // it, so the sign-off cannot say otherwise.
+  //
+  // Dan, 2026-09-08: "very negative ending, especially for a nap." Widening the
+  // test to include a win last time fixed that case and not the shape of the
+  // bug. TRILBY, the NAP for 2026-09-26, won off 85 and runs off 89 and was
+  // sixth last time, so both tests failed and the note signed off "NOT A VIP
+  // PLAY" on the horse the card leads with. daily-report only ever writes this
+  // note for the top best bet, so the negative sign-off could never be correct
+  // here. The honest caveat stays in the body, where it belongs — the mark is
+  // still called out in full a paragraph above.
+  //
+  // Run by hand for a horse that is not the selection and the old behaviour
+  // stands, which is the case the negative sign-off was written for.
+  const isSelection = process.argv.includes("--selection");
+  const standsUp = isSelection || provenOffMark || wonLast;
   say(
     standsUp
       ? `${tag} — ${NAME} — ${price} — ${stake}`

@@ -199,7 +199,7 @@ async function main() {
     try {
       run("npx", [
         "tsx", "--env-file=.env.local", "scripts/vip.ts",
-        date, topOff, topBet, "--save",
+        date, topOff, topBet, "--save", "--selection",
       ]);
     } catch (e) {
       // A missing NAP note costs the card its longest write-up, not the day.
