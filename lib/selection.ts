@@ -1229,6 +1229,30 @@ export function markDecline(
  * Proven going, proven trip, proven course. Each is separate evidence — a
  * course winner over the trip on the ground is the full house.
  */
+
+/**
+ * The horse's form in TODAY'S code, and nothing else.
+ *
+ * Dan, 2026-10-01, on MY BOBBY'S LASS being the pick in a handicap chase:
+ * "only ran once of chase fences" — and when I suggested keeping the ground and
+ * course records across codes, "no because handicap marks are different on
+ * hurdles over chase."
+ *
+ * He is right, and the gap was real. sameDiscipline() guarded every MARK
+ * comparison and none of the conditions ones, so a horse with one run over
+ * fences and no chase win was credited with "2 wins from 9 on the ground" and
+ * "a trip he has won over" — both earned over hurdles, off a hurdle mark, in
+ * different company. The write-up gave a reader no way to tell.
+ *
+ * Applied to going, trip and course. NOT to the last-run reading, which has to
+ * stay chronological: the last run is the last run whatever it was jumping, and
+ * filtering it would make "won last time out" point at an old race.
+ */
+export function inTodaysCode(history: PastRun[], raceType: string | null): PastRun[] {
+  if (!raceType) return history;
+  return history.filter((r) => sameDiscipline(r.raceType, raceType));
+}
+
 export function likesConditions(
   today: RaceToday,
   history: PastRun[]
@@ -1989,9 +2013,10 @@ export function scoreHorse(
 ): HorseScore {
   const signals: Signal[] = [];
 
-  const cond = likesConditions(race, history);
+  const codeForm = inTodaysCode(history, race.raceType);
+  const cond = likesConditions(race, codeForm);
   if (cond.going) {
-    const rec = recordOn(history, race.goingBand);
+    const rec = recordOn(codeForm, race.goingBand);
     // Dan, 2026-08-30, on Rating and then on the card as a whole:
     //   "this is what i mean by mistakes, the whole card prob has the same
     //    mistakes"
@@ -2047,7 +2072,7 @@ export function scoreHorse(
   }
 
   if (cond.failsOnGround) {
-    const rec = recordOn(history, race.goingBand);
+    const rec = recordOn(codeForm, race.goingBand);
     signals.push({
       key: "fails-on-ground",
       label: "Unproven on the ground",
@@ -2833,7 +2858,7 @@ export function wellHandicapped(
 
   // Conditions proven today: going, trip and course all inside its winning
   // profile. "The profit model is when we catch a horse in perfect conditions."
-  const cond = likesConditions(race, history);
+  const cond = likesConditions(race, inTodaysCode(history, race.raceType));
   const conditionsRight = cond.going && cond.trip;
 
   // The standout is a narrower thing than prime, and a different one. Prime
