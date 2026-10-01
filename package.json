@@ -14,6 +14,7 @@
     "ingest:courses": "tsx --env-file=.env.local scripts/ingest-courses.ts",
     "ingest:results": "tsx --env-file=.env.local scripts/ingest-results.ts",
     "test:tips": "tsx scripts/test-tips.ts",
+    "test:gates": "tsx scripts/test-gates.ts",
     "verify:mappers": "tsx scripts/verify-mappers.ts",
     "test:form": "tsx scripts/test-form.ts",
     "filter:today": "tsx scripts/filter-today.ts",

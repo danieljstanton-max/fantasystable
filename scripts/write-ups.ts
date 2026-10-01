@@ -30,7 +30,8 @@ import { betFor, placeTerms } from "../lib/staking";
 import { OPENERS_PRIME, OPENERS_ELIGIBLE, OPENERS_PLAIN, pickOpener, OPENER_HAND, STREAK_LINES, streakWord } from "../lib/voice";
 import { courseGuide, goingNote } from "../lib/course-guide";
 import { loadHandPicks, handPickFor } from "../lib/hand-picks";
-import { loadVetoes, isVetoed } from "../lib/vetoes";
+import { loadVetoes } from "../lib/vetoes";
+import { gateField } from "../lib/gates";
 import { projectCard, applyGoingOverrides, bandAtOff, changesDuringCard,
          type GoingProjection } from "../lib/weather";
 
@@ -439,33 +440,28 @@ async function main() {
     // deleted: if nothing in the race qualifies we still owe the reader a
     // selection, and the write-up says plainly that none of them has proved it
     // on the ground.
-    const groundFails = new Map(
-      scored.map((x) => [x.r.horseId, groundGate(x.h, raceToday.goingBand)] as const)
-    );
-    // Dan's streak rule applies to the tip in every race, not just the five —
-    // the same reasoning as the ground rule, and for the same reason: two
-    // documents on one site must not disagree about who we are backing.
-    const streakFails = new Map(
-      scored.map((x) => [x.r.horseId,
-        streakGate(x.h, x.r.ofr ?? null, ra.raceType ?? null)] as const)
-    );
-    // A hand veto applies to the tip in every race, not just to the five.
+    // Every gate, in one call. See lib/gates.ts for why they live there and
+    // not here: the same rules written out in four places, three of them
+    // drifting, is what produced a month of selections that broke rules the
+    // model was supposed to be enforcing.
     //
-    // Dan, 2026-09-20, vetoed IMPRESSOR in the 17:02 Hamilton — he had won
-    // there the day before and looked likely to come out. The best-bets file
-    // set him aside by hand and said why; the race page went on tipping him at
-    // 7/2. The two documents argued with each other on the same site, which is
-    // the exact failure the ground rule was moved here to stop on 2026-09-01,
-    // and vetoes were simply never wired in alongside it.
-    const vetoFails = new Map(
-      scored.map((x) => {
-        const v = isVetoed(vetoes, String(x.r.horseName));
-        return [x.r.horseId, v ? v.reason : null] as const;
-      })
+    // The maps below are views onto that one verdict, kept so the prose below
+    // can still say WHICH rule moved the tip.
+    const gates = gateField(
+      scored,
+      (x) => ({
+        horseId: x.r.horseId,
+        horseName: String(x.r.horseName),
+        ofr: x.r.ofr ?? null,
+        history: x.h,
+      }),
+      { goingBand: raceToday.goingBand, raceType: ra.raceType ?? null },
+      vetoes
     );
-    const passes = (x: (typeof scored)[number]) =>
-      groundFails.get(x.r.horseId) === null && streakFails.get(x.r.horseId) === null &&
-      vetoFails.get(x.r.horseId) === null;
+    const groundFails = new Map([...gates.reasons].map(([k, v]) => [k, v.ground] as const));
+    const streakFails = new Map([...gates.reasons].map(([k, v]) => [k, v.streak] as const));
+    const vetoFails = new Map([...gates.reasons].map(([k, v]) => [k, v.veto] as const));
+    const passes = gates.passes;
     const cleared = bySc.filter(passes);
     const noneProven = cleared.length === 0;
 
@@ -520,7 +516,7 @@ async function main() {
       // 2026-09-25 the hot-yard list held only gated horses, so it stood down
       // and reinstated CASTLEMONT — while ARCHERS BAY, in the same race, passed
       // every gate. A gate that empties one shortlist has not emptied the race.
-      const anyClean = scored.some(passes);
+      const anyClean = gates.anyClean;
       const ok = <T extends { r: { horseId: string } }>(xs: T[]) =>
         anyClean ? xs.filter((x) =>
           groundFails.get(x.r.horseId) === null &&
