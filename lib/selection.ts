@@ -2453,8 +2453,21 @@ export function scoreHorse(
       weight: weightFor("won-easily", easy.surplus >= 8 ? 3 : 2),
       detail:
         `won by ${easy.margin}L (~${easy.marginLbs}lb) on ${easy.when}, ` +
+        // Never claim it escapes a penalty: we cannot see one.
+        //
+        // Dan, 2026-10-02, on KALEIDOSCOPE EYES in the 13:50 Ascot — "this
+        // write-up escapes a penalty?" It does not. He won at Ffos Las on
+        // 27 September, after the weights were published, so he runs off the
+        // same mark of 58 carrying 5lb extra. The racecard says 5ex; the feed
+        // does not. There is no penalty field on a runner — age, lbs, ofr,
+        // form, headgear and the rest, and nothing else — and the 5lb is
+        // inside lbs, indistinguishable from the weight itself.
+        //
+        // An unchanged mark was being read as the handicapper not reacting,
+        // which is the opposite of the truth whenever a penalty applies. State
+        // what we know: the mark has not moved. Say nothing about penalties.
         (easy.rise === 0
-          ? `escapes a penalty — ${easy.surplus}lb in hand`
+          ? `mark unchanged since — ${easy.surplus}lb in hand`
           : `raised only ${easy.rise}lb — ${easy.surplus}lb in hand`),
     });
   }

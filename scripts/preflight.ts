@@ -19,6 +19,7 @@ import { homedir } from "node:os";
 import postgres from "postgres";
 import { readComment } from "../lib/form-reading";
 import { betFor, fracToDec } from "../lib/staking";
+import { sameDiscipline } from "../lib/selection";
 
 const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
@@ -324,7 +325,7 @@ type Check = {
 
     const hist = await retry(() => sql`
       select ra.race_date "d", ra.course_slug "cs", r.position_num "pos",
-             r.ofr, r.ovr_btn "btn", r.comment
+             ra.race_type "rt", r.ofr, r.ovr_btn "btn", r.comment
       from runners r join races ra on ra.id = r.race_id
       where r.horse_id = ${r.id} and ra.race_date < ${date} and r.position_num is not null
       order by ra.race_date desc`);
@@ -353,14 +354,53 @@ type Check = {
     if (btn && !runs.some((x) => String(x.ofr) === btn[2] && Math.abs(Number(x.btn ?? -1) - Number(btn[1])) < 0.6))
       beatenClaim.push(`${s.race} ${s.horse}: "${btn[0]}" matches no run on record`);
 
-    const here = s.sentence.match(/has won here(?: (\d+) times| twice)?/);
+    // Every phrasing the write-ups can produce, not just the first one.
+    //
+    // Dan, 2026-10-01, on BADRI: the claim was "has already won around this
+    // track", which this check could not see — it only matched "has won here".
+    // write-ups.ts offers six wordings for a course win and three more for a
+    // course specialist, so most of them sailed past unverified. The third
+    // check this week to go blind because the prose was reworded underneath it.
+    //
+    // Counts that state a number are checked exactly; the wordings that claim a
+    // win without saying how many only have to find at least one.
+    const COURSE_CLAIMS: Array<[RegExp, boolean]> = [
+      [/has won here (\d+) times/, true],
+      [/has already won round this track (\d+) times/, true],
+      [/is a (\d+) times-winner over this course/, true],
+      [/has won here twice/, true],
+      [/has already won round this track twice/, true],
+      [/is a twice-winner over this course/, true],
+      [/has won here and nowhere else/, false],
+      [/only wins here/, false],
+      [/has won here/, true],
+      [/has already won around this track/, true],
+      [/has a course win to his name/, true],
+      [/knows how to win round here/, true],
+    ];
+    let here: RegExpMatchArray | null = null;
+    let exact = true;
+    for (const [re, isExact] of COURSE_CLAIMS) {
+      const m = s.sentence.match(re);
+      if (m) { here = m; exact = isExact; break; }
+    }
     if (here) {
       const claimed = here[1] ? parseInt(here[1], 10) : here[0].includes("twice") ? 2 : 1;
-      const [{ cs }] = (await retry(() =>
-        sql`select course_slug "cs" from races where id = ${r.raceId}`)) as any;
-      const actual = runs.filter((x) => x.pos === 1 && x.cs === cs).length;
-      if (actual !== claimed)
-        courseWins.push(`${s.race} ${s.horse}: claims ${claimed} course win(s), record shows ${actual}`);
+      const [{ cs, rt }] = (await retry(() =>
+        sql`select course_slug "cs", race_type "rt" from races where id = ${r.raceId}`)) as any;
+      // Counted in today's code, because that is how the model counts it since
+      // 2026-10-01. The check said GLORY AND HONOUR claimed one course win
+      // against a record of two — both true, counted differently, and the
+      // disagreement was mine for changing one side and not the other.
+      const actual = runs.filter(
+        (x) => x.pos === 1 && x.cs === cs && sameDiscipline(x.rt, rt)
+      ).length;
+      // Counted on the course SLUG, as the model counts it. Counting by joining
+      // to the courses table drops every row whose course_id is null — five of
+      // BADRI's seven Ascot runs — and reports a true claim as false.
+      if (exact ? actual !== claimed : actual < 1)
+        courseWins.push(
+          `${s.race} ${s.horse}: claims ${exact ? `${claimed} course win(s)` : "a course win"}, record shows ${actual}`);
     }
   }
 

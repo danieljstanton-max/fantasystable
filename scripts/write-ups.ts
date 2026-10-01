@@ -867,10 +867,25 @@ async function main() {
         top.hcap.reasons[0]
           .replace(/^(\d+)lb below its \w* ?winning mark of (\d+)/, "races off a mark $1lb below the $2 it won from")
           .replace(/^beaten ([\d.]+)L off (\d+)/, (_m, l, o) => `was beaten ${l} ${Number(l) === 1 ? "length" : "lengths"} off ${o}`)
-          .replace(/^won by ([\d.]+)L \(~[\d.]+lb\) and escapes a penalty — ([\d.]+)lb in hand/,
-            (_m, l, h) => `won by ${l} ${Number(l) === 1 ? "length" : "lengths"} and escapes a penalty, leaving ${h}lb in hand`)
-          .replace(/^won by ([\d.]+)L .*?raised (-?\d+)lb — ([\d.]+)lb in hand/,
-            (_m, l, r, h) => `won by ${l} ${Number(l) === 1 ? "length" : "lengths"} and was raised only ${r}lb for it, leaving ${h}lb in hand`)
+          // Dan, 2026-10-01: "the weights comments throw me off a bit."
+          //
+          // It read "won by 4.5 lengths and was raised only 7lb for it, leaving
+          // 4.3lb in hand" — three numbers in one clause, the third of them
+          // derived from the other two, and "in hand" assuming the reader
+          // already thinks in the handicapper's terms. It also never said WHEN,
+          // so a July win read as though it were last week.
+          //
+          // Now: what he did, what that was worth, and what it cost him. The
+          // subtraction is left to the reader because stating it was the part
+          // that confused.
+          .replace(/^won by ([\d.]+)L \(~([\d.]+)lb\) on (\d{4}-\d{2}-\d{2}), mark unchanged since — [\d.]+lb in hand/,
+            (_m, l, lb, when) =>
+              `won by ${l} ${Number(l) === 1 ? "length" : "lengths"} on ${when}, worth about ` +
+              `${Math.round(Number(lb))}lb, and his mark has not moved since`)
+          .replace(/^won by ([\d.]+)L \(~([\d.]+)lb\) on (\d{4}-\d{2}-\d{2}), raised only (-?\d+)lb — [\d.]+lb in hand/,
+            (_m, l, lb, when, r) =>
+              `won by ${l} ${Number(l) === 1 ? "length" : "lengths"} on ${when}, worth about ` +
+              `${Math.round(Number(lb))}lb, and has gone up only ${r}lb for it`)
           .replace(/^(\d+) of the last (\d+) starts on the wrong (.+?), mark down (\d+)lb/,
             "has had $1 of his last $2 starts on the wrong $3 and his mark is $4lb lower for it")
       ));
