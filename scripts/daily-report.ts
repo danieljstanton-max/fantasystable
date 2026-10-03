@@ -449,6 +449,28 @@ async function main() {
         console.error("  horse profiles failed (the tips are unaffected):");
         console.error("   ", (e as Error).message.split("\n")[0]);
       }
+
+      // The daily placepot — one horse a leg for the first six at every
+      // meeting, on /daily-placepot-tips/.
+      //
+      // It rides with the tips rather than on its own cron because it is the
+      // same editorial day and has to appear and switch over with them. Only
+      // pushed on a live run: the page is public and has no draft state, so
+      // publishing it on a held day would put selections in front of readers
+      // that the checks had just refused to stand behind.
+      //
+      // Its own try, like the profiles: a blank placepot grid is a smaller
+      // loss than a day of tips.
+      try {
+        console.log("\n  pushing the daily placepot...");
+        console.log(
+          run("npx", ["tsx", "--env-file=.env.local", "scripts/publish-placepot.ts", date])
+            .split("\n").filter(Boolean).slice(-2).join("\n")
+        );
+      } catch (e) {
+        console.error("  placepot failed (the tips are unaffected):");
+        console.error("   ", (e as Error).message.split("\n")[0]);
+      }
     } catch (e) {
       // A publishing failure must never lose the day's work — the files are
       // already written to the Desktop by this point.
