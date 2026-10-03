@@ -1,0 +1,45 @@
+{
+  "_comment": [
+    "The VIP group's record. Hand-maintained: these bets are advised in the VIP",
+    "group, not produced by the model, so nothing else can know about them.",
+    "",
+    "months — the monthly point totals, as Dan keeps them. This is the history",
+    "from before we tracked individual bets, and it is what the graph plots. Any",
+    "month that also has bets listed below is recomputed from those bets instead,",
+    "so the graph and the list can never disagree.",
+    "",
+    "bets — by month. Only the bet belongs here: the horse, what was staked, and",
+    "the price it was advised at. Course, off time, finishing position and the",
+    "each-way terms are all looked up from our own data by publish-vip.ts, so a",
+    "typo in a course name cannot put a bet in the wrong race and the terms on",
+    "the page can never disagree with the terms we hold.",
+    "",
+    "  type:  \"win\" or \"ew\". An each-way bet stakes twice the unit.",
+    "  stake: points on the win part. 1 + \"ew\" is a 1pt each-way, 2pts total.",
+    "  price: as advised, not the SP. null if it was not recorded.",
+    "",
+    "Push it with:  npm run publish:vip -- 2026-10"
+  ],
+
+  "months": {
+    "2026-01": 25.56,
+    "2026-02": -10,
+    "2026-03": 24.07,
+    "2026-04": 19.4,
+    "2026-05": 25,
+    "2026-06": 19.2,
+    "2026-07": 31.3,
+    "2026-08": -12,
+    "2026-09": -14
+  },
+
+  "bets": {
+    "2026-10": [
+      { "date": "2026-10-01", "horse": "Regional Rock", "stake": 1,   "type": "ew",  "price": "11/2" },
+      { "date": "2026-10-01", "horse": "Jujubella",     "stake": 1,   "type": "win", "price": "13/2" },
+      { "date": "2026-10-02", "horse": "Cockade",       "stake": 2,   "type": "win", "price": "11/4" },
+      { "date": "2026-10-02", "horse": "Captain Parma", "stake": 1,   "type": "ew",  "price": null   },
+      { "date": "2026-10-03", "horse": "Great Acclaim", "stake": 0.5, "type": "ew",  "price": "20/1" }
+    ]
+  }
+}

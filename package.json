@@ -48,6 +48,7 @@
     "publish:odds": "tsx --env-file=.env.local scripts/publish-odds.ts",
     "publish:horses": "tsx --env-file=.env.local scripts/publish-horses.ts",
     "publish:month": "tsx --env-file=.env.local scripts/publish-month.ts",
+    "publish:vip": "tsx --env-file=.env.local scripts/publish-vip.ts",
     "sweep": "tsx --env-file=.env.local scripts/sweep.ts",
     "game": "tsx --env-file=.env.local scripts/game-card.ts",
     "settle:game": "tsx --env-file=.env.local scripts/settle-game.ts",
