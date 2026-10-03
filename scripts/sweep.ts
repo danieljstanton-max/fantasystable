@@ -94,4 +94,17 @@ if (force || hour >= 11) {
   // Either side of a rollover, so the 1st does not blank the widget while the
   // previous evening is still settling.
   if (day <= 2) step("publish previous month", ["scripts/publish-month.ts", lastMonth]);
+
+  // The VIP record settles here too.
+  //
+  // Unlike everything else on the site it is pushed already-settled rather than
+  // settling itself in the page, so a bet whose race had not returned when it
+  // was last pushed sits at "to run" until something pushes it again. On
+  // 3 October that was me, by hand, twice. The sweep does it now: a VIP bet is
+  // on the site within ten minutes of its race returning, same as a tip.
+  //
+  // It no-ops when the month has no bets listed, so it costs nothing on a month
+  // Dan has not sent any for.
+  step("publish VIP record", ["scripts/publish-vip.ts", month]);
+  if (day <= 2) step("publish previous VIP record", ["scripts/publish-vip.ts", lastMonth]);
 }

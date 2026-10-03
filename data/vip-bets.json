@@ -39,7 +39,8 @@
       { "date": "2026-10-01", "horse": "Jujubella",     "stake": 1,   "type": "win", "price": "13/2" },
       { "date": "2026-10-02", "horse": "Cockade",       "stake": 2,   "type": "win", "price": "11/4" },
       { "date": "2026-10-02", "horse": "Captain Parma", "stake": 1,   "type": "ew",  "price": null   },
-      { "date": "2026-10-03", "horse": "Great Acclaim", "stake": 0.5, "type": "ew",  "price": "20/1" }
+      { "date": "2026-10-03", "horse": "Great Acclaim", "stake": 0.5, "type": "ew",  "price": "20/1" },
+      { "date": "2026-10-03", "horse": "Classic Encounter", "stake": 1.5, "type": "ew",  "price": "5/1"  }
     ]
   }
 }
