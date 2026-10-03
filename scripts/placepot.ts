@@ -50,20 +50,26 @@ function placeChance(impliedProb: number, placesOffered: number): number {
   return row[Math.min(9, Math.max(0, Math.floor(impliedProb * 20)))];
 }
 
-async function main() {
-  const date = process.argv[2];
-  const want = (process.argv.find((a) => a.startsWith("--course=")) ?? "").split("=")[1];
-  if (!date) { console.error("usage: npm run placepot -- YYYY-MM-DD [--course=slug]"); process.exit(1); }
+export type PlacepotLeg = {
+  leg: number; off: string; raceId: string; name: string; field: number; places: number;
+  horse: string; number: string; price: string; chance: number; why: string;
+};
+export type Placepot = {
+  date: string; course: string; courseSlug: string;
+  legs: PlacepotLeg[]; survival: number;
+};
+
+/** Build the day's placepot. Returns null when no meeting has six priced races. */
+export async function buildPlacepot(date: string, want?: string): Promise<Placepot | null> {
   const sql = postgres(process.env.DATABASE_URL!, { max: 1, ssl: "require" });
 
   const meetings = await sql<any[]>`
     SELECT ra.course_slug, c.name course, count(*)::int races
     FROM races ra JOIN courses c ON c.id = ra.course_id
     WHERE ra.race_date = ${date} GROUP BY 1,2 HAVING count(*) >= 6 ORDER BY 3 DESC`;
-  if (!meetings.length) { console.log("No meeting has six races."); await sql.end(); return; }
+  if (!meetings.length) { await sql.end(); return null; }
 
-  type Leg = { off: string; name: string; field: number; places: number;
-               horse: string; number: string; price: string; chance: number; why: string };
+  type Leg = PlacepotLeg;
   const built: { course: string; slug: string; legs: Leg[]; survival: number }[] = [];
 
   for (const m of meetings) {
@@ -138,7 +144,8 @@ async function main() {
       const why = chosen.hcap ? chosen.reason || "well handicapped" : "best place chance in the race";
       if (!pick) continue;
       legs.push({
-        off: String(ra.off_time), name: String(ra.name ?? "").slice(0, 42), field, places: p,
+        leg: legs.length + 1, raceId: String(ra.id),
+        off: String(ra.off_time), name: String(ra.name ?? ""), field, places: p,
         horse: String(pick.horse_name), number: String(pick.number ?? "?"),
         price: String(pick.best_odds_frac ?? "-"), chance, why,
       });
@@ -150,19 +157,26 @@ async function main() {
 
   built.sort((a, b) => b.survival - a.survival);
   const best = built[0];
-  if (!best) { console.log("No meeting had six priced races."); await sql.end(); return; }
+  await sql.end();
+  if (!best) return null;
+  return { date, course: best.course, courseSlug: best.slug, legs: best.legs, survival: best.survival };
+}
+
+async function main() {
+  const date = process.argv[2];
+  const want = (process.argv.find((a) => a.startsWith("--course=")) ?? "").split("=")[1];
+  if (!date) { console.error("usage: npm run placepot -- YYYY-MM-DD [--course=slug]"); process.exit(1); }
+  const best = await buildPlacepot(date, want);
+  if (!best) { console.log("No meeting had six priced races."); return; }
 
   console.log(`\nDAILY PLACEPOT — ${date}`);
   console.log(`${best.course.toUpperCase()}\n`);
   best.legs.forEach((l, i) => {
-    console.log(`  Leg ${i + 1}  ${l.off}  ${l.name}`);
+    console.log(`  Leg ${i + 1}  ${l.off}  ${l.name.slice(0, 42)}`);
     console.log(`         ${l.field} runners, ${l.places} place${l.places === 1 ? "" : "s"}`);
     console.log(`         No.${l.number}  ${l.horse}  ${l.price}   ~${(l.chance * 100).toFixed(0)}% to place  (${l.why})`);
   });
   console.log(`\n  all six surviving: about ${(best.survival * 100).toFixed(1)}%`);
-  if (built.length > 1)
-    console.log(`  (chosen over ${built.slice(1).map((b) => `${b.course} ${(b.survival * 100).toFixed(1)}%`).join(", ")})`);
   console.log();
-  await sql.end();
 }
 main().catch((e) => { console.error(e?.message ?? e); process.exit(1); });
