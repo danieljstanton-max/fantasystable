@@ -224,18 +224,13 @@ async function main() {
     return;
   }
 
-  const site = process.env.WP_SITE_URL;
-  const user = process.env.WP_USER;
-  const pass = process.env.WP_APP_PASSWORD;
-  if (!site || !user || !pass) throw new Error("WP_SITE_URL, WP_USER and WP_APP_PASSWORD must be set");
+  const site = process.env.HRT_URL, token = process.env.HRT_TOKEN;
+  if (!site || !token) throw new Error("Missing HRT_URL / HRT_TOKEN");
 
   const url = `${site.replace(/\/$/, "")}/wp-json/hrt/v1/vip/${month}`;
   const res = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Basic " + Buffer.from(`${user}:${pass}`).toString("base64"),
-    },
+    headers: { "Content-Type": "application/json", "X-HRT-Token": token },
     body: JSON.stringify({ month, bets: settled, months: series }),
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${(await res.text()).slice(0, 200)}`);
