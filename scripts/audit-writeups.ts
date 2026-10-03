@@ -148,9 +148,17 @@ const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
     }
 
     // 4. "has won here N times" must match the course record.
+    //
+    // A bare "has won here" is an existence claim, not a count. It was being
+    // read as "exactly once", so TRAPRAIN LAW — who has won at Kelso three
+    // times — was flagged as contradicting the form on 2026-10-04 and held the
+    // whole Sunday card off the site overnight. The claim was true.
+    //
+    // A stated number still has to be the number: "twice" when the record says
+    // three is a different kind of wrong, and the sort this check is for.
     const here = c.sentence.match(/has won here(?: (\d+) times| twice)?/);
     if (here) {
-      const claimed = here[1] ? parseInt(here[1], 10) : here[0].includes("twice") ? 2 : 1;
+      const counted = here[1] ? parseInt(here[1], 10) : here[0].includes("twice") ? 2 : null;
       const [row] = await sql`
         select count(*)::int n
         from runners r join races ra on ra.id = r.race_id
@@ -159,8 +167,10 @@ const norm = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
             select course_slug from races where race_date = ${date}
               and id = (select race_id from runners where horse_id = ${id}
                         and race_id in (select id from races where race_date = ${date}) limit 1))`;
-      if ((row as any).n !== claimed)
-        faults.push({ ...c, claim: here[0], problem: `record shows ${(row as any).n} course win(s)` });
+      const n = (row as any).n as number;
+      const wrong = counted === null ? n < 1 : n !== counted;
+      if (wrong)
+        faults.push({ ...c, claim: here[0], problem: `record shows ${n} course win(s)` });
     }
 
     // 5. Grammar that has bitten before.

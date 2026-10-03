@@ -461,15 +461,24 @@ async function main() {
       //
       // Its own try, like the profiles: a blank placepot grid is a smaller
       // loss than a day of tips.
-      try {
-        console.log("\n  pushing the daily placepot...");
-        console.log(
-          run("npx", ["tsx", "--env-file=.env.local", "scripts/publish-placepot.ts", date])
-            .split("\n").filter(Boolean).slice(-2).join("\n")
-        );
-      } catch (e) {
-        console.error("  placepot failed (the tips are unaffected):");
-        console.error("   ", (e as Error).message.split("\n")[0]);
+      // Live runs only, which is what the comment above always said and the
+      // code did not. On 2026-10-04 the write-up audit held the card as a
+      // draft and the placepot went out anyway: the site was showing today's
+      // tips beside tomorrow's placepot, and selections we had just declined
+      // to stand behind were public.
+      if (live) {
+        try {
+          console.log("\n  pushing the daily placepot...");
+          console.log(
+            run("npx", ["tsx", "--env-file=.env.local", "scripts/publish-placepot.ts", date])
+              .split("\n").filter(Boolean).slice(-4).join("\n")
+          );
+        } catch (e) {
+          console.error("  placepot failed (the tips are unaffected):");
+          console.error("   ", (e as Error).message.split("\n")[0]);
+        }
+      } else {
+        console.log("\n  placepot held: the card is a draft, and that page has no draft state.");
       }
     } catch (e) {
       // A publishing failure must never lose the day's work — the files are
