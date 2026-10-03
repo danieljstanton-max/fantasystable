@@ -59,15 +59,25 @@ export type Placepot = {
   legs: PlacepotLeg[]; survival: number;
 };
 
-/** Build the day's placepot. Returns null when no meeting has six priced races. */
-export async function buildPlacepot(date: string, want?: string): Promise<Placepot | null> {
+/**
+ * Build a placepot for EVERY meeting with six priced races.
+ *
+ * Dan, 2026-10-03: "we need a placepot for each meeting — legs across the top
+ * and the meetings down the left hand side and just post the numbers of the
+ * horses." One card per meeting was the wrong shape: a punter picks the meeting
+ * he is playing, so the page has to cover the card he is actually at.
+ *
+ * Ordered by how likely the six legs are to survive, so the strongest sits at
+ * the top of the grid.
+ */
+export async function buildPlacepots(date: string, want?: string): Promise<Placepot[]> {
   const sql = postgres(process.env.DATABASE_URL!, { max: 1, ssl: "require" });
 
   const meetings = await sql<any[]>`
     SELECT ra.course_slug, c.name course, count(*)::int races
     FROM races ra JOIN courses c ON c.id = ra.course_id
     WHERE ra.race_date = ${date} GROUP BY 1,2 HAVING count(*) >= 6 ORDER BY 3 DESC`;
-  if (!meetings.length) { await sql.end(); return null; }
+  if (!meetings.length) { await sql.end(); return []; }
 
   type Leg = PlacepotLeg;
   const built: { course: string; slug: string; legs: Leg[]; survival: number }[] = [];
@@ -156,27 +166,28 @@ export async function buildPlacepot(date: string, want?: string): Promise<Placep
   }
 
   built.sort((a, b) => b.survival - a.survival);
-  const best = built[0];
   await sql.end();
-  if (!best) return null;
-  return { date, course: best.course, courseSlug: best.slug, legs: best.legs, survival: best.survival };
+  return built.map((b) => ({
+    date, course: b.course, courseSlug: b.slug, legs: b.legs, survival: b.survival,
+  }));
 }
 
 async function main() {
   const date = process.argv[2];
   const want = (process.argv.find((a) => a.startsWith("--course=")) ?? "").split("=")[1];
   if (!date) { console.error("usage: npm run placepot -- YYYY-MM-DD [--course=slug]"); process.exit(1); }
-  const best = await buildPlacepot(date, want);
-  if (!best) { console.log("No meeting had six priced races."); return; }
+  const all = await buildPlacepots(date, want);
+  if (!all.length) { console.log("No meeting had six priced races."); return; }
 
-  console.log(`\nDAILY PLACEPOT — ${date}`);
-  console.log(`${best.course.toUpperCase()}\n`);
+  console.log(`\nDAILY PLACEPOT — ${date}\n`);
+  for (const best of all) {
+  console.log(`${best.course.toUpperCase()}`);
   best.legs.forEach((l, i) => {
     console.log(`  Leg ${i + 1}  ${l.off}  ${l.name.slice(0, 42)}`);
     console.log(`         ${l.field} runners, ${l.places} place${l.places === 1 ? "" : "s"}`);
     console.log(`         No.${l.number}  ${l.horse}  ${l.price}   ~${(l.chance * 100).toFixed(0)}% to place  (${l.why})`);
   });
-  console.log(`\n  all six surviving: about ${(best.survival * 100).toFixed(1)}%`);
-  console.log();
+  console.log(`  all six surviving: about ${(best.survival * 100).toFixed(1)}%\n`);
+  }
 }
 main().catch((e) => { console.error(e?.message ?? e); process.exit(1); });
