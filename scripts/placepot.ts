@@ -103,23 +103,24 @@ export async function buildPlacepots(date: string, want?: string): Promise<Place
       // Our own angles, among the horses that can actually place.
       //
       // Dan, 2026-10-03: "we should[n't] just select favs though - like we pick
-      // horses ones that are well handicapped etc." So the market sets who is
-      // credible and our handicap read picks between them. Taking the favourite
-      // every time is a different, duller page; taking a well-handicapped horse
-      // with no place chance is not a placepot leg at all.
+      // horses ones that are well handicapped etc." So the market decides who
+      // is credible and our handicap read picks between them.
       //
-      // Candidates: anything with at least a 45% chance of placing on the
-      // measured table. Among those, a horse the handicap read likes wins; if
-      // none qualifies, the best place chance does.
+      // Every race gets a pick. The 45% threshold was first written as a filter
+      // and it silently deleted whole meetings: a competitive handicap where
+      // nothing reaches 45% dropped the leg, the meeting then had five legs,
+      // and the grid showed one course out of six. A placepot needs a horse in
+      // every leg whether or not we like the race, so the threshold now only
+      // decides whether the handicap angles get consulted — it never removes a
+      // runner from consideration.
       const raw = rs.map((r) => 1 / Number(r.best_odds_dec));
       const book = raw.reduce((a, b) => a + b, 0);
 
-      type Cand = { r: any; chance: number; hcap: boolean; reason: string };
+      type Cand = { r: any; chance: number; clean: boolean; hcap: boolean; reason: string };
       const cands: Cand[] = [];
       for (let i = 0; i < Math.min(rs.length, 5); i++) {
         const r = rs[i];
         const chance = placeChance(raw[i] / book, p);
-        if (chance < 0.45) continue;
         const hist = (await sql<any[]>`
           SELECT ra2.going_band "goingBand", ru.position_num "positionNum", ru.ofr,
                  ra2.race_type "raceType", ra2.race_date "raceDate", ra2.distance_f "distanceF",
@@ -130,29 +131,42 @@ export async function buildPlacepots(date: string, want?: string): Promise<Place
           FROM runners ru JOIN races ra2 ON ra2.id=ru.race_id
           WHERE ru.horse_id=${r.horse_id} AND ra2.race_date < ${date} AND ru.position_num IS NOT NULL
           ORDER BY ra2.race_date DESC`) as unknown as PastRun[];
-        if (groundGate(hist, band as any)) continue;   // Dan's rule applies here too
-        const hc = wellHandicapped(
-          { horseId: r.horse_id, horseName: r.horse_name, ofr: r.ofr ?? null, age: r.age ?? null,
-            draw: null, jockeyId: null, bestOddsDec: Number(r.best_odds_dec),
-            headgearFirstTime: false, windSurgeryFirstTime: false, daysSinceRun: null,
-            trainer14Runs: null, trainer14Wins: null, trainer14Percent: null } as any,
-          { courseSlug: String(ra.course_slug ?? ""), distanceF: Number(ra.distance_f) || null,
-            goingBand: band as any, raceType: ra.race_type ?? null, fieldSize: field,
-            raceClass: ra.race_class ?? null, raceName: String(ra.name ?? "") } as any,
-          hist, date
-        );
-        cands.push({
-          r, chance, hcap: hc.qualifies,
-          reason: hc.qualifies && hc.reasons.length ? String(hc.reasons[0]).slice(0, 70) : "",
-        });
+        const clean = groundGate(hist, band as any) === null;
+        let hcap = false, reason = "";
+        if (chance >= 0.45 && clean) {
+          const hc = wellHandicapped(
+            { horseId: r.horse_id, horseName: r.horse_name, ofr: r.ofr ?? null, age: r.age ?? null,
+              draw: null, jockeyId: null, bestOddsDec: Number(r.best_odds_dec),
+              headgearFirstTime: false, windSurgeryFirstTime: false, daysSinceRun: null,
+              trainer14Runs: null, trainer14Wins: null, trainer14Percent: null } as any,
+            { courseSlug: String(ra.course_slug ?? ""), distanceF: Number(ra.distance_f) || null,
+              goingBand: band as any, raceType: ra.race_type ?? null, fieldSize: field,
+              raceClass: ra.race_class ?? null, raceName: String(ra.name ?? "") } as any,
+            hist, date
+          );
+          hcap = hc.qualifies;
+          reason = hc.qualifies && hc.reasons.length ? String(hc.reasons[0]).slice(0, 70) : "";
+        }
+        cands.push({ r, chance, clean, hcap, reason });
       }
       if (!cands.length) continue;
-      cands.sort((a, b) => Number(b.hcap) - Number(a.hcap) || b.chance - a.chance);
+
+      // Best first: a well-handicapped horse that clears the ground rule and
+      // has a real place chance; then any clean horse by place chance; then,
+      // only if nothing in the race clears the ground rule, the best chance.
+      cands.sort((a, b) =>
+        Number(b.hcap) - Number(a.hcap) ||
+        Number(b.clean) - Number(a.clean) ||
+        b.chance - a.chance);
       const chosen = cands[0];
       const pick = chosen.r;
       const chance = chosen.chance;
-      const why = chosen.hcap ? chosen.reason || "well handicapped" : "best place chance in the race";
-      if (!pick) continue;
+      const why = chosen.hcap
+        ? chosen.reason || "well handicapped"
+        : chosen.clean
+        ? "soundest place chance"
+        : "best place chance; nothing in the race clears the ground rule";
+
       legs.push({
         leg: legs.length + 1, raceId: String(ra.id),
         off: String(ra.off_time), name: String(ra.name ?? ""), field, places: p,
