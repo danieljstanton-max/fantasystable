@@ -17,7 +17,7 @@ import "dotenv/config";
 import { fetchResults } from "../lib/racing-api";
 import { withRetry } from "../lib/retry";
 import { stripHorseCountry, stripCourseSuffix, offTime24, parseOffDt } from "../lib/mappers";
-import { parseBestBets, parseWriteUps } from "../lib/published";
+import { parseBestBets, parseWriteUps, dayLabel, OUT_DIR } from "../lib/published";
 
 const norm = (s: string) =>
   stripHorseCountry(s).toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -90,8 +90,25 @@ function raceNote(r: any): string {
     else oursLoose.add(norm(p.horse));
   }
 
-  if (!picks.length) {
-    console.log(`No published files for ${date} — results will go up untagged.`);
+  // Nothing to tag with is a refusal, not a warning.
+  //
+  // This printed "results will go up untagged" and carried on. On 2026-10-03 I
+  // ran it from the Mac to settle the 14:10 Newmarket; the published files live
+  // on the server now, the Mac's copy stops at 20 September, so every runner
+  // went up flagged "not ours" and wiped the selection marks off eleven race
+  // pages that were already correct — including a 20/1 winner. The line was
+  // printed and scrolled past, which is exactly how a check that only talks
+  // fails. It stops now, and says where it looked.
+  if (!picks.length && !process.argv.includes("--untagged")) {
+    console.error(`\nNothing to tag: no published files for ${date}.`);
+    console.error(`  looked in: ${OUT_DIR}`);
+    console.error(`    ${dayLabel(date)} - BEST BETS.txt`);
+    console.error(`    ${dayLabel(date)} - RACE WRITE-UPS.txt`);
+    console.error(`\n  Publishing now would push every runner as "not ours" and`);
+    console.error(`  erase the selection marks already on those pages.`);
+    console.error(`\n  Run it where the files are, or set HRT_OUT_DIR to point at them.`);
+    console.error(`  If the day genuinely had no selections, pass --untagged.\n`);
+    process.exit(1);
   }
 
   // Results are paginated and the API caps `limit` at 100 — asking for more
