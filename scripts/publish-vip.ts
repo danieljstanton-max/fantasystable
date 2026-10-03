@@ -32,9 +32,23 @@ type Bet = {
   stake: number;
   type: "win" | "ew";
   price: string | null;
+  /**
+   * A finishing position given by hand, for a race the feed has not published
+   * yet. Dan watches the racing and the record should not sit on "to run" for
+   * an hour after he has seen the horse finish second.
+   *
+   * It is only ever a stand-in. The official result wins the moment it lands,
+   * so this cannot hold a wrong figure on the page, and if the two disagree —
+   * a photo reversed, a disqualification — the official one is what shows and
+   * the push says so.
+   */
+  position?: number;
 };
 
-type SettledBet = Bet & {
+// Omit, not extend: `position` goes in as the number Dan gave and comes out as
+// the string the page prints ("2", or "PU"). Intersecting the two collapsed it
+// to `never`, which typecheck caught and a looser setup would have shipped.
+type SettledBet = Omit<Bet, "position"> & {
   course: string;
   off: string;
   race: string;
@@ -131,15 +145,28 @@ async function main() {
     }
 
     const r = rows[0];
-    const pos = r.position_num === null ? null : String(r.position ?? r.position_num);
     const places = r.ew_places === null ? null : Number(r.ew_places);
+
+    // The official position if we have one; the hand-given one only while we
+    // do not. Never the other way round.
+    const official = r.position_num === null ? null : Number(r.position_num);
+    const byHand = typeof bet.position === "number" ? bet.position : null;
+    if (official !== null && byHand !== null && official !== byHand) {
+      console.warn(
+        `  ! ${bet.horse}: given as ${byHand}, officially ${official} — using the official result`
+      );
+    }
+    const finish = official ?? byHand;
+    const pos = official !== null ? String(r.position ?? official) : byHand === null ? null : String(byHand);
+    if (official === null && byHand !== null) {
+      console.warn(`  ~ ${bet.horse}: settled on the given position (${byHand}); the feed has not published this race`);
+    }
 
     let result: SettledBet["result"];
     if (r.is_non_runner) result = "void";
-    else if (r.status !== "result" || r.position_num === null) result = "pending";
-    else if (Number(r.position_num) === 1) result = "won";
-    else if (bet.type === "ew" && places !== null && Number(r.position_num) <= places)
-      result = "placed";
+    else if (finish === null) result = "pending";
+    else if (finish === 1) result = "won";
+    else if (bet.type === "ew" && places !== null && finish <= places) result = "placed";
     else result = "lost";
 
     const { staked, profit } = settle(bet, result, r.ew_denom);

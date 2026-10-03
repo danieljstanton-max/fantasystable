@@ -17,6 +17,10 @@
     "  type:  \"win\" or \"ew\". An each-way bet stakes twice the unit.",
     "  stake: points on the win part. 1 + \"ew\" is a 1pt each-way, 2pts total.",
     "  price: as advised, not the SP. null if it was not recorded.",
+    "  position: OPTIONAL, and only to settle a race the feed has not published",
+    "    yet — Dan watched it and the site should not sit on 'to run' for an",
+    "    hour. The official result always wins once it arrives, so this never",
+    "    needs removing and can never hold a wrong figure on the page.",
     "",
     "Push it with:  npm run publish:vip -- 2026-10"
   ],
@@ -40,7 +44,7 @@
       { "date": "2026-10-02", "horse": "Cockade",       "stake": 2,   "type": "win", "price": "11/4" },
       { "date": "2026-10-02", "horse": "Captain Parma", "stake": 1,   "type": "ew",  "price": null   },
       { "date": "2026-10-03", "horse": "Great Acclaim", "stake": 0.5, "type": "ew",  "price": "20/1" },
-      { "date": "2026-10-03", "horse": "Classic Encounter", "stake": 1.5, "type": "ew",  "price": "5/1"  }
+      { "date": "2026-10-03", "horse": "Classic Encounter", "stake": 1.5, "type": "ew",  "price": "5/1", "position": 2 }
     ]
   }
 }
