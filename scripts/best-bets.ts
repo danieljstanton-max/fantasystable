@@ -230,6 +230,21 @@ async function main() {
   for (const ra of races) {
     const live = (byRace.get(ra.id) ?? []).filter((r) => !r.isNonRunner);
     if (live.length < 5) continue;
+
+    // A race nobody has priced is a race nobody has declared.
+    //
+    // 2026-10-05: NIFFLER reached the top five as selection 4 with "no price"
+    // beside it. The 16:25 Pontefract had nine runners, no racecard numbers, no
+    // jockeys on most of them and not one bookmaker price — The Racing API had
+    // re-issued the race under a new id at 16:56 with six declared, and the
+    // stale entry stayed on our card looking like a race.
+    //
+    // Nothing caught it. The staking line reads the price we print, and "no
+    // price" is not a price, so there was nothing to check against; preflight's
+    // real-runners check asks whether the horse is declared and withdrawn, not
+    // whether the race is. A selection we cannot quote a price for is not a bet
+    // we can advise, whatever the reason.
+    if (!live.some((r) => r.priceDec != null)) continue;
     // Only races that pass the filters — the best bets come from the handicaps
     // the method is built for, not from every race on the card.
     if (!filterRace({ raceName: ra.name, ageBand: ra.ageBand, raceClass: ra.raceClass },
