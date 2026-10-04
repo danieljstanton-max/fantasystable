@@ -54,11 +54,34 @@ export interface FormRead {
  * Ordered most specific first — "went straight to the front" must win over the
  * bare "front", and "held up" over "handy".
  */
+/**
+ * Dan, 2026-10-04, on ALWAYS BLUE: "looks like it could get a lead."
+ *
+ * He was right and we had the horse down as held-up. Its last run read
+ * "travelled keenly in front ... overtaken close home" — it led at Thirsk over
+ * today's trip on today's ground and was only caught near the line. The parser
+ * could not see it: every "led" phrase here described TAKING the lead, and
+ * nothing matched simply BEING in front.
+ *
+ * That made three of its six comments unreadable rather than wrong, which is
+ * worse — an unread run is silently dropped instead of counted, so the horse
+ * came out as a hold-up type on the three that happened to parse.
+ *
+ * It is not one horse. "Only confirmed front-runner" appears in write-ups and
+ * is used to call an uncontested lead, and the pace impact values are built
+ * from these same reads, with only 58% of comments readable before this.
+ */
 const RUN_STYLE: Array<[RunStyle, string[]]> = [
   ["led", [
     "went straight to the front", "went straight to front", "straight to the lead",
     "set the pace", "made the running", "made all", "led early", "set off in front",
     "disputed the lead", "dictated",
+    // Being in front early, as opposed to arriving there late. "Hit the front
+    // 2f out" and "took the lead" describe a closer winning the race, not a
+    // horse that goes forward from the gate — and it is the gate that decides
+    // whether tomorrow's pace is contested. They are deliberately absent.
+    "in front", "soon in the lead", "soon led", "headed the field",
+    "forced the pace", "led until", "always in front", "front rank",
   ]],
   ["held-up", [
     "held up towards the back", "held up in the pack", "held up", "settled at the back",
@@ -68,6 +91,10 @@ const RUN_STYLE: Array<[RunStyle, string[]]> = [
   ["prominent", [
     "handy", "prominent", "chased the leader", "settled in second",
     "close up", "tracked the leader", "raced keenly in second",
+    // Sitting on the pace without making it.
+    "tracking pace", "tracked the pace", "tracking the leaders", "tracked the leaders",
+    "sat second", "sat third", "sat fourth", "chased the leaders", "pressed the leader",
+    "raced in second", "just behind the leaders",
   ]],
   ["midfield", [
     "settled in the pack", "settled in mid-division", "mid-division", "midfield",
