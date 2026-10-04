@@ -18,6 +18,22 @@
 import "dotenv/config";
 import postgres from "postgres";
 
+/**
+ * What a horse gives up for not being the standout in its own race.
+ *
+ * In points, the same unit as the score, so the deduction can be read straight
+ * off the figures printed beside every selection. Capped at three: beyond
+ * "we cannot split this race" there is nothing more to say, and a deeper
+ * penalty would start rejecting strong horses in genuinely competitive races
+ * rather than ranking them.
+ */
+export function standoutPenalty(clear: number): number {
+  if (clear >= 3) return 0;
+  if (clear === 2) return 1;
+  if (clear === 1) return 2;
+  return 3;
+}
+
 import {
   filterRace, scoreHorse, wellHandicapped, groundGate, streakGate,
   type PastRun, type HorseToday, type RaceToday,
@@ -598,14 +614,47 @@ async function main() {
   const crowded = rest.filter((p) => !wrongGround(p) && !onAStreak(p) && bigField(p));
   const eligible = rest.filter((p) => !wrongGround(p) && !onAStreak(p) && !bigField(p));
 
-  // Strength first, decisiveness second.
-  eligible.sort(
-    (a, b) =>
-      b.rankScore - a.rankScore ||
-      b.clear - a.clear ||
-      String(a.r.horseName).localeCompare(String(b.r.horseName))
-  );
-  const top = eligible.slice(0, N);
+  // Strength first, decisiveness second — but decisiveness is not a tiebreak.
+  //
+  // Dan, 2026-10-04: "a NAP needs to be the stand out selection in the race. If
+  // it's close to another runner in the race then it must be marked down."
+  //
+  // `clear` was only separating equal scores, so a 14 that was one point ahead
+  // of the second-best horse in its own race outranked a 13 that was five
+  // clear. That is backwards: the first is a race we can barely split and the
+  // second is one we can. On 5 October it made CAPE ASHIZURI the NAP on 14
+  // points and one clear, in a race its own write-up warned about on the draw
+  // and the pace.
+  //
+  // The penalty is in the same unit as the score, so it reads off the printed
+  // figures: a horse two clear gives up a point, one clear gives up two, and
+  // level or behind gives up three. A hand pick can be behind the top-rated in
+  // its race, which is a deliberate override and takes the full deduction.
+  const top = eligible
+    .map((p) => ({ p, standout: p.rankScore - standoutPenalty(p.clear) }))
+    .sort(
+      (a, b) =>
+        b.standout - a.standout ||
+        b.p.clear - a.p.clear ||
+        String(a.p.r.horseName).localeCompare(String(b.p.r.horseName))
+    )
+    .slice(0, N)
+    .map((x) => x.p);
+
+  // HRT_STANDOUT_COMPARE=1 prints what the old score-only order would have
+  // been, so the change can be measured over past cards instead of argued
+  // about. It writes to stderr and never touches the published file.
+  if (process.env.HRT_STANDOUT_COMPARE) {
+    const before = [...eligible]
+      .sort((a, b) => b.rankScore - a.rankScore || b.clear - a.clear ||
+        String(a.r.horseName).localeCompare(String(b.r.horseName)))
+      .slice(0, N);
+    const fmt = (p: any) => `${String(p.r.horseName).toUpperCase()} (${p.rankScore}pts, ${p.clear} clear)`;
+    console.error(`COMPARE ${date}`);
+    console.error(`  was: ${before.map(fmt).join(" | ")}`);
+    console.error(`  now: ${top.map(fmt).join(" | ")}`);
+    console.error(`  nap ${before[0] && top[0] && before[0].r.horseName === top[0].r.horseName ? "unchanged" : "CHANGED"}`);
+  }
 
   /* -------------------------------------------------------------- output */
 
