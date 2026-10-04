@@ -42,6 +42,7 @@
     "going": "tsx --env-file=.env.local scripts/going-watch.ts",
     "audit:writeups": "tsx --env-file=.env.local scripts/audit-writeups.ts",
     "preflight": "tsx --env-file=.env.local scripts/preflight.ts",
+    "check:marks": "tsx --env-file=.env.local scripts/mark-check.ts",
     "vip": "tsx --env-file=.env.local scripts/vip.ts",
     "publish": "tsx --env-file=.env.local scripts/publish.ts",
     "publish:results": "tsx --env-file=.env.local scripts/publish-results.ts",
