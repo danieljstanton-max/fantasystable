@@ -82,10 +82,26 @@ type Check = {
 
   /* ---------------------------------------------------------------- data */
 
+  // Declared races only.
+  //
+  // The coverage check asks whether every race on the card has a verdict. It
+  // was counting every race row, and The Racing API returns a race at the ENTRY
+  // stage alongside the declared one — nine entered at 16:25 Pontefract on
+  // 5 October, six of them declared into the 16:56. Once write-ups correctly
+  // stopped previewing the entry list, coverage read "54 verdicts for 55 races"
+  // and held a good card off the site.
+  //
+  // The tell is the racecard number: weights are published with the
+  // declarations, so a field without a single number has not been declared.
+  // Asking the database that is the fix; counting the sentences the write-ups
+  // printed about it would be the same mistake in a new place.
   const races = await sql`
     select ra.id, ra.off_time "off", ra.course_name "course", ra.name,
            ra.field_size "field", ra.going
-    from races ra where ra.race_date = ${date} order by ra.off_time`;
+    from races ra
+    where ra.race_date = ${date}
+      and exists (select 1 from runners r where r.race_id = ra.id and r.number is not null)
+    order by ra.off_time`;
 
   const runners = await sql`
     select r.horse_id "id", r.horse_name "name", r.race_id "raceId",

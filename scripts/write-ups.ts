@@ -347,6 +347,28 @@ async function main() {
 
     if (live.length < 2) { say(`Not enough declared runners to preview.`); continue; }
 
+    // Entries are not declarations.
+    //
+    // Dan, 2026-10-04: "niffler isn't running until Wednesday?" He wasn't, and
+    // we had him in the 16:25 Pontefract. The Racing API returns a race at the
+    // ENTRY stage alongside the declared one — nine entered at 16:25 with no
+    // racecard numbers, no jockeys and no prices, six of them declared into the
+    // 16:56. Niffler was entered, not declared, and went to Kempton on the
+    // Wednesday instead.
+    //
+    // We previewed it anyway, which put a page on the site listing nine horses
+    // for a race six were running in, one of them two days away at another
+    // course. A whole Warwick card went up the same way on 30 September.
+    //
+    // No racecard number on any runner is the tell: the weights are published
+    // with the declarations, so a field without a single number has not been
+    // declared yet. Keep the row — the data is real and the raw is worth having
+    // — but do not preview it and do not give it a page.
+    if (!live.some((r: any) => r.number != null)) {
+      say(`Entries only — not declared yet, so nothing is previewed here.`);
+      continue;
+    }
+
     const verdict = filterRace(
       { raceName: ra.name, ageBand: ra.ageBand, raceClass: ra.raceClass },
       live.map((x) => ({ age: x.age, isNonRunner: x.isNonRunner }))
