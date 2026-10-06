@@ -78,6 +78,46 @@ out. Use `toOffInstant()`; never construct race times by hand.
 ten minutes. IDs are The Racing API's own; never invent our own primary keys for
 entities the API already identifies.
 
+## What may be selected
+
+Dan's method is **well-handicapped horses**. The score can reach a horse on
+draw, pace, booking and yard form without the handicap angle firing at all —
+WYLE COP was NAP on 2026-10-05 on draw and pace while the model called a
+*different* horse in the same race well handicapped. That is not the method.
+
+Before showing him any card, run `npm run check:marks -- <date>`. It reports
+every selection against the mark it last won off, in the same code, and flags
+`!` for one that is up and has **never won off a mark this high**. Lead with
+those. Up in mark AND up in class AND up in trip is the disqualifying shape.
+
+**A NAP must be the standout in its own race.** Closeness is a deduction, not a
+tiebreak — `standoutPenalty()` in `scripts/best-bets.ts`. Dan chose this knowing
+it cost 5pts over the twelve cards it was measured on; do not relitigate it on
+measurement grounds, the same way the ground rule is not relitigated.
+
+**Anything that argues against a selection gets printed.** The ground record
+rule exists because a signal with weight zero is never shown, which is how a
+0-from-4-on-soft NAP reached the site. The same hole swallowed a 12lb rise.
+The mark trajectory, a cold yard, a bad draw and a poor record on today's going
+are stated whether or not they moved the score.
+
+**Entries are not declarations.** The API returns a race at the entry stage
+beside the declared one — same name, different race id, no racecard numbers, no
+prices. A field with no number on any runner is not declared: it gets no
+preview, no page, and nothing may be selected from it. Miss this and a horse
+running on Wednesday appears on Monday's card.
+
+## Checks read facts, not sentences
+
+Roughly 25 checks are regexes over the model's own prose and a handful query the
+database. Every silent failure this project has had came from the first kind:
+"has won here" read as exactly one win, a staking check with no price to read,
+coverage counting race rows instead of declared races, a run-style parser with
+no phrase for being in front.
+
+When a check can ask the database, it must. Every fix of this kind gets a named
+regression test in `scripts/test-gates.ts` — `npm run test:gates`.
+
 ## Ground and course
 
 Two hard gates sit outside the score, in `lib/selection.ts`:
