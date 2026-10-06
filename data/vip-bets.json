@@ -51,7 +51,10 @@
       { "date": "2026-10-05", "horse": "Simiyann",           "stake": 0.5, "type": "win", "price": null   },
       { "date": "2026-10-05", "horse": "Faithful",           "stake": 0.5, "type": "win", "price": null   },
       { "date": "2026-10-06", "horse": "My Mate Mackley",     "stake": 2,   "type": "win", "price": "5/2"  },
-      { "date": "2026-10-06", "horse": "Popular Dream",      "stake": 2,   "type": "win", "price": "5/2"  }
+      { "date": "2026-10-06", "horse": "Popular Dream",      "stake": 2,   "type": "win", "price": "5/2"  },
+      { "date": "2026-10-07", "horse": "Nightsinwhitesatin", "stake": 1.5, "type": "ew",  "price": "9/2",
+        "ewPlaces": 3, "ewDenom": 5 },
+      { "date": "2026-10-07", "horse": "Darkness",           "stake": 1,   "type": "win", "price": "7/2"  }
     ]
   }
 }

@@ -43,12 +43,23 @@ type Bet = {
    * the push says so.
    */
   position?: number;
+  /**
+   * Each-way terms as actually taken, overriding the consensus we hold.
+   *
+   * The terms in our data are what the sportsbooks were publishing; Dan bets
+   * with one firm and sometimes gets enhanced places. On 7 October he took
+   * 3 places on a 7-runner handicap where the consensus is 2 at 1/4 — a real
+   * concession, and settling it on the consensus would wrongly make a third
+   * place a loser.
+   */
+  ewPlaces?: number;
+  ewDenom?: number;
 };
 
 // Omit, not extend: `position` goes in as the number Dan gave and comes out as
 // the string the page prints ("2", or "PU"). Intersecting the two collapsed it
 // to `never`, which typecheck caught and a looser setup would have shipped.
-type SettledBet = Omit<Bet, "position"> & {
+type SettledBet = Omit<Bet, "position" | "ewPlaces" | "ewDenom"> & {
   course: string;
   off: string;
   race: string;
@@ -150,7 +161,12 @@ async function main() {
     }
 
     const r = rows[0];
-    const places = r.ew_places === null ? null : Number(r.ew_places);
+    const places =
+      typeof bet.ewPlaces === "number" ? bet.ewPlaces
+        : r.ew_places === null ? null : Number(r.ew_places);
+    const denom =
+      typeof bet.ewDenom === "number" ? bet.ewDenom
+        : r.ew_denom === null ? null : Number(r.ew_denom);
 
     // The official position if we have one; the hand-given one only while we
     // do not. Never the other way round.
@@ -174,7 +190,7 @@ async function main() {
     else if (bet.type === "ew" && places !== null && finish <= places) result = "placed";
     else result = "lost";
 
-    const { staked, profit } = settle(bet, result, r.ew_denom);
+    const { staked, profit } = settle(bet, result, denom);
 
     settled.push({
       ...bet,
@@ -185,7 +201,7 @@ async function main() {
       position: pos,
       sp: r.sp ?? null,
       ewPlaces: places,
-      ewDenom: r.ew_denom === null ? null : Number(r.ew_denom),
+      ewDenom: denom,
       result,
       staked,
       profit,
