@@ -1058,10 +1058,18 @@ async function main() {
     // written "ANNANDALE is passed over on the ground", following it with "the
     // dangers are ANNANDALE" reads as the file forgetting its own argument.
     // Each horse is named once, in one role.
+    // Hand vetoes come out of this list as well as the gates.
+    //
+    // Dan, 2026-10-06: "why is Getaway With You live on site?" It had been set
+    // aside by hand with the reason printed — and the very next line read "the
+    // dangers are GETAWAY WITH YOU at 20/1 (well handicapped)". The filter
+    // dropped ground- and streak-gated horses and nobody added vetoes to it,
+    // so the file argued against its own decision one sentence later.
     const dangers = bySc
       .filter((x) => x !== top && x.s.score > 0
         && groundFails.get(x.r.horseId) === null
-        && streakFails.get(x.r.horseId) === null)
+        && streakFails.get(x.r.horseId) === null
+        && !vetoFails.get(x.r.horseId))
       .slice(0, 2);
     if (dangers.length) {
       // Short reasons only. A danger described in a full clause each turns the

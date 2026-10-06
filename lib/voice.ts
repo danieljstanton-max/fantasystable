@@ -29,6 +29,7 @@ export const OPENERS_ELIGIBLE = [
   "makes most appeal",
   "is the one I keep coming back to",
   "is the one that stands out",
+  "is the one I want to be with",
   "gets the vote",
   "is the one I would be with",
 ];

@@ -199,9 +199,26 @@ type Check = {
   {
     const bad: string[] = [];
     const betHorses = [...bets.matchAll(/^\d+\.\s+([A-Z][A-Z0-9' ]+[A-Z0-9])\s{2,}/gm)].map((m) => m[1].trim());
+
+    // Match on the VERDICT line, not on the opening sentence.
+    //
+    // `sels` is built by matching the opener against the known phrase list, so
+    // a write-up edited into Dan's own words stops being recognised as a
+    // selection at all. On 2026-10-07 the NAP was rewritten to "is the one I
+    // want to be with" and this check reported DARKNESS as missing from its own
+    // write-up, with the verdict sitting three lines below saying otherwise.
+    //
+    // The verdict is the committed bet and its shape is fixed. Judge against
+    // that, and the prose can be written however it reads best.
+    // The name is the leading run of capitalised WORDS. Allowing digits inside
+    // the class swallowed the price — "VERDICT: DARKNESS 7/2" parsed as the
+    // horse "DARKNESS 7" and every best bet was reported missing.
+    const verdictHorses = [
+      ...up.matchAll(/^VERDICT:\s+((?:[A-Z][A-Z'\u2019.\-]*)(?:\s+[A-Z][A-Z'\u2019.\-]*)*)/gm),
+    ].map((m) => norm(m[1].trim()));
     for (const h of betHorses) {
-      const s = sels.find((x) => norm(x.horse) === norm(h));
-      if (!s) bad.push(`${h} is a best bet but is not the write-up selection for its race`);
+      if (!verdictHorses.includes(norm(h)))
+        bad.push(`${h} is a best bet but is not the write-up selection for its race`);
     }
     add("files-agree", "2026-08-26",
       "Every best bet is also the write-up selection for that race", bad);
