@@ -129,6 +129,11 @@ async function main() {
       LEFT JOIN courses c ON c.id = ra.course_id
       WHERE ra.race_date = ${bet.date}
         AND upper(ru.horse_name) LIKE ${"%" + bet.horse.toUpperCase() + "%"}
+        -- Declared races only. The Racing API returns the entry list alongside
+        -- the declared race, so a horse entered and then declared appears
+        -- twice and the "ran twice that day" guard fired on a horse that ran
+        -- once. A field with no racecard number has not been declared.
+        AND EXISTS (SELECT 1 FROM runners n WHERE n.race_id = ra.id AND n.number IS NOT NULL)
       ORDER BY ra.off_time`;
 
     // A horse can run twice in a day at two meetings. Refusing to guess is the
@@ -195,10 +200,23 @@ async function main() {
 
   settled.sort((a, b) => (a.date === b.date ? a.off.localeCompare(b.off) : a.date.localeCompare(b.date)));
 
-  const staked = settled.reduce((s, b) => s + b.staked, 0);
-  const profit = settled.reduce((s, b) => s + b.profit, 0);
-  const done = settled.filter((b) => b.result !== "pending" && b.result !== "void").length;
-  const wins = settled.filter((b) => b.result === "won").length;
+  // A bet is published only once it has run.
+  //
+  // Dan, 2026-10-06, giving the day's bets: "only show after results." These
+  // are the VIP group's selections and people pay for them — putting today's
+  // two on a public page before the race hands them to everyone for nothing.
+  //
+  // Held back from the PUSH rather than hidden in the page. Anything sent to
+  // WordPress is in the HTML whether or not it is displayed, and "hidden" in a
+  // page source is not hidden at all. The sweep pushes this every ten minutes,
+  // so a bet appears on its own within ten minutes of its race returning.
+  const shown = settled.filter((b) => b.result !== "pending");
+  const held = settled.length - shown.length;
+
+  const staked = shown.reduce((s, b) => s + b.staked, 0);
+  const profit = shown.reduce((s, b) => s + b.profit, 0);
+  const done = shown.filter((b) => b.result !== "void").length;
+  const wins = shown.filter((b) => b.result === "won").length;
 
   console.log(`\nVIP RECORD — ${month}\n`);
   for (const b of settled) {
@@ -216,6 +234,9 @@ async function main() {
     `\n  ${done} settled, ${wins} winner${wins === 1 ? "" : "s"}, ${staked.toFixed(2)}pts staked, ` +
       `${profit >= 0 ? "+" : ""}${profit.toFixed(2)}pts (ROI ${staked > 0 ? ((profit / staked) * 100).toFixed(1) : "0.0"}%)`
   );
+  if (held) {
+    console.log(`  ${held} bet${held === 1 ? "" : "s"} held back until the race has run — not sent to the site.`);
+  }
 
   // The graph plots the monthly totals Dan keeps by hand. Any month we also
   // hold bets for is recomputed from those bets and overwrites the hand figure,
@@ -224,7 +245,7 @@ async function main() {
   const months: Record<string, number> = { ...(file.months ?? {}) };
   for (const m of Object.keys(file.bets ?? {})) {
     if (m === month) {
-      months[m] = Number(profit.toFixed(2));
+      months[m] = Number(profit.toFixed(2));   // settled only, like the list
     }
   }
   const series = Object.keys(months)
@@ -242,7 +263,7 @@ async function main() {
   // rendered from this in a harness before it goes near the site.
   const dump = (process.argv.find((a) => a.startsWith("--dump=")) ?? "").split("=")[1];
   if (dump) {
-    writeFileSync(dump, JSON.stringify({ month, bets: settled, months: series }, null, 2));
+    writeFileSync(dump, JSON.stringify({ month, bets: shown, months: series }, null, 2));
     console.log(`\n  payload written to ${dump}`);
   }
 
@@ -258,10 +279,10 @@ async function main() {
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-HRT-Token": token },
-    body: JSON.stringify({ month, bets: settled, months: series }),
+    body: JSON.stringify({ month, bets: shown, months: series }),
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${(await res.text()).slice(0, 200)}`);
-  console.log(`\n  pushed ${settled.length} bets for ${month}`);
+  console.log(`\n  pushed ${shown.length} settled bet${shown.length === 1 ? "" : "s"} for ${month}`);
 }
 
 main().catch((e) => {

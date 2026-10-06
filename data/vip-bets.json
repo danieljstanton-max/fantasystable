@@ -46,7 +46,12 @@
       { "date": "2026-10-03", "horse": "Great Acclaim", "stake": 0.5, "type": "ew",  "price": "20/1" },
       { "date": "2026-10-03", "horse": "Classic Encounter", "stake": 1.5, "type": "ew",  "price": "5/1", "position": 2 },
       { "date": "2026-10-04", "horse": "Jubilant",   "stake": 1, "type": "win", "price": "4/1" },
-      { "date": "2026-10-04", "horse": "Luminaries", "stake": 1, "type": "win", "price": "4/1", "position": 1 }
+      { "date": "2026-10-04", "horse": "Luminaries", "stake": 1, "type": "win", "price": "4/1", "position": 1 },
+      { "date": "2026-10-05", "horse": "Gorgeous Mr George", "stake": 0.5, "type": "ew",  "price": "22/1" },
+      { "date": "2026-10-05", "horse": "Simiyann",           "stake": 0.5, "type": "win", "price": null   },
+      { "date": "2026-10-05", "horse": "Faithful",           "stake": 0.5, "type": "win", "price": null   },
+      { "date": "2026-10-06", "horse": "My Mate Mackley",     "stake": 2,   "type": "win", "price": "5/2"  },
+      { "date": "2026-10-06", "horse": "Popular Dream",      "stake": 2,   "type": "win", "price": "5/2"  }
     ]
   }
 }
