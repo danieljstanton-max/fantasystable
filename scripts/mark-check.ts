@@ -28,11 +28,15 @@ import "dotenv/config";
 import postgres from "postgres";
 import { parseBestBets, parseWriteUps } from "../lib/published";
 import { sameDiscipline } from "../lib/selection";
+import { readMark } from "../lib/marks";
 
 /** Above this, a rise is worth a human looking at it. */
 const RISE_FLAG_LBS = 6;
 
 type Row = {
+  /** effective - published, when the weights disagree with the rating field. */
+  drift: number | null;
+  published: number | null;
   rank: number | null;
   horse: string;
   course: string;
@@ -86,7 +90,8 @@ async function main() {
 
   for (const p of wanted) {
     const [today] = await sql<any[]>`
-      SELECT ru.horse_id, ru.horse_name, ru.ofr, ra.distance_f, ra.race_class,
+      SELECT ru.horse_id, ru.horse_name, ru.ofr, ru.weight_lbs, ru.jockey_claim_lbs,
+             ra.id race_id, ra.distance_f, ra.race_class,
              ra.race_type, ra.off_time, c.name course
       FROM runners ru JOIN races ra ON ra.id = ru.race_id
       LEFT JOIN courses c ON c.id = ra.course_id
@@ -94,6 +99,17 @@ async function main() {
         AND upper(ru.horse_name) = ${p.horse.toUpperCase()}
         ${p.offTime ? sql`AND ra.off_time = ${p.offTime}` : sql``}`;
     if (!today) continue;
+
+    // The published rating goes stale the moment a horse is reassessed for a
+    // win, and the weights carry the new figure first. Read the mark off the
+    // field's own weight line — see lib/marks.ts.
+    const fieldRows = await sql<any[]>`
+      SELECT ru.ofr, ru.weight_lbs, ru.jockey_claim_lbs
+      FROM runners ru WHERE ru.race_id = ${today.race_id} AND NOT ru.is_non_runner`;
+    const shape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weight_lbs, claim: r.jockey_claim_lbs });
+    const mk = readMark(fieldRows.map(shape), shape(today));
+    const trueMark = mk.effective ?? mk.published;
+    const drift = mk.drift;
 
     const hist = await sql<any[]>`
       SELECT ra.race_date, ra.distance_f, ra.race_class, ra.race_type,
@@ -108,7 +124,7 @@ async function main() {
     const wins = code.filter((h) => Number(h.position_num) === 1 && h.ofr !== null);
 
     const lw = wins[0] ?? null;
-    const mark = today.ofr === null ? null : Number(today.ofr);
+    const mark = trueMark;
     const lastMark = lw ? Number(lw.ofr) : null;
     const rise = mark !== null && lastMark !== null ? mark - lastMark : null;
 
@@ -136,6 +152,8 @@ async function main() {
     }
 
     rows.push({
+      drift,
+      published: mk.published,
       rank: p.rank,
       horse: today.horse_name,
       course: String(today.course ?? "").replace(/\s*-\s*AW$/i, ""),
@@ -186,6 +204,12 @@ async function main() {
         `${r.off} ${r.course.padEnd(14)} off ${String(r.mark ?? "-").padStart(3)}  ${d.padStart(6)}`
     );
     console.log(`      ${r.distanceF}f ${r.raceClass ?? "?"} · ${lw}`);
+    if (r.drift) {
+      console.log(
+        `      ⚑ racecard says ${r.published}; the weights say ${r.mark} ` +
+          `(${r.drift > 0 ? "+" : ""}${r.drift}lb) — reassessed since the rating was published`
+      );
+    }
     for (const n of r.note) console.log(`      → ${n}`);
   }
 

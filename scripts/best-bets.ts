@@ -17,6 +17,7 @@
 
 import "dotenv/config";
 import postgres from "postgres";
+import { readMark } from "../lib/marks";
 
 /**
  * What a horse gives up for not being the standout in its own race.
@@ -111,7 +112,7 @@ async function main() {
 
   const runners: any[] = await client`
     select r.race_id "raceId", r.horse_id "horseId", r.horse_name "horseName",
-           r.age, r.draw, r.ofr, r.last_run "lastRun",
+           r.age, r.draw, r.ofr, r.weight_lbs "weightLbs", r.last_run "lastRun",
            r.jockey_id "jockeyId", r.jockey_name "jockeyName", r.jockey_claim_lbs "claim",
            r.trainer_name "trainerName", r.best_odds_frac "priceFrac", r.best_odds_dec "priceDec",
            coalesce(r.headgear_first_time,false) "headgearFirst", r.wind_surgery_run "windRun",
@@ -230,6 +231,28 @@ async function main() {
   for (const ra of races) {
     const live = (byRace.get(ra.id) ?? []).filter((r) => !r.isNonRunner);
     if (live.length < 5) continue;
+
+    // The mark the horse is actually running off.
+    //
+    // `ofr` goes stale the moment a horse is reassessed for a win — the new
+    // figure reaches the weights before it reaches the rating field. On
+    // 8 October that understated NOSTRUM by 5lb and ONE NIGHT THUNDER by 10lb,
+    // and both were selected BECAUSE the stale mark matched the mark they last
+    // won off. The bias runs at us: it only flatters recent winners, and
+    // "won last time out" is one of our positive signals.
+    //
+    // Done here, before scoring, so the handicap angle, the gates, the printed
+    // figure and the mark check all see the same number.
+    const shape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weightLbs, claim: r.claim });
+    const fieldShape = live.map(shape);
+    for (const r of live) {
+      const m = readMark(fieldShape, shape(r));
+      if (m.effective !== null && m.drift) {
+        r.ofrPublished = r.ofr;
+        r.ofr = m.effective;
+        r.ofrDrift = m.drift;
+      }
+    }
 
     // A race nobody has priced is a race nobody has declared.
     //
@@ -504,7 +527,7 @@ async function main() {
 
         say("-".repeat(72));
         say(`${String(x.r.horseName).toUpperCase()}   ${x.r.priceFrac ?? "no price"}   score ${x.s.score}`);
-        say(`   ${x.r.trainerName ?? "?"} / ${x.r.jockeyName ?? "?"}${x.r.claim ? ` (${x.r.claim})` : ""}   OR ${x.r.ofr ?? "?"}   drawn ${x.r.draw ?? "?"}`);
+        say(`   ${x.r.trainerName ?? "?"} / ${x.r.jockeyName ?? "?"}${x.r.claim ? ` (${x.r.claim})` : ""}   OR ${x.r.ofr ?? "?"}${x.r.ofrDrift ? ` (racecard says ${x.r.ofrPublished}; the weights say ${x.r.ofr})` : ""}   drawn ${x.r.draw ?? "?"}`);
         say(`   HANDICAP  ${x.hcap.qualifies ? `${x.hcap.lbsInHand}lb in hand${x.hcap.standout ? " — STANDOUT" : x.hcap.prime ? " — PRIME" : ""}` : "not well handicapped on our reading"}`);
         if (x.hcap.reasons?.length) say(`             ${humanise(x.hcap.reasons[0])}`);
         say(`   GROUND    ${x.groundFail ? `RULED OUT — ${x.groundFail}` : (going?.detail ?? "no proven form on this ground")}`);

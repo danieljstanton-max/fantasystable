@@ -107,6 +107,35 @@ prices. A field with no number on any runner is not declared: it gets no
 preview, no page, and nothing may be selected from it. Miss this and a horse
 running on Wednesday appears on Monday's card.
 
+## Nothing goes live unchecked
+
+`HRT_AUTOPUBLISH="draft"`. The 18:00 job builds the card and holds it. Dan,
+2026-10-07: "we can't ever go live unless you check and double check."
+
+Publishing is a separate, deliberate step, and only after all of: preflight
+20/20, the contradiction audit, the fact cross-check, `npm run check:marks`,
+and Dan saying go. Never chain `publish` after the checks in one command — the
+checks were right and were walked past exactly that way. After publishing,
+fetch the page and confirm what is on it.
+
+## The mark on a racecard goes stale
+
+`ofr` is the rating held when the entry was taken. A horse that wins is
+reassessed, and the new figure reaches **the weights** before the rating field.
+NOSTRUM won off 80 on 3 October, went up 5lb, and entered the 8 October card
+still published as 80 while carrying top weight of 143lb.
+
+The error only ever flatters a recent winner, which is precisely what the
+method hunts for: the stale mark matches the mark the horse last won off, and
+reads as the handicapper not having caught up. It selected the first two
+horses on that card, 5lb and 10lb out.
+
+`lib/marks.ts` derives the mark from the field's own weight-to-mark line —
+claim added back, clear majority required, nothing offered when the field has
+no line. `npm run test:marks`. Use `readMark()` anywhere today's mark matters;
+past marks are fine, because the rating recorded against a past race is the one
+the horse actually ran off.
+
 ## Checks read facts, not sentences
 
 Roughly 25 checks are regexes over the model's own prose and a handful query the
