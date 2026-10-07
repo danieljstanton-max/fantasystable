@@ -33,16 +33,32 @@ ok("NOSTRUM reads 85, not 80", readMark(southwell, southwell[0]),
 ok("a horse on the line is unchanged", readMark(southwell, southwell[1]),
    { published: 82, effective: 82, drift: 0 });
 
-console.log("\nthe claim comes off the weight, so it goes back on first");
-const apprentice = [
-  { ofr: 70, weightLbs: 133, claim: 0 },
-  { ofr: 68, weightLbs: 128, claim: 3 },   // claims 3: carries 128, allotted 131
-  { ofr: 66, weightLbs: 124, claim: 5 },
-  { ofr: 64, weightLbs: 120, claim: 7 },
-  { ofr: 62, weightLbs: 125, claim: 0 },
+// 8 October, 15:30 Ayr. PARISIAC is allotted 128 off 75 like everyone else on
+// the line; his rider claims 3. Adding the claim back invented a 3lb rise on
+// the one runner in the field who had one. Dan: "parisiac runs off 75."
+console.log("\nthe claim is already out of the allotted weight");
+const ayr = [
+  { ofr: 87, weightLbs: 140, claim: 0 },
+  { ofr: 85, weightLbs: 138, claim: 0 },
+  { ofr: 79, weightLbs: 132, claim: 0 },
+  { ofr: 77, weightLbs: 130, claim: 0 },
+  { ofr: 75, weightLbs: 128, claim: 3 },   // Parisiac
+  { ofr: 74, weightLbs: 127, claim: 0 },
+  { ofr: 71, weightLbs: 124, claim: 0 },
 ];
-ok("a claimer is not read as a stale mark", readMark(apprentice, apprentice[1]).drift, 0);
-ok("and nor is the bigger claim", readMark(apprentice, apprentice[3]).drift, 0);
+ok("PARISIAC stays on 75", readMark(ayr, ayr[4]), { published: 75, effective: 75, drift: 0 });
+ok("the claim does not move the line", fieldOffset(ayr), 53);
+
+console.log("\na pound off the line is the long handicap, not a reassessment");
+const longHandicap = [
+  { ofr: 87, weightLbs: 140, claim: 0 },
+  { ofr: 85, weightLbs: 138, claim: 0 },
+  { ofr: 79, weightLbs: 132, claim: 0 },
+  { ofr: 79, weightLbs: 131, claim: 0 },   // 1lb off
+  { ofr: 77, weightLbs: 130, claim: 0 },
+  { ofr: 76, weightLbs: 128, claim: 0 },   // 1lb off
+];
+ok("1lb is not reported", readMark(longHandicap, longHandicap[3]).drift, 0);
 
 console.log("\nwhen the field does not agree, say nothing");
 const muddle = [

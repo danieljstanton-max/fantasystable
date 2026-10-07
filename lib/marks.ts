@@ -22,19 +22,28 @@
  * field, so the field itself tells us the offset and anything standing outside
  * it is carrying a mark we do not hold.
  *
- * Three things break the naive version, and all three are handled here:
+ * `weight_lbs` is the ALLOTTED weight, before the rider's claim comes off it,
+ * so the claim must NOT be added back. Dan, 2026-10-08: "parisiac runs off 75."
+ * He did. Adding his jockey's 3lb claim put him on 78 and invented a rise that
+ * did not exist — the error was exactly the size of the claim, on exactly the
+ * one runner in the field who had one. The claim already has its own meaning
+ * elsewhere: `effectiveMark()` in lib/mappers.ts is the mark adjusted DOWN for
+ * a claim, which is a different question from the one asked here.
  *
- *   - an apprentice's claim comes OFF the carried weight, so it is added back
- *     before the comparison;
- *   - a penalty for a win since the weights were published puts a horse above
- *     the line, which is a real extra and not a stale mark;
- *   - a horse racing from out of the handicap carries the minimum, which puts
- *     it below the line.
+ * Two things still move a horse off the line legitimately: a penalty for a win
+ * since the weights were published puts it above, and a horse racing from out
+ * of the handicap carries the minimum, which puts it below. Both are usually a
+ * pound or two, so a drift under 2lb is treated as noise and not reported — on
+ * 8 October three runners in one Ayr handicap sat 1lb off the line with nothing
+ * wrong with any of them.
  *
- * Only a clear majority sets the line. Where the field does not agree, no
- * effective mark is offered and the published one stands — a guess here would
- * be worse than the staleness it replaces.
+ * Only a clear majority sets the line. Where the field does not agree, nothing
+ * is offered and the published mark stands — a guess here would be worse than
+ * the staleness it replaces.
  */
+
+/** Below this, a horse off the line is long-handicap noise, not a stale mark. */
+const MIN_DRIFT_LBS = 2;
 
 export interface MarkInput {
   /** The rating the racecard publishes. */
@@ -54,10 +63,10 @@ export interface MarkRead {
   drift: number | null;
 }
 
-/** Weight the horse was allotted, before the rider's claim came off it. */
+/** Weight the horse was allotted. `weight_lbs` already is that figure. */
 function allotted(r: MarkInput): number | null {
   if (r.weightLbs === null || r.weightLbs === undefined) return null;
-  return Number(r.weightLbs) + Number(r.claim ?? 0);
+  return Number(r.weightLbs);
 }
 
 /**
@@ -95,18 +104,22 @@ export function readMark(field: MarkInput[], runner: MarkInput): MarkRead {
   const a = allotted(runner);
   if (offset === null || a === null) return { published, effective: null, drift: null };
   const effective = a - offset;
-  return {
-    published,
-    effective,
-    drift: published === null ? null : effective - published,
-  };
+  const drift = published === null ? null : effective - published;
+  // A pound either way is the long handicap, not a reassessment.
+  if (drift !== null && Math.abs(drift) < MIN_DRIFT_LBS) {
+    return { published, effective: published, drift: 0 };
+  }
+  return { published, effective, drift };
 }
 
 /**
  * The mark to score and to print: the weight's answer where the field is clear,
  * the published rating otherwise.
+ *
+ * NOT `effectiveMark` — lib/mappers.ts already uses that name for the mark
+ * adjusted down by a rider's claim, which is a different question.
  */
-export function effectiveMark(field: MarkInput[], runner: MarkInput): number | null {
+export function markFromWeights(field: MarkInput[], runner: MarkInput): number | null {
   const m = readMark(field, runner);
   return m.effective ?? m.published;
 }
