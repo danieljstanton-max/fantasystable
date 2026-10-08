@@ -54,7 +54,9 @@
       { "date": "2026-10-06", "horse": "Popular Dream",      "stake": 2,   "type": "win", "price": "5/2"  },
       { "date": "2026-10-07", "horse": "Nightsinwhitesatin", "stake": 1.5, "type": "ew",  "price": "9/2",
         "ewPlaces": 3, "ewDenom": 5 },
-      { "date": "2026-10-07", "horse": "Darkness",           "stake": 1,   "type": "win", "price": "7/2"  }
+      { "date": "2026-10-07", "horse": "Darkness",           "stake": 1,   "type": "win", "price": "7/2"  },
+      { "date": "2026-10-08", "horse": "Parisiac",           "stake": 1,   "type": "ew",  "price": "9/2"  },
+      { "date": "2026-10-08", "horse": "Albus Anne",         "stake": 2,   "type": "win", "price": "9/2", "position": 1 }
     ]
   }
 }
