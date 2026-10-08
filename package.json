@@ -31,6 +31,7 @@
     "draw": "tsx --env-file=.env.local scripts/draw-bias.ts",
     "pace": "tsx --env-file=.env.local scripts/pace-bias.ts",
     "lone": "tsx --env-file=.env.local scripts/lone-leader.ts",
+    "mud": "tsx --env-file=.env.local scripts/mud-angle.ts",
     "audit": "tsx --env-file=.env.local scripts/audit-comments.ts",
     "train": "tsx --env-file=.env.local --max-old-space-size=6144 scripts/train-model.ts",
     "predict": "tsx --env-file=.env.local scripts/predict.ts",
