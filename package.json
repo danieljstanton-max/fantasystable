@@ -16,6 +16,7 @@
     "test:tips": "tsx scripts/test-tips.ts",
     "test:gates": "tsx scripts/test-gates.ts",
     "test:marks": "tsx scripts/test-marks.ts",
+    "test:going": "tsx scripts/test-going-scale.ts",
     "placepot": "tsx --env-file=.env.local scripts/placepot.ts",
     "publish:placepot": "tsx --env-file=.env.local scripts/publish-placepot.ts",
     "verify:mappers": "tsx scripts/verify-mappers.ts",

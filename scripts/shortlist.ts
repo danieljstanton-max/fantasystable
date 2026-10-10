@@ -30,6 +30,7 @@
 import "dotenv/config";
 import postgres from "postgres";
 import { groundGate, sameDiscipline } from "../lib/selection";
+import { hasProvenWin, provingBands } from "../lib/going-scale";
 import { readMark } from "../lib/marks";
 const argDate = process.argv[2];
 const MAX_FIELD = Number((process.argv.find((a) => a.startsWith("--max-field=")) ?? "").split("=")[1] ?? 13);
@@ -79,9 +80,12 @@ async function main(){
    const wellIn=Number(win.ofr)-mark;
    if(wellIn<=0) continue;                                            // must be in below its mark
    if(groundGate(hist as any, ra.going_band)) continue;
-   const on=code.filter(x=>x.goingBand===ra.going_band);
+   // Won on ground that PROVES today's, not merely on today's exact band.
+   // A win on heavy proves soft; see lib/going-scale.ts.
+   if(!hasProvenWin(code as any, ra.going_band)) continue;
+   const proving = new Set(provingBands(ra.going_band));
+   const on=code.filter(x=>proving.has(String(x.goingBand)));
    const gw=on.filter(x=>Number(x.positionNum)===1).length;
-   if(gw<1) continue;                                                 // must have WON on today's ground
    hits.push({off:String(ra.off_time),course:String(ra.course).replace(/-AW$/,""),
      name:String(r.horse_name),price:String(r.best_odds_frac),dec:Number(r.best_odds_dec),
      wellIn,gw,gp:on.filter(x=>[2,3].includes(Number(x.positionNum))).length,gn:on.length,
@@ -95,7 +99,7 @@ async function main(){
  console.log(`  ${hits.length} qualify\n`);
  for(const h of hits) console.log(
   `  ${h.off} ${h.course.padEnd(12)} ${h.name.toUpperCase().padEnd(19)} ${h.price.padEnd(6)} ` +
-  `${String(h.wellIn).padStart(2)}lb in · ${h.gw}w ${h.gp}p from ${h.gn} on ${h.going}\n` +
+  `${String(h.wellIn).padStart(2)}lb in · ${h.gw}w ${h.gp}p from ${h.gn} on ${h.going} or softer\n` +
   `      ${h.dist}f ${h.cls} · ${h.field} runners${h.hcap?"":" · NOT a handicap"} · form ${h.last}`);
  await sql.end();}
 main().catch(e=>{console.error(e?.message??e);process.exit(1);});
