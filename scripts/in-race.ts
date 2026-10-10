@@ -56,6 +56,120 @@ type Runner = {
   isOurs: boolean;
 };
 
+/**
+ * Every race on the card, ranked by how well in its best-handicapped runner is.
+ *
+ * The same measure as the per-race check — pounds below the mark it last won
+ * off, in the same code, read from the weights — applied to the whole day. Only
+ * horses the ground rule would let us back are eligible to top a race, because
+ * a horse 20lb well in that has never seen soft is not a find.
+ */
+async function sweepCard(sql: any, date: string, ourHorses: Set<string>) {
+  const races = await sql`
+    SELECT ra.id, ra.off_time, ra.name, ra.race_type, ra.going_band,
+           ra.distance_f, ra.race_class, ra.field_size, c.name course
+    FROM races ra LEFT JOIN courses c ON c.id = ra.course_id
+    WHERE ra.race_date = ${date}
+      AND EXISTS (SELECT 1 FROM runners n WHERE n.race_id = ra.id AND n.number IS NOT NULL)
+    ORDER BY ra.off_time` as any[];
+
+  type Best = {
+    off: string; course: string; distanceF: number; cls: string | null;
+    going: string; field: number; handicap: boolean;
+    name: string; price: string | null; mark: number | null; drift: number | null;
+    wellIn: number; lastWinMark: number; lastWinDate: string;
+    isOurs: boolean; oursName: string | null; oursWellIn: number | null;
+  };
+  const found: Best[] = [];
+
+  for (const ra of races) {
+    const field = await sql`
+      SELECT ru.horse_id, ru.horse_name, ru.ofr, ru.weight_lbs, ru.jockey_claim_lbs claim,
+             ru.best_odds_frac
+      FROM runners ru WHERE ru.race_id = ${ra.id} AND NOT ru.is_non_runner` as any[];
+    if (field.length < 4) continue;
+    const shape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weight_lbs, claim: r.claim });
+    const fieldShape = field.map(shape);
+
+    let best: any = null;
+    let oursName: string | null = null;
+    let oursWellIn: number | null = null;
+
+    for (const r of field) {
+      const mk = readMark(fieldShape, shape(r));
+      const mark = mk.effective ?? mk.published;
+      if (mark === null) continue;
+
+      const hist = await sql`
+        SELECT ra2.going_band "goingBand", ru.position_num "positionNum", ru.ofr,
+               ra2.race_type "raceType", ra2.race_date "raceDate", ra2.distance_f "distanceF",
+               ra2.course_slug "courseSlug", ru.ovr_btn "ovrBtn", ru.comment, ru.age,
+               ra2.field_size "fieldSize", ru.jockey_id "jockeyId", NULL "winMargin"
+        FROM runners ru JOIN races ra2 ON ra2.id = ru.race_id
+        WHERE ru.horse_id = ${r.horse_id} AND ra2.race_date < ${date}
+          AND ru.position_num IS NOT NULL
+        ORDER BY ra2.race_date DESC` as any[];
+
+      const code = hist.filter((h: any) => sameDiscipline(h.raceType, ra.race_type));
+      const win = code.find((h: any) => Number(h.positionNum) === 1 && h.ofr !== null);
+      if (!win) continue;
+      const wellIn = Number(win.ofr) - mark;
+
+      if (ourHorses.has(String(r.horse_name).toUpperCase())) {
+        oursName = String(r.horse_name);
+        oursWellIn = wellIn;
+      }
+      if (wellIn <= 0) continue;
+      if (groundGate(hist as any, ra.going_band)) continue;   // the ground rule is not negotiable
+
+      if (!best || wellIn > best.wellIn) {
+        best = {
+          name: String(r.horse_name), price: r.best_odds_frac, mark,
+          drift: mk.drift, wellIn,
+          lastWinMark: Number(win.ofr), lastWinDate: String(win.raceDate).slice(0, 10),
+          isOurs: ourHorses.has(String(r.horse_name).toUpperCase()),
+        };
+      }
+    }
+    if (!best) continue;
+
+    found.push({
+      off: String(ra.off_time), course: String(ra.course ?? "").replace(/\s*-\s*AW$/i, ""),
+      distanceF: Number(ra.distance_f), cls: ra.race_class, going: String(ra.going_band),
+      field: Number(ra.field_size), handicap: /handicap/i.test(String(ra.name ?? "")),
+      ...best, oursName, oursWellIn,
+    });
+  }
+
+  found.sort((a, b) => b.wellIn - a.wellIn);
+
+  console.log(`\nBEST HANDICAPPED IN EVERY RACE — ${date}`);
+  console.log("=".repeat(78));
+  console.log(`  ${races.length} declared races · ${found.length} have a runner in below its winning mark`);
+  console.log(`  Ground rule applied: a horse it would stop cannot top a race.\n`);
+
+  for (const f of found) {
+    const tag = f.isOurs ? "  ← OURS" : "";
+    console.log(
+      `  ${f.off} ${f.course.padEnd(13)} ${f.name.toUpperCase().padEnd(20)} ${String(f.price ?? "-").padEnd(7)}` +
+        `${String(f.wellIn).padStart(3)}lb well in${tag}`
+    );
+    console.log(
+      `      ${f.distanceF}f ${f.cls ?? "?"} ${f.going} · ${f.field} runners` +
+        `${f.handicap ? "" : " · NOT a handicap"} · off ${f.mark}${f.drift ? "*" : ""}` +
+        `, won off ${f.lastWinMark} (${f.lastWinDate})`
+    );
+    if (!f.isOurs && f.oursName) {
+      console.log(
+        `      we picked ${f.oursName.toUpperCase()}` +
+          (f.oursWellIn === null ? " (no handicap read)" :
+            `, ${Math.abs(f.oursWellIn)}lb ${f.oursWellIn >= 0 ? "well in" : "above its mark"}`)
+      );
+    }
+  }
+  console.log("");
+}
+
 async function main() {
   const date = process.argv[2];
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -72,7 +186,14 @@ async function main() {
 
   const sql = postgres(process.env.DATABASE_URL!, { max: 1, ssl: "require" });
 
-  // One row per race we have a best bet in.
+  // --all sweeps the whole card instead of only the races we bet in.
+  //
+  // Dan, 2026-10-10: "I want you to go over every race to find the best
+  // horses." Checking our own four tells us whether a pick was sound; it says
+  // nothing about the forty-seven races we did not bet in, where the best
+  // handicapped horse on the card might be standing.
+  const ALL = process.argv.includes("--all");
+
   const seen = new Set<string>();
   const wanted = picks.filter((p) => {
     if (!bestBets.has(p.horse.toUpperCase())) return false;
@@ -81,6 +202,12 @@ async function main() {
     seen.add(k);
     return true;
   });
+
+  if (ALL) {
+    await sweepCard(sql, date, new Set(wanted.map((p) => p.horse.toUpperCase())));
+    await sql.end();
+    return;
+  }
 
   let passedOver = 0;
 
