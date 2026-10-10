@@ -202,6 +202,7 @@ async function main() {
     signals: { label: string; detail: string; weight: number }[];
     rankScore: number;
     handPick: { horse: string; reason: string } | null;
+    handPickNap: boolean;
     groundRecord: string;
     groundFail: string | null;
     streakFail: string | null;
@@ -270,8 +271,18 @@ async function main() {
     if (!live.some((r) => r.priceDec != null)) continue;
     // Only races that pass the filters — the best bets come from the handicaps
     // the method is built for, not from every race on the card.
-    if (!filterRace({ raceName: ra.name, ageBand: ra.ageBand, raceClass: ra.raceClass },
-      live.map((x) => ({ age: x.age, isNonRunner: x.isNonRunner }))).eligible) continue;
+    // A hand pick brings its race in with it.
+    //
+    // Dan, 2026-10-09, naming KING'S SCHOLAR as the NAP: the race is a novices'
+    // hurdle, so `filterRace` dropped it before anything was scored and the
+    // pick could never reach the five however it was written. He had asked for
+    // a NAP and got a write-up. The filter exists to keep the MODEL inside the
+    // handicaps it was built for; it has no business overruling a selection
+    // Dan has made himself.
+    const handHere = handPickFor(handPicks, date, String(ra.offTime), String(ra.courseName));
+    if (!handHere &&
+        !filterRace({ raceName: ra.name, ageBand: ra.ageBand, raceClass: ra.raceClass },
+          live.map((x) => ({ age: x.age, isNonRunner: x.isNonRunner }))).eligible) continue;
 
     const raceToday: RaceToday = {
       courseSlug: ra.courseSlug, distanceF: ra.distanceF,
@@ -355,7 +366,7 @@ async function main() {
     );
     // A hand pick replaces the model's choice in its own race. See
     // lib/hand-picks.ts for why this is not the same as vetoing the top scorer.
-    const hand = handPickFor(handPicks, date, String(ra.offTime), String(ra.courseName));
+    const hand = handHere;
     const handRunner = hand
       ? scored.find((x) => String(x.r.horseName).toUpperCase() === hand.horse.toUpperCase())
       : undefined;
@@ -378,6 +389,7 @@ async function main() {
       clear: scored.length > 1 ? best.s.score - scored[1].s.score : best.s.score,
       field: live.length, hcap: best.hcap, signals: best.s.signals,
       handPick: handRunner && hand ? { horse: hand.horse, reason: hand.reason } : null,
+      handPickNap: Boolean(handRunner && hand?.nap),
       groundRecord: best.s.groundRecord,
       groundFail: groundGate(best.h, raceToday.goingBand),
       streakFail: streakGate(best.h, best.r.ofr ?? null, ra.raceType ?? null),
@@ -668,10 +680,14 @@ async function main() {
   // figures: a horse two clear gives up a point, one clear gives up two, and
   // level or behind gives up three. A hand pick can be behind the top-rated in
   // its race, which is a deliberate override and takes the full deduction.
+  // A hand pick marked NAP goes first, whatever it scored. Everything else is
+  // ranked as usual beneath it. Dan names the horse of the day; the model ranks
+  // the rest.
   const top = eligible
     .map((p) => ({ p, standout: p.rankScore - standoutPenalty(p.clear) }))
     .sort(
       (a, b) =>
+        Number(b.p.handPickNap ?? false) - Number(a.p.handPickNap ?? false) ||
         b.standout - a.standout ||
         b.p.clear - a.p.clear ||
         String(a.p.r.horseName).localeCompare(String(b.p.r.horseName))

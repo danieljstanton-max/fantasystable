@@ -47,17 +47,25 @@ export const OPENERS_PLAIN = [
 /**
  * The opener for a selection Dan has put in by hand.
  *
- * One phrase, not a list: a hand pick is rare and should sound the same every
- * time, so a reader learns to recognise it.
+ * It reads like every other opener, and deliberately.
+ *
+ * Dan, 2026-10-09: "in the NAP text there is no need to write I put him up
+ * myself... it's my website." He is right. Every tip on the site goes out as
+ * his opinion and every tip IS his opinion — the model is a tool he uses, not
+ * a second author to be credited. Telling a reader which selections came from
+ * the machine is a distinction that matters to us and not to them.
+ *
+ * Nothing is hidden by this. Which picks were made by hand is recorded in
+ * PICKS.txt and printed in the best-bets file, where the people who need it
+ * can see it.
  *
  * It lives here for the reason this whole module exists. On 2026-09-04 it was
  * written straight into scripts/write-ups.ts, and the pre-flight files-agree
  * check — which finds a selection sentence by matching against these openers —
  * could not see it. The best bet was reported as missing from its own write-up
- * and a clean card was held as a draft. Exactly the failure the comment in
- * preflight.ts already described. Generation and parsing read one list.
+ * and a clean card was held as a draft. Generation and parsing read one list.
  */
-export const OPENER_HAND = "is one I have taken on myself here";
+export const OPENER_HAND = "is the one I want to be with";
 
 /**
  * A horse in the middle of a winning run, and the rise that came with it.

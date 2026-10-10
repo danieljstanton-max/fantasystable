@@ -24,6 +24,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { OUT_DIR } from "../lib/published";
+import { isHandicap } from "../lib/selection";
 
 
 
@@ -257,7 +258,7 @@ const titleCase = (s: string) =>
 
   const rows = (await sql`
     select ra.off_time "off", ra.course_name "course", ra.id "raceId",
-           ra.distance_round "distance", ra.race_class "cls", ra.age_band "age",
+           ra.distance_round "distance", ra.race_class "cls", ra.age_band "age", ra.name "raceName",
            ra.going, ra.prize, ra.field_size "field", ra.race_type "raceType",
            r.number, r.draw, r.horse_name "horse", r.horse_id "horseId",
            r.jockey_name "jockey", r.jockey_claim_lbs "claim",
@@ -286,7 +287,16 @@ const titleCase = (s: string) =>
       headgear: row.headgear, hgFirst: !!row.hgFirst, wind: !!row.wind,
       jockey: row.jockey, claim: row.claim,
       trainer: row.trainer, trainerPct: row.trainerPct,
-      or: row.ofr, rpr: row.rpr, ts: row.ts,
+      // The official rating goes out on a handicap and nowhere else.
+      //
+      // Dan, 2026-10-09, on KING'S SCHOLAR in a novices' hurdle: "why does it
+      // give him a rating of 123 — it's a novice race." The figure is his real
+      // OR, but a novice is not run off it: the weights come from the race
+      // conditions, and printing "OR 123" beside the age and the form invites a
+      // reader to take it for the mark the horse is racing from. In a handicap
+      // it is exactly that; here it is a number with no bearing on the race.
+      or: isHandicap(String(row.raceName ?? "")) ? row.ofr : null,
+      rpr: row.rpr, ts: row.ts,
       lastRun: row.lastRun,
       price: row.price, book: row.book, opening: row.opening,
       nr: !!row.nr,

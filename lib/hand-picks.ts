@@ -37,6 +37,17 @@ export interface HandPick {
   course: string;
   horse: string;
   reason: string;
+  /**
+   * Put this one at the top of the five, whatever the model scored it.
+   *
+   * Dan, 2026-10-09: "I want you to make KING'S SCHOLAR the website NAP." The
+   * pick reached the list and sorted second on points, which is not what was
+   * asked for — the NAP is the horse of the day and he had named it. Written
+   * as a fifth field:
+   *
+   *   2026-10-09 | 13:22 | Chepstow | KING'S SCHOLAR | NAP | improving with...
+   */
+  nap: boolean;
 }
 
 export function picksPath(): string {
@@ -61,12 +72,17 @@ export function loadHandPicks(): HandPick[] {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
     if (!/^\d{1,2}:\d{2}$/.test(time)) continue;
 
+    // An optional NAP marker, as its own field before the reason.
+    const nap = rest.length > 0 && /^nap$/i.test(rest[0].trim());
+    const reason = (nap ? rest.slice(1) : rest).join(" | ").trim();
+
     out.push({
       date,
       time: time.padStart(5, "0"),
       course,
       horse,
-      reason: rest.join(" | ").trim(),
+      reason,
+      nap,
     });
   }
   return out;
