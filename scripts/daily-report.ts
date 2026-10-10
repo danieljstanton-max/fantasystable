@@ -277,6 +277,24 @@ async function main() {
 
   console.log("\n  pre-flight checks...");
   try {
+    // The shortlist, printed beside the checks.
+    //
+    // Dan, 2026-10-10: "you should be doing this anyway." Every horse on the
+    // card that is in below its winning mark, has WON on today's going, is in
+    // a field under 13 and has a price the market can live with — the method,
+    // applied to every race rather than only to the ones we picked.
+    //
+    // It does not gate anything. It is here so the question "is there a better
+    // horse on this card" is answered every day in the log, rather than when
+    // somebody thinks to ask.
+    try {
+      console.log("\n  shortlist — the method across the whole card...");
+      console.log(run("npx", ["tsx", "--env-file=.env.local", "scripts/shortlist.ts", date]));
+    } catch (e) {
+      console.error("  shortlist failed (the card is unaffected):");
+      console.error("   ", (e as Error).message.split("\n")[0]);
+    }
+
     const report = run("npx", ["tsx", "--env-file=.env.local", "scripts/preflight.ts", date]);
     console.log(report.split("\n").filter(Boolean).slice(-3).join("\n"));
     gates.push({ name: "Pre-flight (20 checks)", passed: true });
