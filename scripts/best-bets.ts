@@ -661,8 +661,23 @@ async function main() {
 
   const offGround = rest.filter(wrongGround);
   const streaky = rest.filter((p) => !wrongGround(p) && onAStreak(p));
-  const crowded = rest.filter((p) => !wrongGround(p) && !onAStreak(p) && bigField(p));
-  const eligible = rest.filter((p) => !wrongGround(p) && !onAStreak(p) && !bigField(p));
+  // A hand pick is not set aside for a big field.
+  //
+  // Dan, 2026-10-10, choosing VOLENTI: told that its race had 14 runners and
+  // that our picks in fields of 13+ lose, he picked it anyway. That is the
+  // whole point of a hand pick — the field-size rule guards the MODEL from
+  // races it cannot read, and it was still quietly removing a horse Dan had
+  // named. He was shown the number and made the call.
+  //
+  // The GATES are a different matter and still apply: the ground rule and the
+  // streak gate stop a hand pick like anything else, because those are Dan's
+  // own editorial lines rather than guards on the model.
+  const crowded = rest.filter(
+    (p) => !wrongGround(p) && !onAStreak(p) && bigField(p) && !p.handPick
+  );
+  const eligible = rest.filter(
+    (p) => !wrongGround(p) && !onAStreak(p) && (!bigField(p) || Boolean(p.handPick))
+  );
 
   // Strength first, decisiveness second — but decisiveness is not a tiebreak.
   //
@@ -687,7 +702,16 @@ async function main() {
     .map((p) => ({ p, standout: p.rankScore - standoutPenalty(p.clear) }))
     .sort(
       (a, b) =>
+        // A hand pick marked NAP leads.
         Number(b.p.handPickNap ?? false) - Number(a.p.handPickNap ?? false) ||
+        // Then every other hand pick, above anything the model chose.
+        //
+        // Dan, 2026-10-10, naming five horses: "lets run with those 5." A hand
+        // pick that has to out-score the model to reach the card is not an
+        // override, it is a suggestion — and these five were chosen precisely
+        // because the model did not rate them. If he has named a horse it is
+        // on the card; the model ranks what is left.
+        Number(Boolean(b.p.handPick)) - Number(Boolean(a.p.handPick)) ||
         b.standout - a.standout ||
         b.p.clear - a.p.clear ||
         String(a.p.r.horseName).localeCompare(String(b.p.r.horseName))
