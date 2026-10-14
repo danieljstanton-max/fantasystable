@@ -90,6 +90,17 @@ every selection against the mark it last won off, in the same code, and flags
 `!` for one that is up and has **never won off a mark this high**. Lead with
 those. Up in mark AND up in class AND up in trip is the disqualifying shape.
 
+**The criteria run on every runner; the score ranks the survivors.** Never the
+other way round. Until 2026-10-14 `best-bets.ts` took the top-scoring horse in
+each race and *then* asked whether it was well handicapped — so a 100-race card
+was tested one horse deep and a race was binned whole whenever its top scorer
+failed. GUNFIGHTER failing on 3lb took the whole 17:30 Kempton, hiding PORT
+ROAD, the highest-rated horse on the card. Dan: "out of 100 races just 2 horses
+fit the criteria." `chooseFromRace()` in `lib/funnel.ts`. Two guards: a survivor
+still needs a positive score, and a race where nothing survives still reports
+its top scorer. Any change to who tops a race must be made in `write-ups.ts`
+too, or the two files name different horses in the same race.
+
 **A NAP must be the standout in its own race.** Closeness is a deduction, not a
 tiebreak — `standoutPenalty()` in `scripts/best-bets.ts`. Dan chose this knowing
 it cost 5pts over the twelve cards it was measured on; do not relitigate it on
