@@ -197,9 +197,13 @@ async function main() {
   if (topBet && topOff) {
     console.log(`  writing the NAP note for ${topBet}...`);
     try {
+      // --nap, because this is the free card's NAP note, not a VIP play.
+      // Without it vip.ts tags the note "VIP PLAY" and files it as
+      // "<date> VIP HHMM Horse.txt", which is how a generated note for
+      // GUNFIGHTER came to look like Dan's own paid selection on 14 October.
       run("npx", [
         "tsx", "--env-file=.env.local", "scripts/vip.ts",
-        date, topOff, topBet, "--save", "--selection",
+        date, topOff, topBet, "--save", "--selection", "--nap",
       ]);
     } catch (e) {
       // A missing NAP note costs the card its longest write-up, not the day.

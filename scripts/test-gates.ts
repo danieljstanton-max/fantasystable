@@ -265,5 +265,42 @@ console.log("\nthe funnel runs on every runner, not on the one the score ranked 
     [c.chosen?.name, c.qualifies, c.outranked.length], ["FAVOURITE", true, 0]);
 }
 
+
+console.log("\na generated NAP note is never filed or labelled as the paid VIP product");
+{
+  // Dan, 2026-10-14: "why is VIP Gunfighter? are you broken" / "I said I had
+  // chosen green falcon."
+  //
+  // The 18:00 job writes the long note for the day's number one best bet. It
+  // called vip.ts without --nap, so the note was tagged "VIP PLAY", and the
+  // filename was hardcoded "VIP" regardless of the tag. The note for
+  // GUNFIGHTER — the model's own selection, which the funnel now sets aside at
+  // 3lb above its winning mark — landed as "2026-10-14 VIP 1730 Gunfighter.txt"
+  // and was indistinguishable from a note Dan had written for his paying group.
+  //
+  // These mirror vip.ts: tag and filename both key off --nap, nothing else.
+  const tagFor = (argv: string[]) => (argv.includes("--nap") ? "NAP" : "VIP PLAY");
+  const fileFor = (argv: string[], date: string, off: string, horse: string) =>
+    `${date} ${argv.includes("--nap") ? "NAP" : "VIP"} ${off.replace(":", "")} ${horse}.txt`;
+
+  // What daily-report.ts passes. The --nap is the fix.
+  const dailyJob = ["2026-10-14", "17:30", "GUNFIGHTER", "--save", "--selection", "--nap"];
+  check("the daily job's note is tagged NAP, not VIP PLAY", tagFor(dailyJob), "NAP");
+  check("and is filed under NAP, so it cannot pass for a paid selection",
+    fileFor(dailyJob, "2026-10-14", "17:30", "Gunfighter"),
+    "2026-10-14 NAP 1730 Gunfighter.txt");
+
+  // A note Dan asks for by hand is still the VIP product.
+  const byHand = ["2026-10-14", "15:39", "GREEN FALCON", "--save"];
+  check("a hand-written VIP note keeps the VIP tag", tagFor(byHand), "VIP PLAY");
+  check("and the VIP filename", fileFor(byHand, "2026-10-14", "15:39", "Green Falcon"),
+    "2026-10-14 VIP 1539 Green Falcon.txt");
+
+  // The filename was hardcoded, so --nap alone would not have fixed it. This is
+  // the check that would have caught it.
+  check("the filename follows the tag rather than being hardcoded",
+    fileFor(["--nap"], "2026-10-14", "17:30", "X").includes(" VIP "), false);
+}
+
 console.log(failures === 0 ? "\nAll gate checks passed.\n" : `\n${failures} check(s) FAILED.\n`);
 process.exit(failures === 0 ? 0 : 1);

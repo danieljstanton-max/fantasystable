@@ -129,7 +129,25 @@ const lengths = (n: number) => {
   const stake = arg("stake") ?? (bet.type === "ew" && terms ? `${bet.label}, ${terms.label}` : bet.label);
   const NAME = String(horse.name).toUpperCase();
 
-  const tag = process.argv.includes("--nap") ? "NAP" : "VIP PLAY";
+  // NAP or VIP PLAY, and the FILENAME has to follow the tag.
+  //
+  // Dan, 2026-10-14: "why is VIP Gunfighter? are you broken" — and "I said I
+  // had chosen green falcon." He had. Nothing of his said Gunfighter.
+  //
+  // The 18:00 job writes a long note for the day's number one best bet
+  // (daily-report.ts) and that note is the FREE site's NAP write-up. It was
+  // calling this script without --nap, so the note was tagged "VIP PLAY", and
+  // the filename below was hardcoded "VIP" so even --nap would not have helped.
+  // The result sat in the Racing Tips folder as
+  // "2026-10-14 VIP 1730 Gunfighter.txt" — indistinguishable from a note Dan
+  // had written for his paying group, on a horse he had never picked. It read
+  // that way to me too: I told him his VIP play was Gunfighter and asked him to
+  // choose between it and our own selection in the same race.
+  //
+  // A machine-written note for the free card must never be filed or labelled as
+  // the paid product. One of these is Dan's word to people who pay him.
+  const isNap = process.argv.includes("--nap");
+  const tag = isNap ? "NAP" : "VIP PLAY";
   say(`${tag} — ${race.off} ${race.course} — ${NAME} — ${price} — ${stake}`);
   say();
 
@@ -523,7 +541,7 @@ const lengths = (n: number) => {
   console.log("\n" + out + "\n");
 
   if (process.argv.includes("--save")) {
-    const p = join(OUT_DIR, `${date} VIP ${off.replace(":", "")} ${horse.name}.txt`);
+    const p = join(OUT_DIR, `${date} ${isNap ? "NAP" : "VIP"} ${off.replace(":", "")} ${horse.name}.txt`);
     writeFileSync(p, out + "\n");
     console.log(`saved: ${p}\n`);
   }
