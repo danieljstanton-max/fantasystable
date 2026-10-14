@@ -18,7 +18,8 @@
 import "dotenv/config";
 import postgres from "postgres";
 import { readMark } from "../lib/marks";
-import { readDraw, drawPhrase } from "../lib/draw";
+import { readDraw, drawPhrase, DRAW_AGAINST } from "../lib/draw";
+import { chooseFromRace } from "../lib/funnel";
 
 /**
  * What a horse gives up for not being the standout in its own race.
@@ -220,6 +221,11 @@ async function main() {
     drawIvBand: string | null;
     /** True when the figure is the trip pooled across goings, not today's. */
     drawIvPooled: boolean;
+    /**
+     * A horse in the same race the score rated higher, and what the funnel
+     * failed it on. Printed, because it argues against our selection.
+     */
+    topSetAside: { horse: string; by: number; why: string | null; others: number } | null;
   }
   const picks: Candidate[] = [];
 
@@ -374,8 +380,66 @@ async function main() {
       console.error(`  PICKS.txt: ${hand.horse} is not a declared runner in the ${hand.time} ${hand.course}`);
     }
 
-    const best = handRunner ?? scored[0];
+    /* ------------------------------------------------- the funnel, per runner
+     *
+     * Dan, 2026-10-14: "it's starting to annoy me today how out of 100 races
+     * only 2 horses fit the criteria and one of them is 50/1."
+     *
+     * He was right, and the cause was the order these two steps ran in. This
+     * line used to read `const best = handRunner ?? scored[0]` — the single
+     * highest-scoring horse in the race — and the funnel was applied to that
+     * one horse afterwards. So a card of 100+ races was only ever tested 14
+     * horses deep, one per race, and a race was discarded whole whenever its
+     * top scorer happened to fail. GUNFIGHTER failing on 3lb took the entire
+     * 17:30 Kempton with it, including any horse in that race 10lb well in,
+     * proven at the trip and drawn on the right side.
+     *
+     * That is backwards from the method. The method is: find the horses that
+     * are well handicapped, go on the ground and have won at the distance —
+     * then rank them. The score ranks the qualifiers; it does not choose the
+     * candidate the criteria then vet.
+     *
+     * So the hard tests run on every runner here, and the race offers up its
+     * best SURVIVOR. Where nothing survives, the top scorer still goes forward
+     * to be set aside downstream, so the set-aside report keeps naming a horse
+     * and a reason rather than silently dropping the race.
+     */
+    const isFlatRace = String(ra.raceType ?? "").toLowerCase() === "flat";
+    const funnelFail = (x: (typeof scored)[number]): string | null => {
+      if (groundGate(x.h, raceToday.goingBand) !== null) return "ground";
+      if (streakGate(x.h, x.r.ofr ?? null, ra.raceType ?? null) !== null) return "streak";
+      // x.r.ofr has already been corrected from the weights, so this compares
+      // the mark the horse is really running off. See lib/marks.ts.
+      if (markGate(x.h, x.r.ofr ?? null, ra.raceType ?? null, String(ra.name ?? "")) !== null)
+        return "mark";
+      if (!likesConditions(raceToday, x.h).trip) return "trip";
+      // A horse with no draw figure is not failed for it — failing the untested
+      // would empty the card by absence rather than by evidence.
+      if (isFlatRace && x.drawIv !== null && x.drawIv < DRAW_AGAINST) return "draw";
+      return null;
+    };
+    // chooseFromRace() holds the two rules that keep this from becoming the
+    // mirror-image bug — a survivor still needs a positive score, and a race
+    // with no survivor still reports one. See lib/funnel.ts.
+    const choice = chooseFromRace(scored, funnelFail, (x) => x.s.score);
+    const best = handRunner ?? choice.chosen;
     if (!best || (!handRunner && best.s.score <= 0)) continue;
+
+    // An inconvenient fact, so it gets printed: a horse the score liked more
+    // than ours is in this race and was set aside. House rule — anything that
+    // argues against a selection is stated whether or not it moved the score.
+    const outranked = handRunner
+      ? scored.filter((x) => x !== best && x.s.score > best.s.score)
+          .map((x) => ({ item: x, by: x.s.score - best.s.score, why: funnelFail(x) }))
+      : choice.outranked;
+    const topSetAside = outranked.length
+      ? {
+          horse: String(outranked[0].item.r.horseName),
+          by: outranked[0].by,
+          why: outranked[0].why,
+          others: outranked.length - 1,
+        }
+      : null;
 
     picks.push({
       race: ra, r: best.r, score: best.s.score,
@@ -386,7 +450,18 @@ async function main() {
       // a replacement, it is a deletion. Its own score is still what gets
       // printed — the file should not pretend the model rated it highly.
       rankScore: handRunner ? scored[0].s.score : best.s.score,
-      clear: scored.length > 1 ? best.s.score - scored[1].s.score : best.s.score,
+      // How clear-cut the race is, measured against the best OTHER runner in
+      // it — not against scored[1]. Now that the pick can be the third-best
+      // scorer, scored[1] may be the pick itself, and an ineligible rival is
+      // still a rival on the track: it can still beat us. A pick that the
+      // score ranks third therefore has a negative `clear` and the standout
+      // penalty docks it, which is correct. It must not become a NAP on the
+      // strength of being the best of what was left.
+      clear: (() => {
+        const others = scored.filter((x) => x !== best);
+        return others.length ? best.s.score - others[0].s.score : best.s.score;
+      })(),
+      topSetAside,
       field: live.length, hcap: best.hcap, signals: best.s.signals,
       handPick: handRunner && hand ? { horse: hand.horse, reason: hand.reason } : null,
       handPickNap: Boolean(handRunner && hand?.nap),
@@ -701,7 +776,6 @@ async function main() {
    * Jumps: course form is a PLUS, not a gate, exactly as asked — it ranks, it
    * does not exclude.
    */
-  const DRAW_AGAINST = 0.90;
   const notWonAtTrip = (p: (typeof picks)[number]) => !p.wonAtTrip;
   const drawnBadly = (p: (typeof picks)[number]) =>
     p.isFlat && p.drawIv !== null && p.drawIv < DRAW_AGAINST;
@@ -897,6 +971,23 @@ async function main() {
       : `${p.clear} clear of the next in the race`}${
       p.hcap.qualifies ? `, ${p.hcap.lbsInHand}lb in hand` : ""}${
       p.hcap.standout ? "   [STANDOUT]" : p.hcap.prime ? "   [PRIME]" : ""}`);
+
+    // A horse the score rated higher is in this race and the funnel set it
+    // aside. That argues against our selection — the score is not the method,
+    // but it is evidence, and a reader cannot judge the pick without knowing
+    // the model's own favourite was removed and on what grounds.
+    if (p.topSetAside) {
+      const why = {
+        ground: "not proven on this ground", streak: "on a winning run",
+        mark: "above the mark it last won off", trip: "has not won at the distance",
+        draw: "drawn against",
+      }[String(p.topSetAside.why)] ?? "set aside";
+      say(
+        `   Note: ${p.topSetAside.horse.toUpperCase()} rates ${p.topSetAside.by} higher in this race` +
+          ` and is set aside — ${why}` +
+          (p.topSetAside.others ? `, as are ${p.topSetAside.others} other${p.topSetAside.others > 1 ? "s" : ""} above us` : "")
+      );
+    }
 
     // The standout says WHY it is one. A tag on its own is a label; the line
     // under it is the argument, and it is the argument that gets backed.

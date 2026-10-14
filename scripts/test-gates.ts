@@ -13,6 +13,7 @@
  */
 import { markGate, groundGate, streakGate, type PastRun } from "../lib/selection";
 import { readDraw, drawBandOf, drawDistBand, drawKey, drawPhrase, ANY_GOING } from "../lib/draw";
+import { chooseFromRace } from "../lib/funnel";
 import { gateField } from "../lib/gates";
 import type { Veto } from "../lib/vetoes";
 
@@ -198,6 +199,70 @@ console.log("\ndraw lookup — three levels, and a pooled figure never claims to
     readDraw(map, { ...colwick, courseSlug: "ffos-las" }).iv, null);
   check("no figure means no phrase, not a 0.00x claim",
     drawPhrase({ iv: null, goingBand: null, pooled: false }), null);
+}
+
+
+console.log("\nthe funnel runs on every runner, not on the one the score ranked first");
+{
+  // The 17:30 Kempton, 14 October 2026. GUNFIGHTER topped the score and is 3lb
+  // above the 68 it won off. PORT ROAD is 1lb BELOW the 76 it won off, has two
+  // wins at the trip, two wins at the track and 3 from 24 on the surface — and
+  // at 14 points was the highest-rated horse on the entire card.
+  //
+  // Because the old code read `best = scored[0]` and vetted that one horse
+  // afterwards, GUNFIGHTER's 3lb binned the whole race and PORT ROAD could not
+  // be selected. Two horses made the card out of 100+ races; with this fixed,
+  // five did.
+  type R = { name: string; score: number; fail: string | null };
+  const kempton: R[] = [
+    { name: "GUNFIGHTER", score: 17, fail: "mark" },
+    { name: "PORT ROAD",  score: 14, fail: null },
+    { name: "HITCHED",    score: 11, fail: null },
+  ];
+  const fail = (x: R) => x.fail;
+  const score = (x: R) => x.score;
+
+  const k = chooseFromRace(kempton, fail, score);
+  check("the race offers its best SURVIVOR, not its top scorer",
+    k.chosen?.name, "PORT ROAD");
+  check("and that horse counts as a qualifier", k.qualifies, true);
+  check("the top scorer is reported as outranking us, with its reason",
+    [k.outranked.length, k.outranked[0].item.name, k.outranked[0].by, k.outranked[0].why],
+    [1, "GUNFIGHTER", 3, "mark"]);
+
+  // The mirror-image bug: picking on the absence of an objection rather than
+  // on a case. A survivor with no positive evidence is not a selection.
+  const nothingDoing: R[] = [
+    { name: "TOP SCORER", score: 9, fail: "ground" },
+    { name: "NO EVIDENCE", score: 0, fail: null },
+  ];
+  const n = chooseFromRace(nothingDoing, fail, score);
+  check("a zero-scoring survivor is not selected", n.qualifies, false);
+  check("and the top scorer carries the race into the set-aside report",
+    n.chosen?.name, "TOP SCORER");
+
+  // A race where nothing survives must still name a horse and a reason, or it
+  // vanishes off the card with nothing said — the hole that hid 12 races.
+  const allFail: R[] = [
+    { name: "A", score: 12, fail: "mark" },
+    { name: "B", score: 8, fail: "trip" },
+  ];
+  const a = chooseFromRace(allFail, fail, score);
+  check("nothing survives: the race still reports its top scorer",
+    [a.chosen?.name, a.qualifies], ["A", false]);
+
+  check("an empty race chooses nothing rather than throwing",
+    chooseFromRace([] as R[], fail, score).chosen, undefined);
+
+  // Where the top scorer passes, nothing changes — the fix must not reorder a
+  // race the old code already got right.
+  const clean: R[] = [
+    { name: "FAVOURITE", score: 15, fail: null },
+    { name: "SECOND", score: 10, fail: null },
+  ];
+  const c = chooseFromRace(clean, fail, score);
+  check("a clean race still gives the top scorer",
+    [c.chosen?.name, c.qualifies, c.outranked.length], ["FAVOURITE", true, 0]);
 }
 
 console.log(failures === 0 ? "\nAll gate checks passed.\n" : `\n${failures} check(s) FAILED.\n`);

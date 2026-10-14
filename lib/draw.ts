@@ -33,6 +33,12 @@
  * put a different horse at the top of the 17:17 Redcar than the other.
  */
 
+/**
+ * On the Flat, a draw figure below this is against us. Lives here so the card,
+ * the write-ups and the tests cannot drift to different thresholds.
+ */
+export const DRAW_AGAINST = 0.90;
+
 /** Goes in the going_band column for the pooled, ground-agnostic row. */
 export const ANY_GOING = "any";
 

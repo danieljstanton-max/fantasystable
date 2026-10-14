@@ -18,12 +18,13 @@
  */
 
 import "dotenv/config";
-import { readDraw } from "../lib/draw";
+import { readDraw, DRAW_AGAINST } from "../lib/draw";
+import { chooseFromRace } from "../lib/funnel";
 import postgres from "postgres";
 
 import {
   filterRace, scoreHorse, wellHandicapped, groundGate, streakGate, isHandicap, REJECT_LABELS,
-  sameDiscipline,
+  sameDiscipline, markGate, likesConditions,
   type PastRun, type HorseToday, type RaceToday } from "../lib/selection";
 import { readComment, racePaceShape, runStyleHabit } from "../lib/form-reading";
 import type { GoingBand } from "../lib/going";
@@ -432,7 +433,8 @@ async function main() {
 
       const s = scoreHorse(today, raceToday, h, jockeyStrike, date, () => iv, () => pIv);
       const hcap = wellHandicapped(today, raceToday, h, date);
-      return { r, h, s, hcap, style: runStyleHabit(h.map((x) => x.comment)).style };
+      return { r, h, s, hcap, drawIv: iv,
+               style: runStyleHabit(h.map((x) => x.comment)).style };
     });
 
     const shape = racePaceShape(scored.map((x) => x.style));
@@ -496,7 +498,33 @@ async function main() {
       ? scored.find((x) => String(x.r.horseName).toUpperCase() === hand.horse.toUpperCase())
       : undefined;
 
-    const top = handRunner ?? cleared[0] ?? bySc[0];
+    /* The same funnel best-bets uses, in the same order, for the same reason.
+     *
+     * `cleared` applies the ground rule, the streak rule and hand vetoes. It
+     * does NOT apply the mark rule, the won-at-the-distance rule or the draw,
+     * so once best-bets started offering up a race's best SURVIVOR rather than
+     * its top scorer the two files began naming different horses: the 17:30
+     * Kempton on 14 October would have had PORT ROAD in the best bets and
+     * GUNFIGHTER on the race page, arguing with each other. That is the 17:17
+     * Redcar failure, and pre-flight holds the card for it.
+     *
+     * So the full funnel goes first here too. `cleared[0]` stays underneath it,
+     * because a race page owes the reader a selection even when nothing in the
+     * race qualifies — a demotion, not a deletion.
+     */
+    const isFlatRace = String(ra.raceType ?? "").toLowerCase() === "flat";
+    const funnelFail = (x: (typeof scored)[number]): string | null => {
+      if (!passes(x)) return "gate";
+      if (markGate(x.h, x.r.ofr ?? null, ra.raceType ?? null, String(ra.name ?? "")) !== null)
+        return "mark";
+      if (!likesConditions(raceToday, x.h).trip) return "trip";
+      if (isFlatRace && x.drawIv !== null && x.drawIv < DRAW_AGAINST) return "draw";
+      return null;
+    };
+    const survivor = chooseFromRace(bySc, funnelFail, (x) => x.s.score);
+
+    const top = handRunner ?? (survivor.qualifies ? survivor.chosen! : undefined)
+      ?? cleared[0] ?? bySc[0];
     const experienced = scored.filter((x) => x.h.length >= 3).length;
 
     // How many wins the selection is on. Needed before the reason phrases are
