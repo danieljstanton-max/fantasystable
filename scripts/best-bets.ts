@@ -18,6 +18,7 @@
 import "dotenv/config";
 import postgres from "postgres";
 import { readMark } from "../lib/marks";
+import { readDraw, drawPhrase } from "../lib/draw";
 
 /**
  * What a horse gives up for not being the standout in its own race.
@@ -217,6 +218,8 @@ async function main() {
     draw: number | null;
     drawIv: number | null;
     drawIvBand: string | null;
+    /** True when the figure is the trip pooled across goings, not today's. */
+    drawIvPooled: boolean;
   }
   const picks: Candidate[] = [];
 
@@ -307,29 +310,21 @@ async function main() {
 
     const scored = live.map((r) => {
       const h = byHorse.get(r.horseId) ?? [];
-      const band = drawBandOf(r.draw, live.length);
-      const dB = drawDist(ra.distanceF);
-      // Prefer the projected going — draw bias is measured per going band, so
-      // reading the row for ground the race will not be run on is wrong.
-      //
-      // But the table is sparse: Thirsk 7f holds rows for good and good-firm
-      // and nothing for good-soft, so asking only for the projected band lost
-      // the figure entirely. Fall back to the declared band rather than
-      // reporting no data, and remember which was used.
+      // Prefer the projected going, fall back to the declared one, and fall
+      // back again to the trip pooled across goings. All three levels, and the
+      // rule that a pooled figure is never printed as if measured on today's
+      // ground, live in lib/draw.ts — shared, because this ladder and the one
+      // in write-ups.ts were separate copies and disagreed on the 17:17 Redcar.
       const projBand = bandAtOff(goingProjection.get(String(ra.courseName)), ra.offTime)
         ?? ra.goingBand ?? "unknown";
-      const key = (g: string) => `${ra.courseSlug}|${dB}|${g}|${band}`;
-
-      let iv: number | null = null;
-      let ivBand: string | null = null;
-      if (band && dB) {
-        const onProjected = drawMap.get(key(projBand));
-        if (onProjected !== undefined) { iv = onProjected; ivBand = projBand; }
-        else {
-          const onDeclared = drawMap.get(key(ra.goingBand ?? "unknown"));
-          if (onDeclared !== undefined) { iv = onDeclared; ivBand = ra.goingBand ?? null; }
-        }
-      }
+      const read = readDraw(drawMap, {
+        courseSlug: ra.courseSlug, distanceF: ra.distanceF,
+        draw: r.draw, fieldSize: live.length,
+        projected: projBand, declared: ra.goingBand ?? "unknown",
+      });
+      const iv = read.iv;
+      const ivBand = read.goingBand;
+      const ivPooled = read.pooled;
       const styles = h.slice(0, 5).map((x) => readComment(x.comment).runStyle).filter(Boolean) as string[];
       const cnt = new Map<string, number>();
       for (const st of styles) cnt.set(st, (cnt.get(st) ?? 0) + 1);
@@ -350,7 +345,7 @@ async function main() {
       return { r, h, s, paceIv: pIv, habit, habitSeen: bn,
                hcap: wellHandicapped(today, raceToday, h, date),
                style: runStyleHabit(h.map((x) => x.comment)).style,
-               drawIv: iv, drawIvBand: ivBand };
+               drawIv: iv, drawIvBand: ivBand, drawIvPooled: ivPooled };
     });
 
     if (HOTD) {
@@ -358,7 +353,7 @@ async function main() {
         everyRunner.push({
           race: ra, field: live.length, band: raceToday.goingBand,
           r: x.r, h: x.h, s: x.s, hcap: x.hcap, style: x.style,
-          drawIv: x.drawIv, drawIvBand: x.drawIvBand,
+          drawIv: x.drawIv, drawIvBand: x.drawIvBand, drawIvPooled: x.drawIvPooled,
           paceIv: x.paceIv, habit: x.habit, habitSeen: x.habitSeen,
           groundFail: groundGate(x.h, raceToday.goingBand),
         });
@@ -414,6 +409,7 @@ async function main() {
       goingBand: raceToday.goingBand,
       draw: best.r.draw ?? null, drawIv: best.drawIv ?? null,
       drawIvBand: best.drawIvBand ?? null,
+      drawIvPooled: best.drawIvPooled ?? false,
       pace: racePaceShape(scored.map((x) => x.style)).verdict,
     });
   }
@@ -639,9 +635,9 @@ async function main() {
       say(`   ${x.race.offTime} ${x.race.courseName} · ${x.race.distRound} · ${String(x.band).replace("-", " to ")} · ${x.field} runners`);
       say(`   ${x.r.trainerName ?? "?"} / ${x.r.jockeyName ?? "?"}${x.r.claim ? ` (${x.r.claim})` : ""}`);
       say();
-      say(`   DRAW      ${x.r.draw} of ${x.field} — ${x.drawIv === null
-        ? "no draw data for this course, trip and ground"
-        : `that side wins ${(x.drawIv as number).toFixed(2)}x its share here${x.drawIvBand ? ` on ${x.drawIvBand}` : ""}`}`);
+      say(`   DRAW      ${x.r.draw} of ${x.field} — ${
+        drawPhrase({ iv: x.drawIv, goingBand: x.drawIvBand, pooled: x.drawIvPooled })
+        ?? "no draw data for this course, trip or ground"}`);
       say(`   PACE      ${x.habit ? `usually ${x.habit} (${x.habitSeen} of its last 5)` : "no settled run style"}${
         x.paceIv === null ? " — no pace data for this course and trip"
         : ` — ${x.habit} wins ${(x.paceIv as number).toFixed(2)}x its share over this course and trip`}`);
@@ -857,13 +853,16 @@ async function main() {
     say();
     if (p.draw !== null && p.draw > 0 && p.field >= 6) {
       const iv = p.drawIv;
+      // Never print a pooled figure as though it were measured on today's
+      // ground. drawPhrase() says "over this trip, across all goings" for one.
+      const phrase = drawPhrase({ iv, goingBand: p.drawIvBand, pooled: p.drawIvPooled });
       say(
         `   Drawn ${p.draw} of ${p.field}` +
-        (iv !== null
-          ? ` — that side wins ${iv.toFixed(2)}x its share here on ${p.drawIvBand ?? "this ground"}${
+        (iv !== null && phrase
+          ? ` — that side wins ${phrase}${
               iv <= 0.85 ? ", against it" : iv >= 1.3 ? ", in its favour" : ""
             }`
-          : " — no draw data for this course and trip")
+          : " — no draw data for this course, trip or ground")
       );
 
       // Dan's sheet as a second opinion on the draw, not a replacement.

@@ -95,6 +95,24 @@ if (force || hour >= 11) {
   // previous evening is still settling.
   if (day <= 2) step("publish previous month", ["scripts/publish-month.ts", lastMonth]);
 
+  // The bias tables, rebuilt weekly.
+  //
+  // Dan, 2026-10-14: "why don't we have data?" We did. draw_bias was computed
+  // on 26 August and never again, so by mid-October it was seven weeks and
+  // 1,983 races stale — Nottingham over a mile on good-soft had 81 races of
+  // draw evidence and no cell, because it sat just under the 30-race minimum
+  // back in August and nothing had looked since. The funnel's draw test was
+  // then rejecting turf horses for a gap we had created by not rebuilding.
+  //
+  // Both tables are a full pass over 1.6m runs, so they go on a Sunday morning
+  // rather than every ten minutes. Each is in its own try: a failed rebuild
+  // leaves yesterday's table in place, which is wrong-but-usable, where a
+  // half-written one would not be.
+  if (force || (new Date(`${today}T12:00:00Z`).getUTCDay() === 0 && hour === 7)) {
+    step("rebuild draw bias", ["scripts/draw-bias.ts"]);
+    step("rebuild pace bias", ["scripts/pace-bias.ts"]);
+  }
+
   // The VIP record settles here too.
   //
   // Unlike everything else on the site it is pushed already-settled rather than

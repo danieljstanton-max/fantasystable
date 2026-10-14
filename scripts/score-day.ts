@@ -11,6 +11,7 @@
  */
 
 import "dotenv/config";
+import { ANY_GOING } from "../lib/draw";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { sql } from "drizzle-orm";
@@ -96,8 +97,13 @@ async function main() {
   const drawMap = new Map<string, number>();
   for (const d of drawRows)
     drawMap.set(`${d.course_slug}|${d.dist_band}|${d.going_band}|${d.draw_band}`, Number(d.impact_value));
+  // Fall back to the trip pooled across goings rather than returning nothing:
+  // the going split leaves real holes, and a course+trip figure is weaker than
+  // a course+trip+going one but much better than silence. See lib/draw.ts.
   const drawBias = (c: string, dist: string, going: string, band: string) =>
-    drawMap.get(`${c}|${dist}|${going}|${band}`) ?? null;
+    drawMap.get(`${c}|${dist}|${going}|${band}`)
+      ?? drawMap.get(`${c}|${dist}|${ANY_GOING}|${band}`)
+      ?? null;
   console.log(`  draw bias: ${drawMap.size} stored cells`);
 
   const paceRows: any[] = await db.execute(sql`

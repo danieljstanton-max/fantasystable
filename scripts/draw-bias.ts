@@ -25,6 +25,7 @@
 
 import "dotenv/config";
 import postgres from "postgres";
+import { ANY_GOING } from "../lib/draw";
 
 const client = postgres(process.env.DATABASE_URL!, { max: 4, ssl: "require" });
 const args = process.argv.slice(2);
@@ -85,27 +86,44 @@ async function main() {
     if (!d) continue;
     const band = drawBand(Number(r.draw), Number(r.field));
     if (!band) continue;
-    const going = r.going ?? "unknown";
 
-    const groupKey = `${r.course_slug}|${d}|${going}`;
-    if (!totals.has(groupKey)) totals.set(groupKey, { runners: 0, wins: 0 });
-    const t = totals.get(groupKey)!;
-    t.runners++;
-    if (r.pos === 1) t.wins++;
+    // Every runner is counted twice: once under the going it ran on, and once
+    // under ANY_GOING, which pools the trip.
+    //
+    // The going split is the point of the table — a single figure per track
+    // would hide Catterick flipping from low to high as it rains. The cost is
+    // sparseness: Nottingham beyond 1m4f holds 126 races over good, good to
+    // firm and soft and nothing on good to soft, so the Colwick Cup came back
+    // with no figure at all and the draw test could not fire on it. The pooled
+    // row is the floor under that, and it has to be measured rather than
+    // averaged from the cells — a mean of three IVs is not the IV of the
+    // union, because the bands hold different numbers of races.
+    //
+    // Its baseline is pooled the same way, so it is still a share-of-wins
+    // figure and still comparable with the others, and it faces the same
+    // minimum race count. The caller is told it is ground-agnostic; see
+    // lib/draw.ts.
+    for (const going of [r.going ?? "unknown", ANY_GOING]) {
+      const groupKey = `${r.course_slug}|${d}|${going}`;
+      if (!totals.has(groupKey)) totals.set(groupKey, { runners: 0, wins: 0 });
+      const t = totals.get(groupKey)!;
+      t.runners++;
+      if (r.pos === 1) t.wins++;
 
-    const key = `${groupKey}|${band}`;
-    if (!cells.has(key))
-      cells.set(key, {
-        course: r.course, slug: r.course_slug, dist: d, going, band,
-        runners: 0, wins: 0, races: new Set(), staked: 0, returned: 0,
-      });
-    const c = cells.get(key)!;
-    c.runners++;
-    c.races.add(r.race_id);
-    if (r.pos === 1) c.wins++;
-    if (r.sp !== null && Number(r.sp) > 1) {
-      c.staked++;
-      if (r.pos === 1) c.returned += Number(r.sp);
+      const key = `${groupKey}|${band}`;
+      if (!cells.has(key))
+        cells.set(key, {
+          course: r.course, slug: r.course_slug, dist: d, going, band,
+          runners: 0, wins: 0, races: new Set(), staked: 0, returned: 0,
+        });
+      const c = cells.get(key)!;
+      c.runners++;
+      c.races.add(r.race_id);
+      if (r.pos === 1) c.wins++;
+      if (r.sp !== null && Number(r.sp) > 1) {
+        c.staked++;
+        if (r.pos === 1) c.returned += Number(r.sp);
+      }
     }
   }
 
@@ -148,7 +166,11 @@ async function main() {
       values (${c.slug}, ${c.dist}, ${c.going}, ${c.band},
               ${c.raceCount}, ${c.runners}, ${c.wins}, ${c.iv}, ${c.roi})`;
   }
-  console.log(`  ${results.length.toLocaleString()} cells stored in draw_bias (min ${MIN_RACES} races each)\n`);
+  const pooled = results.filter((c) => c.going === ANY_GOING).length;
+  console.log(
+    `  ${results.length.toLocaleString()} cells stored in draw_bias (min ${MIN_RACES} races each)` +
+      ` — ${(results.length - pooled).toLocaleString()} on a going, ${pooled.toLocaleString()} pooled across goings\n`
+  );
 
   /* ------------------------------------------------------- report ------- */
 
@@ -174,14 +196,17 @@ async function main() {
     return;
   }
 
-  show([...results].sort((a, b) => b.iv - a.iv).slice(0, 20), "STRONGEST ADVANTAGES  (IV above 1 means the draw helps)");
-  show([...results].sort((a, b) => a.iv - b.iv).slice(0, 15), "STRONGEST DISADVANTAGES");
+  // The league tables and the going-flip report are about bias ON A GOING, so
+  // the pooled rows are excluded from both — a pooled row cannot flip.
+  const onGoing = results.filter((c) => c.going !== ANY_GOING);
+  show([...onGoing].sort((a, b) => b.iv - a.iv).slice(0, 20), "STRONGEST ADVANTAGES  (IV above 1 means the draw helps)");
+  show([...onGoing].sort((a, b) => a.iv - b.iv).slice(0, 15), "STRONGEST DISADVANTAGES");
 
   // Where does the bias flip with the ground? That is the case a static table
   // cannot represent.
   const flips: string[] = [];
   const byCD = new Map<string, typeof results>();
-  for (const c of results) {
+  for (const c of onGoing) {
     const k = `${c.slug}|${c.dist}`;
     if (!byCD.has(k)) byCD.set(k, []);
     byCD.get(k)!.push(c);

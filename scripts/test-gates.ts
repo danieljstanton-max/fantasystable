@@ -12,6 +12,7 @@
  * every race every day and when I do check I always see mistakes."
  */
 import { markGate, groundGate, streakGate, type PastRun } from "../lib/selection";
+import { readDraw, drawBandOf, drawDistBand, drawKey, drawPhrase, ANY_GOING } from "../lib/draw";
 import { gateField } from "../lib/gates";
 import type { Veto } from "../lib/vetoes";
 
@@ -136,6 +137,67 @@ console.log("\nthe mark gate — above what it last won off");
 
   check("no win on record is unassessable, not stopped",
     markGate([r(70, 4)], 90, "Flat", "A Handicap"), null);
+}
+
+
+console.log("\ndraw lookup — three levels, and a pooled figure never claims today's ground");
+{
+  // IT'S ALL ABOUT YOU, 15:39 Nottingham 2026-10-14, drawn 6 of 11 in the
+  // Colwick Cup over 2m on good to soft. Nottingham beyond 1m4f holds 126
+  // races over good, good to firm and soft and nothing on good to soft, so a
+  // two-level lookup returned "no draw data for this course and trip" and the
+  // funnel's draw test could not fire on a Flat handicap about to be advised.
+  const NOTT = "nottingham";
+  const map = new Map<string, number>([
+    [drawKey(NOTT, "beyond 1m4f", "good", "mid"), 1.22],
+    [drawKey(NOTT, "beyond 1m4f", "soft", "mid"), 0.67],
+    [drawKey(NOTT, "beyond 1m4f", ANY_GOING, "mid"), 1.06],
+    [drawKey("thirsk", "7f", "good", "low"), 1.40],
+  ]);
+  const colwick = {
+    courseSlug: NOTT, distanceF: 16, draw: 6, fieldSize: 11,
+    projected: "good-soft", declared: "good-soft",
+  };
+
+  check("the stall is read as a position in the field, not a number",
+    [drawBandOf(1, 11), drawBandOf(6, 11), drawBandOf(11, 11)], ["low", "mid", "high"]);
+  check("16f buckets to beyond 1m4f", drawDistBand(16), "beyond 1m4f");
+
+  const pooled = readDraw(map, colwick);
+  check("Colwick Cup: no good-to-soft row, so the pooled trip figure answers",
+    [pooled.iv, pooled.pooled], [1.06, true]);
+  check("and it does not claim to have been measured on a going",
+    pooled.goingBand, null);
+  check("so the prose says what it actually measured",
+    drawPhrase(pooled), "1.06x its share here over this trip, across all goings");
+
+  // The pooled row is a floor, never a substitute. Where we hold the ground,
+  // the ground wins — Catterick flipping low-to-high as it rains is the whole
+  // reason the table is split by going.
+  const onGoing = readDraw(map, { ...colwick, projected: "soft", declared: "soft" });
+  check("where we hold today's ground, the pooled row is not used",
+    [onGoing.iv, onGoing.pooled, onGoing.goingBand], [0.67, false, "soft"]);
+  check("and that figure is printed against the going it was measured on",
+    drawPhrase(onGoing), "0.67x its share here on soft");
+
+  // 17:17 Redcar, 2026-09-23: declared good to firm, projected to dry to good.
+  // The table holds good and not good-firm, and the projection is what the
+  // race is run on.
+  check("the projected going is preferred to the declared one",
+    readDraw(map, { ...colwick, projected: "good", declared: "good-soft" }).iv, 1.22);
+  check("and the declared going is still tried before pooling",
+    readDraw(map, { ...colwick, projected: "firm", declared: "soft" }).iv, 0.67);
+
+  // Under six runners the three-way split means nothing, so nothing is offered
+  // rather than a figure read off a band that does not exist.
+  check("a five-runner field gets no draw figure at all",
+    readDraw(map, { ...colwick, fieldSize: 5 }).iv, null);
+  check("a jumps runner with no stall gets none either",
+    readDraw(map, { ...colwick, draw: null }).iv, null);
+  check("a course and trip we hold nothing for still returns null",
+    readDraw(map, { ...colwick, courseSlug: "ffos-las" }).iv, null);
+  check("no figure means no phrase, not a 0.00x claim",
+    drawPhrase({ iv: null, goingBand: null, pooled: false }), null);
 }
 
 console.log(failures === 0 ? "\nAll gate checks passed.\n" : `\n${failures} check(s) FAILED.\n`);

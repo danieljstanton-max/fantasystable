@@ -18,6 +18,7 @@
  */
 
 import "dotenv/config";
+import { readDraw } from "../lib/draw";
 import postgres from "postgres";
 
 import {
@@ -410,16 +411,16 @@ async function main() {
       // write-up found nothing, scored him below NIGHT EMPEROR, and the two
       // files named different horses in the same race. Pre-flight held the card
       // overnight for it, correctly.
+      // Third level added 2026-10-14: the trip pooled across goings, so a
+      // course and trip with 126 races and no row for today's ground still
+      // answers. Shared with best-bets so the two cannot diverge again.
       const projBand = bandAtOff(goingProjection.get(String(ra.courseName)), ra.offTime)
         ?? ra.goingBand ?? "unknown";
-      const drawKey = (g: string) => `${ra.courseSlug}|${dB}|${g}|${band}`;
-      let iv: number | null = null;
-      if (band && dB) {
-        const onProjected = drawMap.get(drawKey(projBand));
-        iv = onProjected !== undefined
-          ? onProjected
-          : drawMap.get(drawKey(ra.goingBand ?? "unknown")) ?? null;
-      }
+      const iv = readDraw(drawMap, {
+        courseSlug: ra.courseSlug, distanceF: ra.distanceF,
+        draw: r.draw, fieldSize: live.length,
+        projected: projBand, declared: ra.goingBand ?? "unknown",
+      }).iv;
       const styles = h.slice(0, 5).map((x) => readComment(x.comment).runStyle).filter(Boolean) as string[];
       const cnt = new Map<string, number>();
       for (const st of styles) cnt.set(st, (cnt.get(st) ?? 0) + 1);
