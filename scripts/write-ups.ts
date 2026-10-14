@@ -19,6 +19,7 @@
 
 import "dotenv/config";
 import { readDraw, DRAW_AGAINST } from "../lib/draw";
+import { readMark } from "../lib/marks";
 import { chooseFromRace } from "../lib/funnel";
 import postgres from "postgres";
 
@@ -121,7 +122,8 @@ async function main() {
 
   const runners: any[] = await client`
     select r.race_id "raceId", r.horse_id "horseId", r.horse_name "horseName",
-           r.age, r.draw, r.ofr, r.number, r.form, r.last_run "lastRun",
+           r.age, r.draw, r.ofr, r.weight_lbs "weightLbs", r.number, r.form,
+           r.last_run "lastRun",
            r.jockey_id "jockeyId", r.jockey_name "jockeyName",
            r.jockey_claim_lbs "claim", r.trainer_name "trainerName",
            r.best_odds_frac "priceFrac", r.best_odds_dec "priceDec",
@@ -375,6 +377,38 @@ async function main() {
       { raceName: ra.name, ageBand: ra.ageBand, raceClass: ra.raceClass },
       live.map((x) => ({ age: x.age, isNonRunner: x.isNonRunner }))
     );
+
+    // The racecard's `ofr` goes stale the moment a horse is reassessed for a
+    // win, and the weights carry the new figure first. best-bets.ts has done
+    // this correction since 8 October; this file never did, so the mark rule
+    // read one number here and a different one there.
+    //
+    // On 14 October that put TENISON in the best bets and a different horse on
+    // the 20:30 Kempton race page, and pre-flight held the card for it —
+    // correctly. The two files have to be looking at the same mark before they
+    // can be expected to agree about it.
+    //
+    // Done before scoring, so the handicap angle, the gates, the printed figure
+    // and the mark check all see the same number. See lib/marks.ts.
+    const markShape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weightLbs, claim: r.claim });
+    const markField = live.map(markShape);
+    // A correction that silently does nothing is the failure this project keeps
+    // hitting — the first version of this block read r.weightLbs when the query
+    // did not select it, so every mark came back uncorrected and the two files
+    // would have gone on disagreeing with nothing said.
+    if (live.length >= 5 && live.every((r: any) => r.weightLbs === null || r.weightLbs === undefined))
+      throw new Error(
+        `write-ups: no weights on the ${ra.offTime} ${ra.courseName} field — ` +
+          `the mark cannot be read off the weight line, and best-bets will disagree`
+      );
+    for (const r of live) {
+      const m = readMark(markField, markShape(r));
+      if (m.effective !== null && m.drift) {
+        r.ofrPublished = r.ofr;
+        r.ofr = m.effective;
+        r.ofrDrift = m.drift;
+      }
+    }
 
     // Score everything we can, whether or not the race qualifies for a bet.
     const raceToday: RaceToday = {
