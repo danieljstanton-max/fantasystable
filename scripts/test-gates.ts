@@ -11,7 +11,7 @@
  * Dan, 2026-10-02: "these are silly mistakes that can't happen, I can't check
  * every race every day and when I do check I always see mistakes."
  */
-import { groundGate, streakGate, type PastRun } from "../lib/selection";
+import { markGate, groundGate, streakGate, type PastRun } from "../lib/selection";
 import { gateField } from "../lib/gates";
 import type { Veto } from "../lib/vetoes";
 
@@ -110,6 +110,33 @@ const g2 = gateField(
 );
 check("2026-09-20: a hand veto removes the horse everywhere", g2.cleared.length, 0);
 check("and the veto's own words are the reason given", g2.reasonFor({ id: "a", name: "IMPRESSOR", ofr: 54, h: [] }), "ran yesterday");
+
+console.log("\nthe mark gate — above what it last won off");
+{
+  const r = (ofr: number, pos: number, type = "Flat") =>
+    run({ ofr, positionNum: pos, raceType: type });
+
+  // WYLE COP, 5 October: won off 67 in August, ran off 79.
+  check("a handicapper 12lb above its winning mark is stopped",
+    markGate([r(67, 1)], 79, "Flat", "Whatever Handicap Stakes") !== null, true);
+  check("and the reason names the mark it won off",
+    String(markGate([r(67, 1)], 79, "Flat", "A Handicap")).includes("67"), true);
+
+  check("level with its winning mark passes",
+    markGate([r(79, 1)], 79, "Flat", "A Handicap"), null);
+  check("below it passes",
+    markGate([r(79, 1)], 75, "Flat", "A Handicap"), null);
+
+  // KING'S SCHOLAR, 9 October: a novices' hurdle is not run off the mark.
+  check("a non-handicap is never stopped",
+    markGate([r(120, 1, "Hurdle")], 123, "Hurdle", "Novices Hurdle Race"), null);
+
+  check("a hurdle win does not judge a chase mark",
+    markGate([r(100, 1, "Hurdle")], 120, "Chase", "A Handicap Chase"), null);
+
+  check("no win on record is unassessable, not stopped",
+    markGate([r(70, 4)], 90, "Flat", "A Handicap"), null);
+}
 
 console.log(failures === 0 ? "\nAll gate checks passed.\n" : `\n${failures} check(s) FAILED.\n`);
 process.exit(failures === 0 ? 0 : 1);

@@ -44,6 +44,7 @@ import type { GoingBand } from "../lib/going";
 import { betFor, placeTerms } from "../lib/staking";
 import { loadVetoes, isVetoed } from "../lib/vetoes";
 import { loadHandPicks, handPickFor } from "../lib/hand-picks";
+import { markGate, likesConditions } from "../lib/selection";
 import { courseGuide, goingNote, sheetDraw, drawThird } from "../lib/course-guide";
 import { projectCard, applyGoingOverrides, bandAtOff, changesDuringCard,
          type GoingProjection } from "../lib/weather";
@@ -206,6 +207,10 @@ async function main() {
     groundRecord: string;
     groundFail: string | null;
     streakFail: string | null;
+    markFail: string | null;
+    wonAtTrip: boolean;
+    courseWins: number;
+    isFlat: boolean;
     goingBand: GoingBand;
     pace: string;
     /** Stall number, and how that side of the track fares here. */
@@ -393,6 +398,19 @@ async function main() {
       groundRecord: best.s.groundRecord,
       groundFail: groundGate(best.h, raceToday.goingBand),
       streakFail: streakGate(best.h, best.r.ofr ?? null, ra.raceType ?? null),
+      // `best.r.ofr` has already been corrected from the weights above, so this
+      // compares the mark the horse is really running off.
+      markFail: markGate(best.h, best.r.ofr ?? null, ra.raceType ?? null, String(ra.name ?? "")),
+      // Dan's funnel, 2026-10-14: "handicap and ground is key along with having
+      // won at the distance. Hurdles and jumps we should add course form as a
+      // plus mark as well as ground and winning at the distance. With flat,
+      // draw has to play a role."
+      //
+      // `trip` is a WIN within half a furlong of today's distance, which is
+      // what "won at the distance" means. `courseWins` is wins at this track.
+      wonAtTrip: likesConditions(raceToday, best.h).trip,
+      courseWins: likesConditions(raceToday, best.h).courseWins,
+      isFlat: String(ra.raceType ?? "").toLowerCase() === "flat",
       goingBand: raceToday.goingBand,
       draw: best.r.draw ?? null, drawIv: best.drawIv ?? null,
       drawIvBand: best.drawIvBand ?? null,
@@ -659,8 +677,48 @@ async function main() {
   // Dan's streak rule. See streakGate() in lib/selection.ts.
   const onAStreak = (p: (typeof picks)[number]) => p.streakFail !== null;
 
+  // Dan's mark rule. A handicapper above the mark it last won off is not a
+  // well-handicapped horse, which is the whole method. See markGate().
+  const aboveItsMark = (p: (typeof picks)[number]) => p.markFail !== null;
+
+  /* ------------------------------------------------------------- the funnel
+   *
+   * Dan, 2026-10-14: "handicap and ground is key along with having won at the
+   * distance. Hurdles and jumps we should add course form as a plus mark as
+   * well as ground and winning at the distance. With flat, draw has to play a
+   * role."
+   *
+   * This was always the model. It has been in this file since the start as the
+   * --hotd funnel and the daily five was wired to a different path, where the
+   * handicap angle was one weighted signal among draw, pace, booking and yard
+   * form. That is how a horse 12lb above its winning mark became a NAP, four
+   * times in ten days, each one caught by Dan reading the card.
+   *
+   * Hard for every runner: won at the distance. Handicap and ground are already
+   * hard above — markGate and groundGate.
+   *
+   * Flat only: the draw must not be against us where we have a figure. A horse
+   * with no draw data is not failed for it — only 32 of 144 runners had a draw
+   * figure on 14 October, so failing the untested would empty the card by
+   * absence rather than by evidence.
+   *
+   * Jumps: course form is a PLUS, not a gate, exactly as asked — it ranks, it
+   * does not exclude.
+   */
+  const DRAW_AGAINST = 0.90;
+  const notWonAtTrip = (p: (typeof picks)[number]) => !p.wonAtTrip;
+  const drawnBadly = (p: (typeof picks)[number]) =>
+    p.isFlat && p.drawIv !== null && p.drawIv < DRAW_AGAINST;
+
   const offGround = rest.filter(wrongGround);
   const streaky = rest.filter((p) => !wrongGround(p) && onAStreak(p));
+  const aboveMark = rest.filter((p) => !wrongGround(p) && !onAStreak(p) && aboveItsMark(p));
+  const wrongTrip = rest.filter(
+    (p) => !wrongGround(p) && !onAStreak(p) && !aboveItsMark(p) && notWonAtTrip(p)
+  );
+  const badDraw = rest.filter(
+    (p) => !wrongGround(p) && !onAStreak(p) && !aboveItsMark(p) && !notWonAtTrip(p) && drawnBadly(p)
+  );
   // A hand pick is not set aside for a big field.
   //
   // Dan, 2026-10-10, choosing VOLENTI: told that its race had 14 runners and
@@ -673,10 +731,12 @@ async function main() {
   // streak gate stop a hand pick like anything else, because those are Dan's
   // own editorial lines rather than guards on the model.
   const crowded = rest.filter(
-    (p) => !wrongGround(p) && !onAStreak(p) && bigField(p) && !p.handPick
+    (p) => !wrongGround(p) && !onAStreak(p) && !aboveItsMark(p) && !notWonAtTrip(p) &&
+      !drawnBadly(p) && bigField(p) && !p.handPick
   );
   const eligible = rest.filter(
-    (p) => !wrongGround(p) && !onAStreak(p) && (!bigField(p) || Boolean(p.handPick))
+    (p) => !wrongGround(p) && !onAStreak(p) && !aboveItsMark(p) && !notWonAtTrip(p) &&
+      !drawnBadly(p) && (!bigField(p) || Boolean(p.handPick))
   );
 
   // Strength first, decisiveness second — but decisiveness is not a tiebreak.
@@ -713,6 +773,9 @@ async function main() {
         // on the card; the model ranks what is left.
         Number(Boolean(b.p.handPick)) - Number(Boolean(a.p.handPick)) ||
         b.standout - a.standout ||
+        // Over jumps, course form is the tie-breaker Dan asked for: a plus
+        // mark, not a gate. On the Flat the draw has already done that work.
+        (a.p.isFlat || b.p.isFlat ? 0 : b.p.courseWins - a.p.courseWins) ||
         b.p.clear - a.p.clear ||
         String(a.p.r.horseName).localeCompare(String(b.p.r.horseName))
     )
@@ -912,6 +975,42 @@ async function main() {
     for (const x of streaky.sort((a, b) => b.score - a.score)) {
       say(`${String(x.r.horseName).toUpperCase()}   ${x.race.offTime} ${x.race.courseName}`);
       say(`   ${x.streakFail}`);
+      say(`   Scored ${x.score}, which would otherwise have made the five.`);
+      say();
+    }
+  }
+
+  if (aboveMark.length) {
+    say("-".repeat(72));
+    say("SET ASIDE — above the mark it last won off");
+    say();
+    for (const x of aboveMark.sort((a, b) => b.score - a.score)) {
+      say(`${String(x.r.horseName).toUpperCase()}   ${x.race.offTime} ${x.race.courseName}`);
+      say(`   ${x.markFail}`);
+      say(`   Scored ${x.score}, which would otherwise have made the five.`);
+      say();
+    }
+  }
+
+  if (wrongTrip.length) {
+    say("-".repeat(72));
+    say("SET ASIDE — has not won at the distance");
+    say();
+    for (const x of wrongTrip.sort((a, b) => b.score - a.score).slice(0, 6)) {
+      say(`${String(x.r.horseName).toUpperCase()}   ${x.race.offTime} ${x.race.courseName}`);
+      say(`   no win within half a furlong of today's ${x.race.distRound ?? x.race.distanceF + "f"}`);
+      say(`   Scored ${x.score}, which would otherwise have made the five.`);
+      say();
+    }
+  }
+
+  if (badDraw.length) {
+    say("-".repeat(72));
+    say("SET ASIDE — drawn against on the Flat");
+    say();
+    for (const x of badDraw.sort((a, b) => b.score - a.score).slice(0, 4)) {
+      say(`${String(x.r.horseName).toUpperCase()}   ${x.race.offTime} ${x.race.courseName}`);
+      say(`   drawn ${x.r.draw} — that side wins ${Number(x.drawIv).toFixed(2)}x its share here`);
       say(`   Scored ${x.score}, which would otherwise have made the five.`);
       say();
     }

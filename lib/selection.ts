@@ -2671,6 +2671,52 @@ const STREAK_MARK_TOLERANCE = 3;
  *
  * Returns the reason to set the horse aside, or null to let it through.
  */
+/**
+ * The mark gate: a handicapper cannot be backed above the mark it last won off.
+ *
+ * Dan, 2026-10-14: "I thought we scrapped picking horses above their winning
+ * marks?" We had not. It was reported by check:marks and never enforced, so it
+ * kept happening and kept being caught by him reading the card — WYLE COP 12lb
+ * up on 5 October, HOUNDSWORTH 8lb and CYPRIOT DIASPORA 9lb on the 13th,
+ * AUREA FORTUNA 7lb on the 14th. Four times in ten days.
+ *
+ * His method is well-handicapped horses. A horse racing off MORE than it won
+ * off is the opposite of the method, whatever it scores on draw, pace or yard
+ * form, so this sits outside the score with the ground rule rather than being
+ * a signal inside it.
+ *
+ * Only in handicaps. A novice or a conditions race is not run off the mark, so
+ * there is nothing to be above — KING'S SCHOLAR was a legitimate pick in a
+ * novices' hurdle at a rating 3lb higher than he had won off.
+ *
+ * Marks are compared within one code: a hurdle mark and a chase mark are
+ * different numbers about different things.
+ *
+ * A horse with no win on record in this code is NOT stopped. It cannot be shown
+ * to be well handicapped, but neither can it be shown to be badly handicapped,
+ * and refusing every unexposed horse is a different rule nobody has asked for.
+ * It is reported instead.
+ */
+export function markGate(
+  history: PastRun[],
+  todaysMark: number | null,
+  raceType: string | null,
+  raceName: string | null
+): string | null {
+  if (!isHandicap(String(raceName ?? ""))) return null;
+  if (todaysMark === null || todaysMark === undefined) return null;
+
+  const code = history.filter((r) => sameDiscipline(r.raceType, raceType));
+  const win = code.find((r) => Number(r.positionNum) === 1 && r.ofr !== null && r.ofr !== undefined);
+  if (!win) return null;
+
+  const wonOff = Number(win.ofr);
+  const up = Number(todaysMark) - wonOff;
+  if (up <= 0) return null;
+
+  return `${up}lb higher than the ${wonOff} it won off`;
+}
+
 export function streakGate(
   history: PastRun[],
   todayOfr: number | null,
