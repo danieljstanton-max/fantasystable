@@ -7,6 +7,7 @@
  * is ever disputed, this is the file that answers it.
  */
 
+import { bestOddsGuaranteed } from "../lib/staking";
 import { parsePrice, formatPrice, settleTip, computeRecord } from "../lib/tips";
 
 let failures = 0;
@@ -182,9 +183,27 @@ check(
   }
 );
 
+/* ---------------------------------------------------------------- BOG ---- */
+console.log("\nbest odds guaranteed");
+{
+  const t = (name: string, got: unknown, want: unknown) => {
+    const same = JSON.stringify(got) === JSON.stringify(want);
+    console.log(`  ${same ? "ok  " : "FAIL"}  ${name}`);
+    if (!same) { console.log(`          got ${JSON.stringify(got)} want ${JSON.stringify(want)}`); process.exitCode = 1; }
+  };
+  // IRISH NECTAR, 13 October: advised 3/1, returned 9/2.
+  t("a drifter is paid at the SP", bestOddsGuaranteed(4, 5.5), 5.5);
+  // MIDNIGHT'S DREAM, same day: advised 15/8, returned 7/4.
+  t("a shortener is paid at the advised price", bestOddsGuaranteed(2.875, 2.75), 2.875);
+  t("no SP yet leaves the advised price", bestOddsGuaranteed(4, null), 4);
+  t("no advised price falls back to the SP", bestOddsGuaranteed(null, 5.5), 5.5);
+  t("neither is null", bestOddsGuaranteed(null, null), null);
+}
+
 console.log(
   failures === 0
     ? "\nAll settlement checks passed.\n"
     : `\n${failures} check(s) FAILED.\n`
 );
 process.exit(failures === 0 ? 0 : 1);
+

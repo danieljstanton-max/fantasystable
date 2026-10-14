@@ -98,6 +98,37 @@ export type Settlement = {
 };
 
 /**
+ * The price a Best Odds Guaranteed bet is actually paid at.
+ *
+ * Dan, 2026-10-14: "yesterday's horses went up in the morning, when we put
+ * horses up in the morning we get best odds guaranteed — so Irish Nectar went
+ * off 9/2 so we can settle at 9/2 as it's worth more."
+ *
+ * Every firm worth using offers BOG on UK and Irish racing from the morning
+ * show. A bet struck at the advised price is paid at the SP when the SP is
+ * bigger, and at the taken price when it is not. So the settled price is the
+ * better of the two, never the worse.
+ *
+ * This matters more than it looks, and only in our favour. Settling everything
+ * at the advised price understates the record every time a selection drifts:
+ * IRISH NECTAR was advised at 3/1 on 13 October and returned 9/2, which is
+ * +4.50 on a 1pt win rather than +3.00. It cannot work the other way — a horse
+ * that shortens is still paid at the price the reader took.
+ *
+ * It is NOT the same as the average-price figure on the month widget, which is
+ * deliberately the price advised: that answers "what could a reader have
+ * taken", and this answers "what would they have been paid".
+ */
+export function bestOddsGuaranteed(
+  advisedDec: number | null,
+  spDec: number | null
+): number | null {
+  if (advisedDec === null) return spDec;
+  if (spDec === null) return advisedDec;
+  return Math.max(advisedDec, spDec);
+}
+
+/**
  * Settle one bet.
  *
  * `position` is the finishing position, or null for a non-completion — a faller,

@@ -24,7 +24,7 @@ import "dotenv/config";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import postgres from "postgres";
-import { fracToDec } from "../lib/staking";
+import { fracToDec, bestOddsGuaranteed } from "../lib/staking";
 
 type Bet = {
   date: string;
@@ -80,17 +80,22 @@ type SettledBet = Omit<Bet, "position" | "ewPlaces" | "ewDenom"> & {
  * advised price; the place part pays that price over the denominator, and it
  * pays on a win as well as on a place — a winner collects both halves.
  */
-function settle(bet: Bet, result: SettledBet["result"], ewDenom: number | null): {
-  staked: number;
-  profit: number;
-} {
+function settle(
+  bet: Bet,
+  result: SettledBet["result"],
+  ewDenom: number | null,
+  spFrac: string | null
+): { staked: number; profit: number } {
   const unit = bet.stake;
   const staked = bet.type === "ew" ? unit * 2 : unit;
   if (result === "void") return { staked: 0, profit: 0 };
   if (result === "pending") return { staked, profit: 0 };
   if (result === "lost") return { staked, profit: -staked };
 
-  const dec = bet.price ? fracToDec(bet.price) : null;
+  // Best Odds Guaranteed, the same as the free record. The VIP bets go out in
+  // the morning too, so a drifter is paid at the SP. See bestOddsGuaranteed().
+  const advised = bet.price ? fracToDec(bet.price) : null;
+  const dec = bestOddsGuaranteed(advised, fracToDec(spFrac));
   if (dec === null) return { staked, profit: 0 };
   const odds = dec - 1;
 
@@ -190,7 +195,7 @@ async function main() {
     else if (bet.type === "ew" && places !== null && finish <= places) result = "placed";
     else result = "lost";
 
-    const { staked, profit } = settle(bet, result, denom);
+    const { staked, profit } = settle(bet, result, denom, r.sp ?? null);
 
     settled.push({
       ...bet,

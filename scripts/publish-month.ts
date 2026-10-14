@@ -23,7 +23,7 @@ import "dotenv/config";
 import { fetchResults } from "../lib/racing-api";
 import { parseBestBets, bestBetsPath } from "../lib/published";
 import { stripHorseCountry, stripCourseSuffix } from "../lib/mappers";
-import { betFor, settleBet } from "../lib/staking";
+import { betFor, settleBet, bestOddsGuaranteed } from "../lib/staking";
 import { isHandicap } from "../lib/selection";
 import { withRetry } from "../lib/retry";
 
@@ -146,7 +146,13 @@ async function main() {
       const field = ((race.runners ?? []) as any[])
         .filter((x) => x.position && x.position !== "NR").length;
       const pos = /^\d+$/.test(String(r.position)) ? parseInt(String(r.position), 10) : null;
-      const s = settleBet(bet, ourDec, pos, field, isHandicap(String(race.race_name ?? "")));
+      // Settled at Best Odds Guaranteed: the better of the price we advised and
+      // the SP. The selections go up in the morning, so every firm pays the SP
+      // when it is bigger. See bestOddsGuaranteed() for why this only ever
+      // works in the reader's favour.
+      const spDec = fracToDec(r.sp);
+      const paidDec = bestOddsGuaranteed(ourDec, spDec);
+      const s = settleBet(bet, paidDec, pos, field, isHandicap(String(race.race_name ?? "")));
 
       // The average price is of the price advised — what a reader could have
       // taken — not the SP. Averaged over settled bets only, so five unrun
