@@ -14,6 +14,8 @@
 import { markGate, groundGate, streakGate, type PastRun } from "../lib/selection";
 import { readDraw, drawBandOf, drawDistBand, drawKey, drawPhrase, ANY_GOING } from "../lib/draw";
 import { chooseFromRace } from "../lib/funnel";
+import { goingNote } from "../lib/course-guide";
+import { describeGround } from "../lib/selection";
 import { gateField } from "../lib/gates";
 import type { Veto } from "../lib/vetoes";
 
@@ -300,6 +302,40 @@ console.log("\na generated NAP note is never filed or labelled as the paid VIP p
   // the check that would have caught it.
   check("the filename follows the tag rather than being hardcoded",
     fileFor(["--nap"], "2026-10-14", "17:30", "X").includes(" VIP "), false);
+}
+
+
+console.log("\nno going posted: nothing is selected from it, and nothing prints \"unknown\"");
+{
+  // Fontwell, 15 October 2026. The going had not been posted when the card was
+  // built, so the band was "unknown" — and I SHUT THAT D'OR was selected out of
+  // it with "Ground: Never run on unknown or anything like it in 23 starts" and
+  // "Fontwell on unknown: Soft ground makes the finish more demanding".
+  //
+  // Two faults. The prose named a band that does not exist, and the course
+  // note fell through to a soft-ground description we had no reason to believe.
+  // Underneath both: Dan's ground rule is a hard gate, and a horse cannot be
+  // said to have passed a test that was never run.
+  const record = (band: string, hist: PastRun[]) => describeGround(hist, band as any);
+  check("no band means no ground record, and it says so plainly",
+    record("unknown", [run({ goingBand: "good", positionNum: 1 })]),
+    "going not posted yet, so the ground record cannot be read");
+  check("the phrase never contains the word unknown",
+    /unknown/i.test(String(record("unknown", [run({ positionNum: 2 })]))), false);
+
+  // A real band still reports normally — the fix must not silence the rule it
+  // was built to serve.
+  check("a posted band still gives a record",
+    /1w|0w/.test(String(record("soft", [run({ goingBand: "soft", positionNum: 1 })]))), true);
+
+  // The course note is suppressed rather than falling through to groundNote.
+  const guide: any = {
+    course: "Fontwell", groundNote: "Soft ground makes the finish more demanding.",
+    going: { heavy: "", soft: "", good: "", firm: "" }, trap: null,
+  };
+  check("no course going-note without a band", goingNote(guide, "unknown" as any), null);
+  check("but a real band still gets one",
+    goingNote(guide, "soft" as any), "Soft ground makes the finish more demanding.");
 }
 
 console.log(failures === 0 ? "\nAll gate checks passed.\n" : `\n${failures} check(s) FAILED.\n`);

@@ -2777,6 +2777,13 @@ export function describeGround(history: PastRun[], band: GoingBand): string {
     return ds.length ? Math.min(...ds) : null;
   };
 
+  // The going is not always posted when the card is built — Fontwell had none
+  // on 2026-10-15 and this printed "Never run on unknown or anything like it in
+  // 23 starts". There is no ground record to give, and saying so is the honest
+  // answer; inventing a band is not.
+  if (band === "unknown")
+    return "going not posted yet, so the ground record cannot be read";
+
   if (exact.runs === 0 && near.length === 0)
     return history.length
       ? `Never run on ${pretty} or anything like it in ${history.length} starts`

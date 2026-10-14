@@ -548,6 +548,7 @@ async function main() {
      */
     const isFlatRace = String(ra.raceType ?? "").toLowerCase() === "flat";
     const funnelFail = (x: (typeof scored)[number]): string | null => {
+      if (raceToday.goingBand === "unknown") return "going";
       if (!passes(x)) return "gate";
       if (markGate(x.h, x.r.ofr ?? null, ra.raceType ?? null, String(ra.name ?? "")) !== null)
         return "mark";

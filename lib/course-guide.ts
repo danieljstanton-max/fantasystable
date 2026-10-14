@@ -104,6 +104,10 @@ export function courseGuide(courseName?: string | null): CourseGuide | null {
  */
 export function goingNote(g: CourseGuide | null, band: GoingBand): string | null {
   if (!g) return null;
+  // No band, no note. The caller labels this "<course> on <band>", which read
+  // "Fontwell on unknown" when the going had not been posted — and the note it
+  // fell through to described soft ground we had no reason to believe in.
+  if (band === "unknown") return null;
   const col =
     band === "heavy" ? g.going.heavy
     : band === "soft" ? g.going.soft

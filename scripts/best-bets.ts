@@ -38,7 +38,7 @@ export function standoutPenalty(clear: number): number {
 }
 
 import {
-  filterRace, scoreHorse, wellHandicapped, groundGate, streakGate,
+  filterRace, scoreHorse, wellHandicapped, groundGate, streakGate, wonOffHigherMark,
   type PastRun, type HorseToday, type RaceToday,
 } from "../lib/selection";
 import { readComment, racePaceShape, runStyleHabit } from "../lib/form-reading";
@@ -207,6 +207,8 @@ async function main() {
     handPick: { horse: string; reason: string } | null;
     handPickNap: boolean;
     groundRecord: string;
+    /** Today's mark against the mark it last won off, printed whatever it says. */
+    markVsWin: ReturnType<typeof wonOffHigherMark>;
     groundFail: string | null;
     streakFail: string | null;
     markFail: string | null;
@@ -406,6 +408,11 @@ async function main() {
      */
     const isFlatRace = String(ra.raceType ?? "").toLowerCase() === "flat";
     const funnelFail = (x: (typeof scored)[number]): string | null => {
+      // No going posted, no ground rule. Dan's soft/heavy gate is a hard
+      // editorial line, and a horse cannot be said to have passed a test that
+      // was never run — Fontwell had no going on 2026-10-15 and a selection
+      // came through it with "Ground: Never run on unknown".
+      if (raceToday.goingBand === "unknown") return "going";
       if (groundGate(x.h, raceToday.goingBand) !== null) return "ground";
       if (streakGate(x.h, x.r.ofr ?? null, ra.raceType ?? null) !== null) return "streak";
       // x.r.ofr has already been corrected from the weights, so this compares
@@ -466,6 +473,15 @@ async function main() {
       handPick: handRunner && hand ? { horse: hand.horse, reason: hand.reason } : null,
       handPickNap: Boolean(handRunner && hand?.nap),
       groundRecord: best.s.groundRecord,
+      // The mark trajectory, for EVERY selection, the same way the ground
+      // record is. See the printing below for why.
+      // No lookback window here, deliberately. The 18-month window is right for
+      // the SIGNAL — an old mark is weak evidence a horse is ahead of the
+      // assessor. It is wrong for the REPORT: NED TANNER last won off 119 and
+      // runs off 110, and the windowed call said "no win on record carries a
+      // rating", which is not a hedge, it is false. A reader has to be told the
+      // mark it last won off and when, and left to weigh how long ago that was.
+      markVsWin: wonOffHigherMark(best.r.ofr ?? null, best.h, date, ra.raceType ?? null, 12 * 100),
       groundFail: groundGate(best.h, raceToday.goingBand),
       streakFail: streakGate(best.h, best.r.ofr ?? null, ra.raceType ?? null),
       // `best.r.ofr` has already been corrected from the weights above, so this
@@ -804,8 +820,13 @@ async function main() {
     (p) => !wrongGround(p) && !onAStreak(p) && !aboveItsMark(p) && !notWonAtTrip(p) &&
       !drawnBadly(p) && bigField(p) && !p.handPick
   );
+  // The same test as funnelFail's "going", applied to the picks. Without it the
+  // race still nominates its top scorer and nothing downstream objects.
+  const noGoing = (p: (typeof picks)[number]) => String(p.goingBand) === "unknown";
+  const goingMissing = rest.filter(noGoing);
+
   const eligible = rest.filter(
-    (p) => !wrongGround(p) && !onAStreak(p) && !aboveItsMark(p) && !notWonAtTrip(p) &&
+    (p) => !noGoing(p) && !wrongGround(p) && !onAStreak(p) && !aboveItsMark(p) && !notWonAtTrip(p) &&
       !drawnBadly(p) && (!bigField(p) || Boolean(p.handPick))
   );
 
@@ -1009,6 +1030,29 @@ async function main() {
       say(`      ${p.handPick.reason}`);
     }
 
+    // The mark trajectory, printed for every selection, flattering or not —
+    // exactly as the ground record is, and for the same reason.
+    //
+    // Dan, 2026-10-15: NED TANNER is 9lb below the 119 it won off, the best
+    // handicapped horse on that card, and the line never appeared. The "Xlb
+    // below its winning mark" bullet comes out of hcap.reasons, which only
+    // speaks when `wellHandicapped()` qualifies the horse — so the single fact
+    // the method turns on was printed only when the scorer already liked the
+    // horse, and withheld on the two selections where a reader most needed it.
+    // Same hole as the ground record: a signal with weight zero is never shown.
+    const mv = p.markVsWin;
+    if (mv.found && mv.lastWinningMark !== null) {
+      const d = mv.lbsBelow;
+      const code = mv.discipline ? `${mv.discipline} ` : "";
+      say(
+        `   Mark: ${
+          d > 0 ? `${d}lb below` : d < 0 ? `${Math.abs(d)}lb ABOVE` : "level with"
+        } the ${code}mark of ${mv.lastWinningMark} it last won off${mv.when ? ` (${mv.when})` : ""}`
+      );
+    } else {
+      say(`   Mark: no win on record carries a rating, so it cannot be judged against one`);
+    }
+
     // Printed for every selection, flattering or not. See HorseScore.groundRecord.
     if (p.groundRecord) say(`   Ground: ${p.groundRecord}`);
 
@@ -1077,6 +1121,18 @@ async function main() {
     for (const x of aboveMark.sort((a, b) => b.score - a.score)) {
       say(`${String(x.r.horseName).toUpperCase()}   ${x.race.offTime} ${x.race.courseName}`);
       say(`   ${x.markFail}`);
+      say(`   Scored ${x.score}, which would otherwise have made the five.`);
+      say();
+    }
+  }
+
+  if (goingMissing.length) {
+    say("-".repeat(72));
+    say("SET ASIDE — the going has not been posted");
+    say();
+    for (const x of goingMissing.sort((a, b) => b.score - a.score).slice(0, 6)) {
+      say(`${String(x.r.horseName).toUpperCase()}   ${x.race.offTime} ${x.race.courseName}`);
+      say(`   no going declared for this meeting yet, so the ground rule cannot be applied`);
       say(`   Scored ${x.score}, which would otherwise have made the five.`);
       say();
     }
