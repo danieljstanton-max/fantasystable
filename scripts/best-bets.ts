@@ -17,7 +17,7 @@
 
 import "dotenv/config";
 import postgres from "postgres";
-import { readMark } from "../lib/marks";
+import { readMark, ageMissing } from "../lib/marks";
 import { readDraw, drawPhrase, DRAW_AGAINST } from "../lib/draw";
 import { chooseFromRace } from "../lib/funnel";
 
@@ -209,6 +209,7 @@ async function main() {
     groundRecord: string;
     /** Today's mark against the mark it last won off, printed whatever it says. */
     markVsWin: ReturnType<typeof wonOffHigherMark>;
+    markNow: number | null;
     groundFail: string | null;
     streakFail: string | null;
     markFail: string | null;
@@ -260,8 +261,16 @@ async function main() {
     //
     // Done here, before scoring, so the handicap angle, the gates, the printed
     // figure and the mark check all see the same number.
-    const shape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weightLbs, claim: r.claim });
+    const shape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weightLbs, claim: r.claim, age: r.age });
     const fieldShape = live.map(shape);
+    // Without ages this falls back silently to one weight line for the whole
+    // field — the behaviour that dropped every three-year-old's mark by the
+    // weight-for-age allowance on 16 October. Fail loudly rather than guess.
+    if (ageMissing(fieldShape))
+      throw new Error(
+        `no ages on the ${ra.offTime} ${ra.courseName} field — ` +
+          `weight-for-age cannot be told from a reassessment`
+      );
     for (const r of live) {
       const m = readMark(fieldShape, shape(r));
       if (m.effective !== null && m.drift) {
@@ -482,6 +491,8 @@ async function main() {
       // rating", which is not a hedge, it is false. A reader has to be told the
       // mark it last won off and when, and left to weigh how long ago that was.
       markVsWin: wonOffHigherMark(best.r.ofr ?? null, best.h, date, ra.raceType ?? null, 12 * 100),
+      /** The mark we believe it runs off, after the weight-line correction. */
+      markNow: best.r.ofr === null || best.r.ofr === undefined ? null : Number(best.r.ofr),
       groundFail: groundGate(best.h, raceToday.goingBand),
       streakFail: streakGate(best.h, best.r.ofr ?? null, ra.raceType ?? null),
       // `best.r.ofr` has already been corrected from the weights above, so this
@@ -1040,17 +1051,26 @@ async function main() {
     // the method turns on was printed only when the scorer already liked the
     // horse, and withheld on the two selections where a reader most needed it.
     // Same hole as the ground record: a signal with weight zero is never shown.
+    // `found` is false whenever the horse is NOT below a winning mark, so it
+    // cannot be the test for whether a winning mark exists — read
+    // lastWinningMark. Printed against `found`, MONOCEROS, 3lb ABOVE the 81 it
+    // won off, came out as "no win on record carries a rating", which is not a
+    // hedge, it is false, and it withheld the one fact that argued against it.
     const mv = p.markVsWin;
-    if (mv.found && mv.lastWinningMark !== null) {
-      const d = mv.lbsBelow;
+    if (mv.lastWinningMark !== null) {
+      const d = p.markNow === null ? null : p.markNow - mv.lastWinningMark;
       const code = mv.discipline ? `${mv.discipline} ` : "";
+      const how =
+        d === null ? "runs off an unknown mark against"
+        : d < 0 ? `${Math.abs(d)}lb below`
+        : d > 0 ? `${d}lb ABOVE`
+        : "level with";
       say(
-        `   Mark: ${
-          d > 0 ? `${d}lb below` : d < 0 ? `${Math.abs(d)}lb ABOVE` : "level with"
-        } the ${code}mark of ${mv.lastWinningMark} it last won off${mv.when ? ` (${mv.when})` : ""}`
+        `   Mark: ${how} the ${code}mark of ${mv.lastWinningMark} it last won off` +
+          `${mv.when ? ` (${mv.when})` : ""}`
       );
     } else {
-      say(`   Mark: no win on record carries a rating, so it cannot be judged against one`);
+      say(`   Mark: never won off a rating, so there is no mark to judge it against`);
     }
 
     // Printed for every selection, flattering or not. See HorseScore.groundRecord.

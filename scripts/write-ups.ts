@@ -19,7 +19,7 @@
 
 import "dotenv/config";
 import { readDraw, DRAW_AGAINST } from "../lib/draw";
-import { readMark } from "../lib/marks";
+import { readMark, ageMissing } from "../lib/marks";
 import { chooseFromRace } from "../lib/funnel";
 import postgres from "postgres";
 
@@ -390,8 +390,16 @@ async function main() {
     //
     // Done before scoring, so the handicap angle, the gates, the printed figure
     // and the mark check all see the same number. See lib/marks.ts.
-    const markShape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weightLbs, claim: r.claim });
+    const markShape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weightLbs, claim: r.claim, age: r.age });
     const markField = live.map(markShape);
+    // Without ages this falls back silently to one weight line for the whole
+    // field — the behaviour that dropped every three-year-old's mark by the
+    // weight-for-age allowance on 16 October. Fail loudly rather than guess.
+    if (ageMissing(markField))
+      throw new Error(
+        `no ages on the ${ra.offTime} ${ra.courseName} field — ` +
+          `weight-for-age cannot be told from a reassessment`
+      );
     // A correction that silently does nothing is the failure this project keeps
     // hitting — the first version of this block read r.weightLbs when the query
     // did not select it, so every mark came back uncorrected and the two files

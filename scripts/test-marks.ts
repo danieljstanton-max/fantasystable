@@ -3,7 +3,7 @@
  *
  *   npm run test:marks
  */
-import { readMark, fieldOffset } from "../lib/marks";
+import { readMark, fieldOffset, isMixedAge, ageMissing } from "../lib/marks";
 
 let pass = 0, fail = 0;
 function ok(name: string, got: unknown, want: unknown) {
@@ -74,6 +74,65 @@ ok("and the published mark still stands", readMark(muddle, muddle[0]).published,
 console.log("\nmissing data is not a drift");
 ok("no weight means no answer", readMark(southwell, { ofr: 80, weightLbs: null }).effective, null);
 ok("too few runners to read", fieldOffset(southwell.slice(0, 3)), null);
+
+
+console.log("\nweight-for-age is not a reassessment");
+// 16 October 2026, 14:17 Haydock, a 3yo+ handicap over a mile. Every
+// three-year-old carried 3lb less than its rating implies; every older horse
+// carried exactly what it implies. That 3lb is the weight-for-age allowance.
+//
+// Read as one line across the whole field, the older majority sets the
+// baseline and every three-year-old looks reassessed. MONOCEROS came down from
+// 84 to 81, which made it LEVEL with the 81 it won off on 5 September instead
+// of 3lb above it — so markGate let it through and it was NAP on tomorrow's
+// card. The error runs one way, always flattering the younger horse, which is
+// the exact shape the method hunts for.
+const haydock = [
+  { ofr: 85, weightLbs: 133, claim: 0, age: 3 },   // Viper
+  { ofr: 84, weightLbs: 132, claim: 0, age: 3 },   // Monoceros
+  { ofr: 83, weightLbs: 131, claim: 0, age: 3 },   // Food For Thought
+  { ofr: 84, weightLbs: 135, claim: 0, age: 4 },
+  { ofr: 89, weightLbs: 140, claim: 0, age: 5 },
+  { ofr: 86, weightLbs: 137, claim: 0, age: 5 },
+  { ofr: 84, weightLbs: 135, claim: 0, age: 5 },
+  { ofr: 84, weightLbs: 135, claim: 0, age: 6 },
+  { ofr: 78, weightLbs: 129, claim: 0, age: 7 },
+  { ofr: 75, weightLbs: 126, claim: 0, age: 8 },
+];
+const monoceros = haydock[1];
+
+ok("the field is recognised as mixed-age", isMixedAge(haydock), true);
+ok("a three-year-old keeps the mark the racecard gives it",
+   readMark(haydock, monoceros).effective, 84);
+ok("and is reported as no drift, not a 3lb reassessment",
+   readMark(haydock, monoceros).drift, 0);
+ok("every three-year-old in the race, not just the one",
+   haydock.filter((r) => r.age === 3).map((r) => readMark(haydock, r).effective),
+   [85, 84, 83]);
+ok("the older horses are unaffected",
+   haydock.filter((r) => (r.age ?? 0) >= 4).map((r) => readMark(haydock, r).effective),
+   [84, 89, 86, 84, 84, 78, 75]);
+ok("each age group is read against its own line",
+   [fieldOffset(haydock, 3), fieldOffset(haydock, 5)], [48, 51]);
+
+// The fix must not blind the module to a real reassessment inside an age group.
+const reassessedThreeYearOld = [
+  ...haydock,
+  { ofr: 80, weightLbs: 131, claim: 0, age: 3 },   // carries 3lb more than an 80 should
+];
+ok("a genuine reassessment inside an age group is still caught",
+   readMark(reassessedThreeYearOld, reassessedThreeYearOld[10]).drift, 3);
+
+// An age-restricted race has one line and must behave exactly as before.
+const allSameAge = southwell.map((r) => ({ ...r, age: 4 }));
+ok("an age-restricted race still reads one line",
+   readMark(allSameAge, allSameAge[0]).drift, 5);
+ok("and is not treated as mixed-age", isMixedAge(allSameAge), false);
+
+// Ages absent is a fault for anything that publishes, not a shrug: without
+// them this falls back to one line for the whole field, which is the bug.
+ok("a field with no ages at all is reported", ageMissing(southwell), true);
+ok("a field with ages is not", ageMissing(haydock), false);
 
 console.log(`\n${fail ? `${fail} FAILED, ` : ""}${pass} passed\n`);
 process.exit(fail ? 1 : 0);

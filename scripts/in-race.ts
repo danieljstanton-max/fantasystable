@@ -84,11 +84,11 @@ async function sweepCard(sql: any, date: string, ourHorses: Set<string>) {
 
   for (const ra of races) {
     const field = await sql`
-      SELECT ru.horse_id, ru.horse_name, ru.ofr, ru.weight_lbs, ru.jockey_claim_lbs claim,
+      SELECT ru.horse_id, ru.horse_name, ru.ofr, ru.weight_lbs, ru.age, ru.jockey_claim_lbs claim,
              ru.best_odds_frac
       FROM runners ru WHERE ru.race_id = ${ra.id} AND NOT ru.is_non_runner` as any[];
     if (field.length < 4) continue;
-    const shape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weight_lbs, claim: r.claim });
+    const shape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weight_lbs, claim: r.claim, age: r.age });
     const fieldShape = field.map(shape);
 
     let best: any = null;
@@ -224,10 +224,10 @@ async function main() {
     if (!ours) continue;
 
     const field = await sql<any[]>`
-      SELECT ru.horse_id, ru.horse_name, ru.ofr, ru.weight_lbs, ru.jockey_claim_lbs claim,
+      SELECT ru.horse_id, ru.horse_name, ru.ofr, ru.weight_lbs, ru.age, ru.jockey_claim_lbs claim,
              ru.best_odds_frac, ru.best_odds_dec
       FROM runners ru WHERE ru.race_id = ${ours.race_id} AND NOT ru.is_non_runner`;
-    const shape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weight_lbs, claim: r.claim });
+    const shape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weight_lbs, claim: r.claim, age: r.age });
     const fieldShape = field.map(shape);
 
     const rows: Runner[] = [];

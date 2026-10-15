@@ -52,6 +52,11 @@ export interface MarkInput {
   weightLbs: number | null | undefined;
   /** The rider's claim, which came off the carried weight. */
   claim?: number | null;
+  /**
+   * The horse's age. Required in any race open to more than one age group —
+   * see fieldOffset() for why reading one line across ages invents a mark.
+   */
+  age?: number | null;
 }
 
 export interface MarkRead {
@@ -76,31 +81,96 @@ function allotted(r: MarkInput): number | null {
  * offsets describe a race whose weights we cannot read, not a race where every
  * mark is wrong.
  */
-export function fieldOffset(field: MarkInput[]): number | null {
+export function fieldOffset(field: MarkInput[], age?: number | null): number | null {
+  // Weight-for-age is not a reassessment.
+  //
+  // Dan, 2026-10-16: MONOCEROS was NAP on tomorrow's card. It won off 81 on
+  // 5 September and runs off 84 — 3lb ABOVE its winning mark, which markGate
+  // stops. It was not stopped, because this function had already moved its
+  // mark to 81 and made it level.
+  //
+  // The 14:17 Haydock is a 3yo+ handicap over a mile in October. Every
+  // three-year-old in it carried 3lb less than its rating implies and every
+  // older horse carried exactly what it implies:
+  //
+  //     age 3  offset 48   (VIPER, MONOCEROS, FOOD FOR THOUGHT)
+  //     age 4+ offset 51   (everything else)
+  //
+  // That 3lb is the weight-for-age allowance, a published scale that varies by
+  // age, distance and time of year. One line read across the whole field makes
+  // the older majority the baseline and every younger horse look reassessed —
+  // and the error runs one way, always flattering the younger horse, which is
+  // exactly the shape the method hunts for. The same bias that made this module
+  // necessary, arriving through the module itself.
+  //
+  // So a runner is read against the line its OWN age group is on. A horse alone
+  // in its age group is its own baseline, which means no correction rather than
+  // a false one: missing a reassessment is a cost worth paying to avoid
+  // inventing a mark. Where age is not known, the whole field is used, which is
+  // the old behaviour and correct in an age-restricted race.
+  const cohort =
+    age === null || age === undefined
+      ? field
+      : field.filter((r) => r.age === age);
+  const pool = cohort.length ? cohort : field;
+
   const counts = new Map<number, number>();
   let usable = 0;
-  for (const r of field) {
+  for (const r of pool) {
     const a = allotted(r);
     if (a === null || r.ofr === null || r.ofr === undefined || Number(r.ofr) <= 0) continue;
     usable++;
     const o = a - Number(r.ofr);
     counts.set(o, (counts.get(o) ?? 0) + 1);
   }
-  if (usable < 5) return null;
+
+  // The whole-field minimum still applies: five runners is the point at which a
+  // line means anything. Inside an age group we only need the group to agree
+  // with itself, because the group is the line.
+  const multiAge = field.some((r) => r.age !== null && r.age !== undefined)
+    && new Set(field.map((r) => r.age).filter((a) => a !== null && a !== undefined)).size > 1;
+  const floor = multiAge && pool !== field ? 1 : 5;
+  if (usable < floor) return null;
 
   let best: number | null = null;
   let bestN = 0;
   for (const [o, n] of counts) {
     if (n > bestN) { best = o; bestN = n; }
   }
-  // A bare plurality is not enough: it has to be the line the field is on.
-  return bestN >= Math.max(3, Math.ceil(usable * 0.5)) ? best : null;
+  if (best === null) return null;
+
+  // A bare plurality is not enough: it has to be the line the group is on.
+  const needed = pool === field && !multiAge
+    ? Math.max(3, Math.ceil(usable * 0.5))
+    : Math.max(1, Math.ceil(usable * 0.5));
+  return bestN >= needed ? best : null;
 }
 
 /** Read one runner's mark against the line its own field is on. */
+/**
+ * True when the field holds more than one age group, so weight-for-age is in
+ * play and a single weight line cannot be read across it.
+ */
+export function isMixedAge(field: MarkInput[]): boolean {
+  const ages = new Set(
+    field.map((r) => r.age).filter((a) => a !== null && a !== undefined)
+  );
+  return ages.size > 1;
+}
+
+/**
+ * True when no runner carries an age. Callers that may be handed a mixed-age
+ * race should treat this as a fault rather than a shrug: without ages this
+ * falls back to one line for the whole field, which is the behaviour that
+ * dropped every three-year-old's mark by the weight-for-age allowance.
+ */
+export function ageMissing(field: MarkInput[]): boolean {
+  return field.length > 0 && field.every((r) => r.age === null || r.age === undefined);
+}
+
 export function readMark(field: MarkInput[], runner: MarkInput): MarkRead {
   const published = runner.ofr === null || runner.ofr === undefined ? null : Number(runner.ofr);
-  const offset = fieldOffset(field);
+  const offset = fieldOffset(field, runner.age);
   const a = allotted(runner);
   if (offset === null || a === null) return { published, effective: null, drift: null };
   const effective = a - offset;

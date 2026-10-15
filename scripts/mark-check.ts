@@ -90,7 +90,7 @@ async function main() {
 
   for (const p of wanted) {
     const [today] = await sql<any[]>`
-      SELECT ru.horse_id, ru.horse_name, ru.ofr, ru.weight_lbs, ru.jockey_claim_lbs,
+      SELECT ru.horse_id, ru.horse_name, ru.ofr, ru.weight_lbs, ru.jockey_claim_lbs, ru.age,
              ra.id race_id, ra.distance_f, ra.race_class,
              ra.race_type, ra.off_time, c.name course
       FROM runners ru JOIN races ra ON ra.id = ru.race_id
@@ -104,9 +104,9 @@ async function main() {
     // win, and the weights carry the new figure first. Read the mark off the
     // field's own weight line — see lib/marks.ts.
     const fieldRows = await sql<any[]>`
-      SELECT ru.ofr, ru.weight_lbs, ru.jockey_claim_lbs
+      SELECT ru.ofr, ru.weight_lbs, ru.jockey_claim_lbs, ru.age
       FROM runners ru WHERE ru.race_id = ${today.race_id} AND NOT ru.is_non_runner`;
-    const shape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weight_lbs, claim: r.jockey_claim_lbs });
+    const shape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weight_lbs, claim: r.jockey_claim_lbs, age: r.age });
     const mk = readMark(fieldRows.map(shape), shape(today));
     const trueMark = mk.effective ?? mk.published;
     const drift = mk.drift;

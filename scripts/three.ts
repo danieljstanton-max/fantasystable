@@ -63,10 +63,10 @@ async function main() {
 
   for (const ra of races) {
     const field = await sql<any[]>`
-      SELECT horse_id, horse_name, ofr, weight_lbs, jockey_claim_lbs claim, draw,
+      SELECT horse_id, horse_name, ofr, weight_lbs, age, jockey_claim_lbs claim, draw,
              best_odds_frac FROM runners
       WHERE race_id = ${ra.id} AND NOT is_non_runner`;
-    const shape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weight_lbs, claim: r.claim });
+    const shape = (r: any) => ({ ofr: r.ofr, weightLbs: r.weight_lbs, claim: r.claim, age: r.age });
     const fs = field.map(shape);
 
     for (const r of field) {
