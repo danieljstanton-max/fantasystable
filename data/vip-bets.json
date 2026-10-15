@@ -223,6 +223,13 @@
         "stake": 0.5,
         "type": "ew",
         "price": "15/2"
+      },
+      {
+        "date": "2026-10-15",
+        "horse": "Joud",
+        "stake": 2,
+        "type": "win",
+        "price": "15/2"
       }
     ]
   }
