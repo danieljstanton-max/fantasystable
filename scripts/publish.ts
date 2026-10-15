@@ -419,6 +419,42 @@ const titleCase = (s: string) =>
       process.exit(2);
     }
     console.log(`  verified live (${check.status})`);
+
+    // The placepot goes live with the card, always.
+    //
+    // Dan, 2026-10-15: "what happened to the placepots??? not been updated in
+    // days." Eight days, and it was a consequence of HRT_AUTOPUBLISH="draft".
+    // The daily job builds the card as a draft and correctly refuses to push
+    // the placepot, because that page has no draft state — it logged "placepot
+    // held" every evening. Publishing then became a separate, deliberate step,
+    // and the placepot was not part of it, so nothing ever pushed it.
+    //
+    // A page that only updates when someone remembers to run a second command
+    // is a page that goes stale. It rides with the --live push instead, and a
+    // failure here is reported but does not fail the card: the tips are the
+    // product, the placepot is a supporting page, and holding the card back
+    // over it would be the wrong trade.
+    try {
+      const { buildPlacepots } = await import("./placepot");
+      const all = await buildPlacepots(date, undefined);
+      if (!all.length) {
+        console.log("  placepot: no meeting with six priced races — nothing to send");
+      } else {
+        const ppRes = await fetch(`${site.replace(/\/$/, "")}/wp-json/hrt/v1/placepot/${date}`, {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-hrt-token": String(token) },
+          body: JSON.stringify({ date, meetings: all }),
+        });
+        console.log(
+          ppRes.ok
+            ? `  placepot: ${all.length} meeting${all.length === 1 ? "" : "s"} pushed`
+            : `  PLACEPOT FAILED (${ppRes.status}) — run: npm run publish:placepot -- ${date}`
+        );
+      }
+    } catch (e) {
+      console.error(`  PLACEPOT FAILED — run: npm run publish:placepot -- ${date}`);
+      console.error(`    ${(e as Error).message.split("\n")[0]}`);
+    }
   }
   console.log("");
 })();
