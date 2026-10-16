@@ -23,6 +23,7 @@ import postgres from "postgres";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { OUT_DIR } from "../lib/published";
+import { sameDiscipline } from "../lib/selection";
 
 const DIR = OUT_DIR;
 const MONTHS = ["January","February","March","April","May","June","July",
@@ -52,12 +53,26 @@ const iso = (d: any) => new Date(d).toISOString().slice(0, 10);
     }
   }
   const normed = [...names].map(norm);
+  // race_type comes back too, and runs that have NOT been run are kept.
+  //
+  // A mark means nothing across codes — a hurdle mark and a chase mark are
+  // different numbers about different things, which is why sameDiscipline()
+  // exists and why every gate uses it. This query filtered on `position is not
+  // null`, so the horse's race TODAY was never loaded and the check had no way
+  // to know which code it was judging. It then compared today's cited mark
+  // against the most recent win of any kind.
+  //
+  // THE FOUR SIXES, 13:42 Newton Abbot on 2026-10-17: a HURDLE, and the
+  // write-up correctly cited the 137 it won a hurdle off in April. The audit
+  // failed the whole card because the horse had won a CHASE off 144 in
+  // December. The write-up was right and the check was wrong — and had anyone
+  // "fixed" the prose to say 144, it would have put a chase mark on a hurdle
+  // selection.
   const rows = normed.length ? await sql<any[]>`
     select upper(regexp_replace(r.horse_name,'[^A-Za-z0-9]','','g')) as key,
-           ra.race_date, ra.race_class, r.position, r.ofr
+           ra.race_date, ra.race_class, ra.race_type, r.position, r.ofr
     from runners r join races ra on ra.id = r.race_id
     where upper(regexp_replace(r.horse_name,'[^A-Za-z0-9]','','g')) = any(${normed})
-      and r.position is not null
     order by ra.race_date desc` : [];
 
   const byHorse = new Map<string, any[]>();
@@ -92,8 +107,15 @@ const iso = (d: any) => new Date(d).toISOString().slice(0, 10);
       // race_date comes back as a Date. String(date) is "Tue Sep 08 2026 ...",
       // which compares to "2026-09-09" as greater on the first character, so a
       // naive < silently matched nothing and the audit reported all clear.
-      const runs = all.filter((r: any) => iso(r.race_date) < date);
+      const runs = all.filter((r: any) => iso(r.race_date) < date && r.position !== null);
       if (!runs.length) continue;
+
+      // The code the horse runs in TODAY. Everything below that compares a mark
+      // has to be restricted to it.
+      const todayRun = all.find((r: any) => iso(r.race_date) === date);
+      const todayType = todayRun?.race_type ?? null;
+      const inCode = (r: any) =>
+        todayType === null ? true : sameDiscipline(r.race_type, todayType);
 
       // 1. A cited winning mark that is not the most recent win.
       // Both phrasings, because the prose was reworded and the check was not.
@@ -109,13 +131,14 @@ const iso = (d: any) => new Date(d).toISOString().slice(0, 10);
         ?? para.match(/below the (\d+) it won from back in ([A-Z][a-z]+)/);
       if (cite) {
         const citedMark = Number(cite[1]);
-        const wins = runs.filter((r) => r.position === "1" && r.ofr !== null);
+        const wins = runs.filter((r) => r.position === "1" && r.ofr !== null && inCode(r));
         if (wins.length) {
           const latest = wins[0];
           if (Number(latest.ofr) !== citedMark) {
             issues.push({
               file: f, horse, kind: "STALE WIN",
-              detail: `cites a winning mark of ${citedMark} (${cite[2]}), but the most recent win was off ${latest.ofr} on ${iso(latest.race_date)}`,
+              detail: `cites a winning mark of ${citedMark} (${cite[2]}), but the most recent ` +
+                `${String(todayType ?? "").toLowerCase() || ""} win was off ${latest.ofr} on ${iso(latest.race_date)}`.replace("  ", " "),
             });
           }
         }
