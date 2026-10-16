@@ -22,9 +22,17 @@
     "    hour. The official result always wins once it arrives, so this never",
     "    needs removing and can never hold a wrong figure on the page.",
     "",
-    "Push it with:  npm run publish:vip -- 2026-10"
+    "Push it with:  npm run publish:vip -- 2026-10",
+    "",
+    "The paid service started in July 2025. Months before 2026-01 are Dan's own totals from before we tracked individual bets, so they have no bets listed and are plotted as given."
   ],
   "months": {
+    "2025-07": 18,
+    "2025-08": 27.06,
+    "2025-09": 18.33,
+    "2025-10": 18.3,
+    "2025-11": 17,
+    "2025-12": -3,
     "2026-01": 25.56,
     "2026-02": -10,
     "2026-03": 24.07,

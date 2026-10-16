@@ -274,7 +274,13 @@ async function main() {
     .map((m) => ({ month: m, points: Number(months[m]) }));
   const year = series.reduce((s, x) => s + x.points, 0);
 
-  console.log(`\n  the graph: ${series.length} months, ${year >= 0 ? "+" : ""}${year.toFixed(2)}pts on the year`);
+  // "on the year" stopped being true when the record went back to July 2025.
+  // Name where it begins instead; the site label does the same.
+  const spansYears = new Set(series.map((x) => x.month.slice(0, 4))).size > 1;
+  const since = spansYears && series.length
+    ? ` since ${new Date(`${series[0].month}-01T00:00:00Z`).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })}`
+    : " on the year";
+  console.log(`\n  the graph: ${series.length} months, ${year >= 0 ? "+" : ""}${year.toFixed(2)}pts${since}`);
   for (const x of series) {
     const bar = "█".repeat(Math.max(1, Math.round(Math.abs(x.points) / 2)));
     console.log(`    ${x.month}  ${(x.points >= 0 ? "+" : "") + x.points.toFixed(2).padStart(7)}  ${bar}`);
