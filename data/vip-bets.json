@@ -230,6 +230,27 @@
         "stake": 2,
         "type": "win",
         "price": "15/2"
+      },
+      {
+        "date": "2026-10-16",
+        "horse": "Desperate Dan",
+        "stake": 2,
+        "type": "win",
+        "price": "5/2"
+      },
+      {
+        "date": "2026-10-16",
+        "horse": "Clasina",
+        "stake": 0.5,
+        "type": "ew",
+        "price": "12/1"
+      },
+      {
+        "date": "2026-10-16",
+        "horse": "Slieve Binnian",
+        "stake": 0.5,
+        "type": "ew",
+        "price": "15/2"
       }
     ]
   }
