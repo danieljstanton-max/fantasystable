@@ -68,7 +68,8 @@
     "reconcile": "tsx --env-file=.env.local scripts/reconcile-spend.ts",
     "recap": "tsx --env-file=.env.local scripts/recap.ts",
     "announce": "tsx --env-file=.env.local scripts/announce.ts",
-    "audit:all": "tsx --env-file=.env.local scripts/audit-all.ts"
+    "audit:all": "tsx --env-file=.env.local scripts/audit-all.ts",
+    "backfill:bsp": "tsx --env-file=.env.local scripts/backfill-bsp.ts"
   },
   "dependencies": {
     "next": "^15.1.6",

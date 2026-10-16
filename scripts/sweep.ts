@@ -125,4 +125,25 @@ if (force || hour >= 11) {
   // Dan has not sent any for.
   step("publish VIP record", ["scripts/publish-vip.ts", month]);
   if (day <= 2) step("publish previous VIP record", ["scripts/publish-vip.ts", lastMonth]);
+
+  // Betfair SP arrives after we ask for it.
+  //
+  // Dan, 2026-10-16: "do we have access to BSP in our database?" The column was
+  // 15% full for October against 92% for August, and every single day was
+  // either 100% or 0% — never partial. That shape is not a patchy feed, it is
+  // us asking too early: results ingest runs from this sweep shortly after
+  // racing, and Betfair publishes BSP later. The two October days that did have
+  // it were days something happened to re-run.
+  //
+  // So a day's results are collected once more, a few days on, when the figure
+  // exists. One pass over the recent gaps each morning; it re-ingests only days
+  // still missing it, so it costs nothing once a day is complete. Results
+  // ingest is idempotent and never overwrites races.status.
+  //
+  // This matters beyond tidiness: BSP is the fairest benchmark we have for
+  // whether a selection was value. Beating a bookmaker's early price shows the
+  // price was available; beating BSP shows the market disagreed and we were
+  // right. The VIP record starts inside the BSP window, so every bet can be
+  // measured against it.
+  if (hour === 11) step("backfill Betfair SP", ["scripts/backfill-bsp.ts", "--days=14"]);
 }
