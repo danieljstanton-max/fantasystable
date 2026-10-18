@@ -259,6 +259,13 @@
         "stake": 0.5,
         "type": "ew",
         "price": "15/2"
+      },
+      {
+        "date": "2026-10-18",
+        "horse": "Zaraahmando",
+        "stake": 1,
+        "type": "ew",
+        "price": "11/2"
       }
     ]
   }
