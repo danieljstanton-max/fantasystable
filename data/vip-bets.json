@@ -280,6 +280,27 @@
         "stake": 1,
         "type": "ew",
         "price": "11/2"
+      },
+      {
+        "date": "2026-10-19",
+        "horse": "Bohemian Breeze",
+        "stake": 1,
+        "type": "win",
+        "price": "3/1"
+      },
+      {
+        "date": "2026-10-19",
+        "horse": "Dowman",
+        "stake": 1,
+        "type": "ew",
+        "price": "8/1"
+      },
+      {
+        "date": "2026-10-19",
+        "horse": "General Assembly",
+        "stake": 0.5,
+        "type": "ew",
+        "price": "8/1"
       }
     ]
   }
