@@ -47,24 +47,17 @@
     "2026-10": [
       {
         "date": "2026-10-01",
-        "horse": "Regional Rock",
-        "stake": 1,
-        "type": "ew",
-        "price": "11/2"
-      },
-      {
-        "date": "2026-10-01",
         "horse": "Jujubella",
         "stake": 1,
         "type": "win",
         "price": "13/2"
       },
       {
-        "date": "2026-10-02",
-        "horse": "Cockade",
-        "stake": 2,
-        "type": "win",
-        "price": "11/4"
+        "date": "2026-10-01",
+        "horse": "Regional Rock",
+        "stake": 1,
+        "type": "ew",
+        "price": "11/2"
       },
       {
         "date": "2026-10-02",
@@ -74,11 +67,11 @@
         "price": null
       },
       {
-        "date": "2026-10-03",
-        "horse": "Great Acclaim",
-        "stake": 0.5,
-        "type": "ew",
-        "price": "20/1"
+        "date": "2026-10-02",
+        "horse": "Cockade",
+        "stake": 2,
+        "type": "win",
+        "price": "11/4"
       },
       {
         "date": "2026-10-03",
@@ -87,6 +80,13 @@
         "type": "ew",
         "price": "5/1",
         "position": 2
+      },
+      {
+        "date": "2026-10-03",
+        "horse": "Great Acclaim",
+        "stake": 0.5,
+        "type": "ew",
+        "price": "20/1"
       },
       {
         "date": "2026-10-04",
@@ -105,6 +105,13 @@
       },
       {
         "date": "2026-10-05",
+        "horse": "Faithful",
+        "stake": 0.5,
+        "type": "win",
+        "price": null
+      },
+      {
+        "date": "2026-10-05",
         "horse": "Gorgeous Mr George",
         "stake": 0.5,
         "type": "ew",
@@ -113,13 +120,6 @@
       {
         "date": "2026-10-05",
         "horse": "Simiyann",
-        "stake": 0.5,
-        "type": "win",
-        "price": null
-      },
-      {
-        "date": "2026-10-05",
-        "horse": "Faithful",
         "stake": 0.5,
         "type": "win",
         "price": null
@@ -140,26 +140,19 @@
       },
       {
         "date": "2026-10-07",
-        "horse": "Nightsinwhitesatin",
-        "stake": 1.5,
-        "type": "ew",
-        "price": "9/2",
-        "ewPlaces": 3,
-        "ewDenom": 5
-      },
-      {
-        "date": "2026-10-07",
         "horse": "Darkness",
         "stake": 1,
         "type": "win",
         "price": "7/2"
       },
       {
-        "date": "2026-10-08",
-        "horse": "Parisiac",
-        "stake": 1,
+        "date": "2026-10-07",
+        "horse": "Nightsinwhitesatin",
+        "stake": 1.5,
         "type": "ew",
-        "price": "9/2"
+        "price": "9/2",
+        "ewPlaces": 3,
+        "ewDenom": 5
       },
       {
         "date": "2026-10-08",
@@ -170,11 +163,11 @@
         "position": 1
       },
       {
-        "date": "2026-10-09",
-        "horse": "King's Scholar",
-        "stake": 2,
-        "type": "win",
-        "price": "5/2"
+        "date": "2026-10-08",
+        "horse": "Parisiac",
+        "stake": 1,
+        "type": "ew",
+        "price": "9/2"
       },
       {
         "date": "2026-10-09",
@@ -182,6 +175,13 @@
         "stake": 2,
         "type": "win",
         "price": "11/4"
+      },
+      {
+        "date": "2026-10-09",
+        "horse": "King's Scholar",
+        "stake": 2,
+        "type": "win",
+        "price": "5/2"
       },
       {
         "date": "2026-10-10",
@@ -206,17 +206,17 @@
       },
       {
         "date": "2026-10-13",
-        "horse": "Irish Nectar",
-        "stake": 1,
-        "type": "win",
-        "price": "9/2"
-      },
-      {
-        "date": "2026-10-13",
         "horse": "Captain Connor",
         "stake": 1,
         "type": "win",
         "price": "7/2"
+      },
+      {
+        "date": "2026-10-13",
+        "horse": "Irish Nectar",
+        "stake": 1,
+        "type": "win",
+        "price": "9/2"
       },
       {
         "date": "2026-10-14",
@@ -241,13 +241,6 @@
       },
       {
         "date": "2026-10-16",
-        "horse": "Desperate Dan",
-        "stake": 2,
-        "type": "win",
-        "price": "5/2"
-      },
-      {
-        "date": "2026-10-16",
         "horse": "Clasina",
         "stake": 0.5,
         "type": "ew",
@@ -255,10 +248,31 @@
       },
       {
         "date": "2026-10-16",
+        "horse": "Desperate Dan",
+        "stake": 2,
+        "type": "win",
+        "price": "5/2"
+      },
+      {
+        "date": "2026-10-16",
         "horse": "Slieve Binnian",
         "stake": 0.5,
         "type": "ew",
         "price": "15/2"
+      },
+      {
+        "date": "2026-10-17",
+        "horse": "Gstaad",
+        "stake": 2,
+        "type": "win",
+        "price": "9/4"
+      },
+      {
+        "date": "2026-10-17",
+        "horse": "Quest For Fun",
+        "stake": 2,
+        "type": "win",
+        "price": "7/1"
       },
       {
         "date": "2026-10-18",
