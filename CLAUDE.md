@@ -101,6 +101,14 @@ still needs a positive score, and a race where nothing survives still reports
 its top scorer. Any change to who tops a race must be made in `write-ups.ts`
 too, or the two files name different horses in the same race.
 
+**"Won at the distance" means won at the distance IN THIS CODE.** Dan,
+2026-10-18, on KINBARA FIRSTDRAFT: "has never won over chase fences." It had
+not — nine runs over fences, no wins — and reached the card because the trip
+test counted its 20½f HURDLE win as proof it could win a 21f chase. The trip is
+the same distance in either code; the race is not. `likesConditions()` filters
+trip wins and course wins by `sameDiscipline()`, the same way marks are. An
+unknown race type filters nothing rather than failing every horse.
+
 **A NAP must be the standout in its own race.** Closeness is a deduction, not a
 tiebreak — `standoutPenalty()` in `scripts/best-bets.ts`. Dan chose this knowing
 it cost 5pts over the twelve cards it was measured on; do not relitigate it on

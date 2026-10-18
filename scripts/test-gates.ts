@@ -15,6 +15,7 @@ import { markGate, groundGate, streakGate, type PastRun } from "../lib/selection
 import { readDraw, drawBandOf, drawDistBand, drawKey, drawPhrase, ANY_GOING } from "../lib/draw";
 import { chooseFromRace } from "../lib/funnel";
 import { goingNote } from "../lib/course-guide";
+import { likesConditions, type RaceToday } from "../lib/selection";
 import { describeGround } from "../lib/selection";
 import { gateField } from "../lib/gates";
 import type { Veto } from "../lib/vetoes";
@@ -336,6 +337,54 @@ console.log("\nno going posted: nothing is selected from it, and nothing prints 
   check("no course going-note without a band", goingNote(guide, "unknown" as any), null);
   check("but a real band still gets one",
     goingNote(guide, "soft" as any), "Soft ground makes the finish more demanding.");
+}
+
+
+console.log("\nwon at the distance means won at the distance IN THIS CODE");
+{
+  // Dan, 2026-10-18, on KINBARA FIRSTDRAFT at 14:20 Sedgefield: "has never won
+  // over chase fences." He was right — nine runs over fences, no wins. Both
+  // its wins are hurdle wins, and the trip test counted the 20.5f hurdle win
+  // as proof it could win a 21f CHASE. It reached the card on that.
+  //
+  // The trip is the same distance in either code; the race is not. Jumping
+  // fences is the difference, which is why marks are never compared across
+  // codes either.
+  const chaseToday: RaceToday = {
+    courseSlug: "sedgefield", distanceF: 21, goingBand: "good",
+    raceType: "Chase", fieldSize: 8, raceClass: "Class 5",
+    raceName: "A Handicap Chase",
+  } as RaceToday;
+
+  const hurdleWins: PastRun[] = [
+    run({ raceType: "Hurdle", distanceF: 20.5, courseSlug: "sedgefield", positionNum: 1, ofr: 110 }),
+    run({ raceType: "Hurdle", distanceF: 16, positionNum: 1, ofr: 105 }),
+    run({ raceType: "Chase", distanceF: 20, positionNum: 2, ofr: 90 }),
+  ];
+  check("a hurdle win at the trip does not prove a chase at the trip",
+    likesConditions(chaseToday, hurdleWins).trip, false);
+  check("nor does a hurdle win round the course count as course form",
+    likesConditions(chaseToday, hurdleWins).courseWins, 0);
+
+  // A chase win at the trip still counts, or the gate would refuse everything.
+  const chaseWin: PastRun[] = [
+    ...hurdleWins,
+    run({ raceType: "Chase", distanceF: 21, courseSlug: "sedgefield", positionNum: 1, ofr: 95 }),
+  ];
+  check("a chase win at the trip does count", likesConditions(chaseToday, chaseWin).trip, true);
+  check("and a chase win round the course is course form",
+    likesConditions(chaseToday, chaseWin).courseWins, 1);
+
+  // The same horse running over hurdles again: now the hurdle win is the
+  // relevant one. The rule has to cut both ways or it is just a chase penalty.
+  const hurdleToday: RaceToday = { ...chaseToday, raceType: "Hurdle", distanceF: 20.5 } as RaceToday;
+  check("back over hurdles, the hurdle win at the trip counts again",
+    likesConditions(hurdleToday, hurdleWins).trip, true);
+
+  // A missing race type must not quietly fail every horse.
+  const unknownCode: RaceToday = { ...chaseToday, raceType: null } as RaceToday;
+  check("an unknown code filters nothing rather than refusing everything",
+    likesConditions(unknownCode, hurdleWins).trip, true);
 }
 
 console.log(failures === 0 ? "\nAll gate checks passed.\n" : `\n${failures} check(s) FAILED.\n`);

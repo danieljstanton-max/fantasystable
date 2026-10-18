@@ -1327,14 +1327,38 @@ export function likesConditions(
       ? "on-the-day"
       : "read-across";
 
+  // "Won at the distance" means won at the distance IN THIS CODE.
+  //
+  // Dan, 2026-10-18, on KINBARA FIRSTDRAFT: "has never won over chase fences."
+  // It has not — nine runs over fences, no wins. Both its wins are hurdle
+  // wins, and this test counted the 20½f hurdle win as proof it could win a
+  // 21f chase. It reached the card on that.
+  //
+  // The trip is the same distance in either code; the race is not. Jumping
+  // fences is the whole difference between them, and a horse that stays 2m5f
+  // over hurdles has shown nothing about whether it can do it over fences —
+  // which is exactly why marks are never compared across codes either. This
+  // test is one of the four the method rests on, so it has to mean what it
+  // says.
+  //
+  // Where today's code is unknown, nothing is filtered and the old behaviour
+  // stands: a missing race type must not quietly fail every horse.
+  const inCode = (r: PastRun) =>
+    today.raceType === null || today.raceType === undefined
+      ? true
+      : sameDiscipline(r.raceType, today.raceType);
+
   const trip = wins.some(
     (r) =>
+      inCode(r) &&
       r.distanceF !== null &&
       today.distanceF !== null &&
       Math.abs(r.distanceF - today.distanceF) <= TRIP_TOLERANCE_F
   );
 
-  const courseWins = wins.filter((r) => r.courseSlug === today.courseSlug).length;
+  // Course form is judged the same way, and for the same reason: winning round
+  // Sedgefield over hurdles is not winning round Sedgefield over fences.
+  const courseWins = wins.filter((r) => inCode(r) && r.courseSlug === today.courseSlug).length;
 
   return { going, trip, course: courseWins > 0, courseWins, failsOnGround, failsNearby, groundProof };
 }

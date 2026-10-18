@@ -1070,7 +1070,15 @@ async function main() {
           `${mv.when ? ` (${mv.when})` : ""}`
       );
     } else {
-      say(`   Mark: never won off a rating, so there is no mark to judge it against`);
+      // "Never won off a rating" is true only within today's code, and saying
+      // it flat is misleading: KINBARA FIRSTDRAFT has won twice off ratings,
+      // over hurdles, and ran in a chase. Name the code.
+      const code = String(p.race.raceType ?? "").toLowerCase();
+      const where = code === "chase" ? "over fences"
+        : code === "hurdle" ? "over hurdles"
+        : code === "flat" ? "on the flat"
+        : "in this code";
+      say(`   Mark: has never won ${where} off a rating, so there is no mark to judge it against`);
     }
 
     // Printed for every selection, flattering or not. See HorseScore.groundRecord.
