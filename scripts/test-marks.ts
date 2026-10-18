@@ -134,5 +134,44 @@ ok("and is not treated as mixed-age", isMixedAge(allSameAge), false);
 ok("a field with no ages at all is reported", ageMissing(southwell), true);
 ok("a field with ages is not", ageMissing(haydock), false);
 
+
+console.log("\nan age group of one cannot establish an allowance");
+// 17:00 Southwell, 19 October 2026, a 4yo+ apprentice handicap. Every runner
+// sat on offset 75 except DISTILLATE on 80. It won off 47 four days earlier
+// and had been put up 5lb: the weights carried the new figure, the rating
+// field had not caught up.
+//
+// It is the only six-year-old in the race. Reading its own weight as its age
+// group's line found no drift and let a 5lb rise through — on a horse whose
+// recent win is exactly what the method hunts for. Weight-for-age is nil for
+// four-year-olds and up by October, which is why every other age agreed.
+const southwellApprentice = [
+  { ofr: 60, weightLbs: 135, claim: 0, age: 7 },
+  { ofr: 60, weightLbs: 135, claim: 0, age: 5 },
+  { ofr: 60, weightLbs: 135, claim: 0, age: 4 },
+  { ofr: 59, weightLbs: 134, claim: 0, age: 4 },
+  { ofr: 59, weightLbs: 134, claim: 0, age: 4 },
+  { ofr: 57, weightLbs: 132, claim: 0, age: 4 },
+  { ofr: 55, weightLbs: 130, claim: 0, age: 5 },
+  { ofr: 53, weightLbs: 128, claim: 0, age: 4 },
+  { ofr: 47, weightLbs: 127, claim: 0, age: 6 },   // Distillate: 5lb out, alone at 6
+  { ofr: 50, weightLbs: 125, claim: 0, age: 5 },
+];
+const distillate = southwellApprentice[8];
+
+ok("the lone six-year-old is read against the field, not against itself",
+   readMark(southwellApprentice, distillate).effective, 52);
+ok("so the 5lb rise is reported", readMark(southwellApprentice, distillate).drift, 5);
+ok("and the rest of the field is untouched",
+   southwellApprentice.filter((r) => r !== distillate).map((r) => readMark(southwellApprentice, r).drift),
+   [0, 0, 0, 0, 0, 0, 0, 0, 0]);
+
+// The Haydock guard must survive: three three-year-olds sharing an allowance
+// still set their own line.
+ok("two or more sharing an age still set their own line",
+   readMark(haydock, monoceros).effective, 84);
+ok("and a lone older horse in that race is still read against the field",
+   readMark(haydock, haydock[3]).drift, 0);
+
 console.log(`\n${fail ? `${fail} FAILED, ` : ""}${pass} passed\n`);
 process.exit(fail ? 1 : 0);

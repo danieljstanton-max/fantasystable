@@ -108,11 +108,30 @@ export function fieldOffset(field: MarkInput[], age?: number | null): number | n
   // a false one: missing a reassessment is a cost worth paying to avoid
   // inventing a mark. Where age is not known, the whole field is used, which is
   // the old behaviour and correct in an age-restricted race.
+  // An age group of ONE cannot establish an allowance.
+  //
+  // Dan's card for 2026-10-19, the 17:00 Southwell, a 4yo+ apprentice
+  // handicap: every runner sat on offset 75 except DISTILLATE on 80. It won
+  // off 47 four days earlier and had been put up 5lb — the weights carried the
+  // new figure and the rating field had not caught up. The NOSTRUM case.
+  //
+  // It came back uncorrected because DISTILLATE is the only six-year-old in
+  // the race, so the first version of this treated its own weight as its age
+  // group's line and found no drift. Weight-for-age is nil for four-year-olds
+  // and up by October, which is why every other age in that race agreed; the
+  // one horse standing apart was reassessed, not allowanced.
+  //
+  // So an age group only sets its own line when at least two runners share it.
+  // One horse alone is read against the field, where a genuine reassessment
+  // shows up as the drift it is. Two or more three-year-olds carrying the same
+  // allowance still get it right, which was the Haydock case this guard was
+  // built for.
+  const MIN_COHORT = 2;
   const cohort =
     age === null || age === undefined
       ? field
       : field.filter((r) => r.age === age);
-  const pool = cohort.length ? cohort : field;
+  const pool = cohort.length >= MIN_COHORT ? cohort : field;
 
   const counts = new Map<number, number>();
   let usable = 0;
