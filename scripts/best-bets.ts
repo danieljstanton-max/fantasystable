@@ -46,7 +46,7 @@ import type { GoingBand } from "../lib/going";
 import { betFor, placeTerms } from "../lib/staking";
 import { loadVetoes, isVetoed } from "../lib/vetoes";
 import { loadHandPicks, handPickFor } from "../lib/hand-picks";
-import { markGate, likesConditions } from "../lib/selection";
+import { markGate, likesConditions, showedSomething } from "../lib/selection";
 import { courseGuide, goingNote, sheetDraw, drawThird } from "../lib/course-guide";
 import { projectCard, applyGoingOverrides, bandAtOff, changesDuringCard,
          type GoingProjection } from "../lib/weather";
@@ -210,6 +210,8 @@ async function main() {
     /** Today's mark against the mark it last won off, printed whatever it says. */
     markVsWin: ReturnType<typeof wonOffHigherMark>;
     markNow: number | null;
+    /** Null when it has shown something recently; the reason when it has not. */
+    formFail: string | null;
     groundFail: string | null;
     streakFail: string | null;
     markFail: string | null;
@@ -429,6 +431,11 @@ async function main() {
       if (markGate(x.h, x.r.ofr ?? null, ra.raceType ?? null, String(ra.name ?? "")) !== null)
         return "mark";
       if (!likesConditions(raceToday, x.h).trip) return "trip";
+      // Dan, 2026-10-20: "pointless picking well handicapped horses if there
+      // is not a positive sign they are returning to form." A mark below a
+      // winning mark says the handicapper has eased off; it says nothing about
+      // whether the horse is still trying.
+      if (showedSomething(x.h) !== null) return "form";
       // A horse with no draw figure is not failed for it — failing the untested
       // would empty the card by absence rather than by evidence.
       if (isFlatRace && x.drawIv !== null && x.drawIv < DRAW_AGAINST) return "draw";
@@ -491,6 +498,7 @@ async function main() {
       // rating", which is not a hedge, it is false. A reader has to be told the
       // mark it last won off and when, and left to weigh how long ago that was.
       markVsWin: wonOffHigherMark(best.r.ofr ?? null, best.h, date, ra.raceType ?? null, 12 * 100),
+      formFail: showedSomething(best.h),
       /** The mark we believe it runs off, after the weight-line correction. */
       markNow: best.r.ofr === null || best.r.ofr === undefined ? null : Number(best.r.ofr),
       groundFail: groundGate(best.h, raceToday.goingBand),
@@ -836,9 +844,14 @@ async function main() {
   const noGoing = (p: (typeof picks)[number]) => String(p.goingBand) === "unknown";
   const goingMissing = rest.filter(noGoing);
 
+  // The same test as funnelFail's "form", applied to the picks.
+  const showedNothing = (p: (typeof picks)[number]) => p.formFail !== null;
+  const noForm = rest.filter((p) => !noGoing(p) && !wrongGround(p) && !onAStreak(p) &&
+    !aboveItsMark(p) && !notWonAtTrip(p) && !drawnBadly(p) && showedNothing(p));
+
   const eligible = rest.filter(
     (p) => !noGoing(p) && !wrongGround(p) && !onAStreak(p) && !aboveItsMark(p) && !notWonAtTrip(p) &&
-      !drawnBadly(p) && (!bigField(p) || Boolean(p.handPick))
+      !drawnBadly(p) && !showedNothing(p) && (!bigField(p) || Boolean(p.handPick))
   );
 
   // Strength first, decisiveness second — but decisiveness is not a tiebreak.
@@ -1161,6 +1174,18 @@ async function main() {
     for (const x of goingMissing.sort((a, b) => b.score - a.score).slice(0, 6)) {
       say(`${String(x.r.horseName).toUpperCase()}   ${x.race.offTime} ${x.race.courseName}`);
       say(`   no going declared for this meeting yet, so the ground rule cannot be applied`);
+      say(`   Scored ${x.score}, which would otherwise have made the five.`);
+      say();
+    }
+  }
+
+  if (noForm.length) {
+    say("-".repeat(72));
+    say("SET ASIDE — nothing to like in the recent form");
+    say();
+    for (const x of noForm.sort((a, b) => b.score - a.score).slice(0, 6)) {
+      say(`${String(x.r.horseName).toUpperCase()}   ${x.race.offTime} ${x.race.courseName}`);
+      say(`   ${x.formFail}`);
       say(`   Scored ${x.score}, which would otherwise have made the five.`);
       say();
     }

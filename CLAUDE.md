@@ -109,6 +109,17 @@ the same distance in either code; the race is not. `likesConditions()` filters
 trip wins and course wins by `sameDiscipline()`, the same way marks are. An
 unknown race type filters nothing rather than failing every horse.
 
+**A selection must have shown something lately.** Dan, 2026-10-20, after six
+days without a winner: "pointless picking well handicapped horses if there is
+not a positive sign they are returning to form." A mark below a winning mark
+says the handicapper has eased off; it says nothing about whether the horse is
+still trying. `showedSomething()` in `lib/selection.ts` reads the last three
+runs and clears a horse on any of: a top-three finish, beaten three lengths or
+less, or a comment saying it stayed on, travelled well, met trouble, or fell
+going well. No runs on record is unassessable, not a failure. Measured over 31
+settled selections it kept both winners and 8 of the 10 placed, and cut 4, none
+of them a winner.
+
 **A NAP must be the standout in its own race.** Closeness is a deduction, not a
 tiebreak — `standoutPenalty()` in `scripts/best-bets.ts`. Dan chose this knowing
 it cost 5pts over the twelve cards it was measured on; do not relitigate it on

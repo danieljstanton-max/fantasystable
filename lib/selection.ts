@@ -2666,6 +2666,63 @@ export function groundGate(history: PastRun[], band: GoingBand): string | null {
   return null;
 }
 
+/**
+ * Has it shown anything lately?
+ *
+ * Dan, 2026-10-20, after six days without a winner: "we need a rule that
+ * horses we pick need to have shown something in the last run or a recent run,
+ * a positive comment."
+ *
+ * The method as it stood could reach a horse entirely on paper — well
+ * handicapped, goes on the ground, won at the distance — while its actual
+ * recent running said nothing at all. A mark 9lb below a winning mark is a
+ * reason to look; it is not evidence the horse is still trying.
+ *
+ * "Shown something" is read from facts first and the comment second, in this
+ * order of strength:
+ *
+ *   1. Finished in the first three. Nothing to argue about.
+ *   2. Beaten a short distance. A horse beaten a length in a competitive
+ *      handicap ran its race whatever the finishing position says.
+ *   3. The in-running comment. stayedOn, travelledWell, met trouble, or fell
+ *      while going well — all already parsed in lib/form-reading.ts, and all
+ *      meaning the horse was involved. Trouble counts because being denied a
+ *      run is the opposite of showing nothing: it showed something and was
+ *      stopped.
+ *
+ * Only the most recent runs count, because the question is current form, not
+ * whether it was any good a year ago. A horse with no runs on record is not
+ * failed — it is unassessable, the same way markGate treats a horse that has
+ * never won off a rating.
+ */
+const SHOWED_RUNS = 3;
+const SHOWED_BEATEN_L = 3;
+
+export function showedSomething(
+  history: PastRun[],
+  runs: number = SHOWED_RUNS
+): string | null {
+  const recent = history.slice(0, runs).filter((r) => r.positionNum !== null);
+  if (!recent.length) return null;   // nothing to read, so nothing to fail
+
+  for (const r of recent) {
+    const pos = Number(r.positionNum);
+    if (pos >= 1 && pos <= 3) return null;
+    const btn = r.ovrBtn === null || r.ovrBtn === undefined ? null : Number(r.ovrBtn);
+    if (btn !== null && Number.isFinite(btn) && btn <= SHOWED_BEATEN_L) return null;
+    const c = readComment(r.comment);
+    if (c.stayedOn || c.travelledWell || c.trouble || c.fellGoingWell) return null;
+  }
+
+  const worst = recent
+    .map((r) => {
+      const btn = r.ovrBtn === null || r.ovrBtn === undefined ? null : Number(r.ovrBtn);
+      return `${r.positionNum}${btn !== null && Number.isFinite(btn) ? ` (${btn}L)` : ""}`;
+    })
+    .join(", ");
+  return `nothing to like in its last ${recent.length} run${recent.length === 1 ? "" : "s"}: finished ${worst}`;
+}
+
 /** How far above the winning mark still counts as "a similar mark". */
 const STREAK_MARK_TOLERANCE = 3;
 

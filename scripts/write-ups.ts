@@ -25,7 +25,7 @@ import postgres from "postgres";
 
 import {
   filterRace, scoreHorse, wellHandicapped, groundGate, streakGate, isHandicap, REJECT_LABELS,
-  sameDiscipline, markGate, likesConditions,
+  sameDiscipline, markGate, likesConditions, showedSomething,
   type PastRun, type HorseToday, type RaceToday } from "../lib/selection";
 import { readComment, racePaceShape, runStyleHabit } from "../lib/form-reading";
 import type { GoingBand } from "../lib/going";
@@ -561,6 +561,7 @@ async function main() {
       if (markGate(x.h, x.r.ofr ?? null, ra.raceType ?? null, String(ra.name ?? "")) !== null)
         return "mark";
       if (!likesConditions(raceToday, x.h).trip) return "trip";
+      if (showedSomething(x.h) !== null) return "form";
       if (isFlatRace && x.drawIv !== null && x.drawIv < DRAW_AGAINST) return "draw";
       return null;
     };

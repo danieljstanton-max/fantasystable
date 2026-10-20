@@ -15,7 +15,7 @@ import { markGate, groundGate, streakGate, type PastRun } from "../lib/selection
 import { readDraw, drawBandOf, drawDistBand, drawKey, drawPhrase, ANY_GOING } from "../lib/draw";
 import { chooseFromRace } from "../lib/funnel";
 import { goingNote } from "../lib/course-guide";
-import { likesConditions, type RaceToday } from "../lib/selection";
+import { likesConditions, showedSomething, type RaceToday } from "../lib/selection";
 import { describeGround } from "../lib/selection";
 import { gateField } from "../lib/gates";
 import type { Veto } from "../lib/vetoes";
@@ -385,6 +385,50 @@ console.log("\nwon at the distance means won at the distance IN THIS CODE");
   const unknownCode: RaceToday = { ...chaseToday, raceType: null } as RaceToday;
   check("an unknown code filters nothing rather than refusing everything",
     likesConditions(unknownCode, hurdleWins).trip, true);
+}
+
+
+console.log("\na selection has to have shown something lately");
+{
+  // Dan, 2026-10-20, after six days without a winner: "pointless picking well
+  // handicapped horses if there is not a positive sign they are returning to
+  // form." Measured over 31 settled selections it kept both winners and 8 of
+  // the 10 placed, and cut 4 — none of them a winner.
+  const beaten = (pos: number, btn: number, comment: string | null = null) =>
+    run({ positionNum: pos, ovrBtn: btn, comment });
+
+  // GETAWAY WITH YOU, due 21 October: 7th beaten 34L, 7th beaten 63L, 7th
+  // beaten 18L. Nothing in any of it.
+  check("three well-beaten runs with flat comments is a stand-down",
+    showedSomething([beaten(7, 34.25), beaten(7, 63.5), beaten(7, 18)]) !== null, true);
+  check("and the reason names the finishing positions",
+    String(showedSomething([beaten(7, 34.25), beaten(7, 63.5), beaten(7, 18)])).includes("7"), true);
+
+  // Any one of the three tests is enough.
+  check("a placed run clears it",
+    showedSomething([beaten(9, 20), beaten(3, 2), beaten(11, 15)]), null);
+  check("a close finish clears it even from out of the places",
+    showedSomething([beaten(6, 1.5), beaten(11, 15), beaten(9, 20)]), null);
+  check("staying on clears it",
+    showedSomething([beaten(8, 9, "kept on well inside the final furlong"), beaten(11, 15)]), null);
+  check("travelling well clears it",
+    showedSomething([beaten(8, 9, "travelled well until weakening"), beaten(11, 15)]), null);
+  check("trouble in running clears it — it showed something and was stopped",
+    showedSomething([beaten(8, 9, "badly hampered on the home turn"), beaten(11, 15)]), null);
+
+  // Only the recent runs count: the question is current form.
+  check("a good run four starts ago does not count",
+    showedSomething([beaten(9, 20), beaten(10, 25), beaten(8, 19), beaten(1, 0)]) !== null, true);
+
+  // No runs is unassessable, not a failure — the same way markGate treats a
+  // horse that has never won off a rating.
+  check("a horse with no form on record is not failed", showedSomething([]), null);
+  check("nor is one whose only runs have no finishing position",
+    showedSomething([run({ positionNum: null })]), null);
+
+  // A comment that contradicts itself must not read as positive.
+  check("one-paced is not staying on",
+    showedSomething([beaten(8, 9, "ran on one-paced"), beaten(11, 15), beaten(9, 20)]) !== null, true);
 }
 
 console.log(failures === 0 ? "\nAll gate checks passed.\n" : `\n${failures} check(s) FAILED.\n`);
