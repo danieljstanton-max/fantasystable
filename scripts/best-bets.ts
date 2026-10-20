@@ -204,6 +204,8 @@ async function main() {
     hcap: ReturnType<typeof wellHandicapped>;
     signals: { label: string; detail: string; weight: number }[];
     rankScore: number;
+    /** Where Dan listed it in PICKS.txt, so his order survives our ranking. */
+    handOrder: number;
     handPick: { horse: string; reason: string } | null;
     handPickNap: boolean;
     groundRecord: string;
@@ -487,6 +489,7 @@ async function main() {
       topSetAside,
       field: live.length, hcap: best.hcap, signals: best.s.signals,
       handPick: handRunner && hand ? { horse: hand.horse, reason: hand.reason } : null,
+      handOrder: hand?.order ?? Number.MAX_SAFE_INTEGER,
       handPickNap: Boolean(handRunner && hand?.nap),
       groundRecord: best.s.groundRecord,
       // The mark trajectory, for EVERY selection, the same way the ground
@@ -774,8 +777,13 @@ async function main() {
   const wrongGround = (p: (typeof picks)[number]) => p.groundFail !== null;
 
   const gated = picks.filter(severeStyle);
+  // A veto still beats a hand pick — both are Dan's, and the explicit "no" is
+  // the later word. Everything else a hand pick overrides, including the
+  // run-style gate: DELTA BLUES BELLE was removed from his own four on
+  // 21 October for being a held-up horse at a track that rarely rewards it,
+  // which is a guard on the MODEL, not an instruction to ignore him.
   const rest = picks.filter(
-    (p) => !severeStyle(p) && !isVetoed(vetoes, String(p.r.horseName))
+    (p) => !isVetoed(vetoes, String(p.r.horseName)) && (Boolean(p.handPick) || !severeStyle(p))
   );
   const vetoed = picks.filter(
     (p) => !severeStyle(p) && isVetoed(vetoes, String(p.r.horseName))
@@ -849,9 +857,42 @@ async function main() {
   const noForm = rest.filter((p) => !noGoing(p) && !wrongGround(p) && !onAStreak(p) &&
     !aboveItsMark(p) && !notWonAtTrip(p) && !drawnBadly(p) && showedNothing(p));
 
+  /* A hand pick overrides the gates — and says what it overrode.
+   *
+   * Dan, 2026-10-20: "these are the 4 we are going for tomorrow in this order
+   * — I'm over riding the system in order to get some winners."
+   *
+   * Until now a hand pick was exempt from the field-size rule and nothing
+   * else, so a horse he had named by hand could still be removed by the mark
+   * or streak gate and land under SET ASIDE instead of on the card. That makes
+   * the override useless for the one case it exists for: a gate that silently
+   * reverses him is worse than no override at all (see lib/hand-picks.ts).
+   *
+   * So a hand pick goes on the card. Every gate it failed is carried with it
+   * and printed under the selection, because the house rule is that anything
+   * arguing against a selection gets stated — and a horse put up over the
+   * model's objection is exactly when a reader most needs to see the
+   * objection. He gets his horses; the page stays honest about them.
+   */
+  const overrides = (p: (typeof picks)[number]): string[] => {
+    if (!p.handPick) return [];
+    const why: string[] = [];
+    if (noGoing(p)) why.push("the going has not been posted");
+    if (wrongGround(p)) why.push(String(p.groundFail));
+    if (onAStreak(p)) why.push(String(p.streakFail));
+    if (aboveItsMark(p)) why.push(String(p.markFail));
+    if (notWonAtTrip(p)) why.push("has not won at this distance in this code");
+    if (drawnBadly(p)) why.push("drawn on the wrong side");
+    if (showedNothing(p)) why.push(String(p.formFail));
+    if (bigField(p)) why.push(`${p.field} runners`);
+    if (severeStyle(p)) why.push("a run style this track rarely rewards");
+    return why;
+  };
+
   const eligible = rest.filter(
-    (p) => !noGoing(p) && !wrongGround(p) && !onAStreak(p) && !aboveItsMark(p) && !notWonAtTrip(p) &&
-      !drawnBadly(p) && !showedNothing(p) && (!bigField(p) || Boolean(p.handPick))
+    (p) => Boolean(p.handPick) ||
+      (!noGoing(p) && !wrongGround(p) && !onAStreak(p) && !aboveItsMark(p) && !notWonAtTrip(p) &&
+       !drawnBadly(p) && !showedNothing(p) && !bigField(p))
   );
 
   // Strength first, decisiveness second — but decisiveness is not a tiebreak.
@@ -887,6 +928,13 @@ async function main() {
         // because the model did not rate them. If he has named a horse it is
         // on the card; the model ranks what is left.
         Number(Boolean(b.p.handPick)) - Number(Boolean(a.p.handPick)) ||
+        // And among hand picks, HIS order, not ours.
+        //
+        // Dan, 2026-10-20: "these are the 4 we are going for tomorrow in this
+        // order." They were coming out ranked by what the model made of their
+        // races, which reshuffled a list he had already put in the order he
+        // wanted it. The line number in PICKS.txt is the order he typed.
+        (a.p.handPick && b.p.handPick ? a.p.handOrder - b.p.handOrder : 0) ||
         b.standout - a.standout ||
         // Over jumps, course form is the tie-breaker Dan asked for: a plus
         // mark, not a gate. On the Flat the draw has already done that work.
@@ -1016,6 +1064,16 @@ async function main() {
       : `${p.clear} clear of the next in the race`}${
       p.hcap.qualifies ? `, ${p.hcap.lbsInHand}lb in hand` : ""}${
       p.hcap.standout ? "   [STANDOUT]" : p.hcap.prime ? "   [PRIME]" : ""}`);
+
+    // What a hand pick overrode, stated plainly under the selection.
+    if (p.handPick) {
+      const why = overrides(p);
+      if (why.length) {
+        say(`   Dan's selection, against the model — it does not clear: ${why.join("; ")}`);
+      } else {
+        say(`   Dan's selection. It clears every test the model applies.`);
+      }
+    }
 
     // A horse the score rated higher is in this race and the funnel set it
     // aside. That argues against our selection — the score is not the method,

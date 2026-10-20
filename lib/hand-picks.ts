@@ -48,6 +48,15 @@ export interface HandPick {
    *   2026-10-09 | 13:22 | Chepstow | KING'S SCHOLAR | NAP | improving with...
    */
   nap: boolean;
+  /**
+   * The line it was written on, counting from zero within its own date.
+   *
+   * Dan, 2026-10-20: "these are the 4 we are going for tomorrow in this
+   * order." Hand picks were being ranked among themselves by what the model
+   * made of their races, which reshuffled a list he had already ordered. The
+   * order he typed is the order he meant.
+   */
+  order: number;
 }
 
 export function picksPath(): string {
@@ -83,7 +92,16 @@ export function loadHandPicks(): HandPick[] {
       horse,
       reason,
       nap,
+      order: 0,   // filled below, per date
     });
+  }
+
+  // Number them within their own date, in the order they were written.
+  const seen = new Map<string, number>();
+  for (const p of out) {
+    const n = seen.get(p.date) ?? 0;
+    p.order = n;
+    seen.set(p.date, n + 1);
   }
   return out;
 }
