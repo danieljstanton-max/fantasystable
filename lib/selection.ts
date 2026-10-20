@@ -2695,7 +2695,21 @@ export function groundGate(history: PastRun[], band: GoingBand): string | null {
  * failed — it is unassessable, the same way markGate treats a horse that has
  * never won off a rating.
  */
-const SHOWED_RUNS = 3;
+/**
+ * Two, not three.
+ *
+ * Dan, 2026-10-20: "why is buccabay still there?" It was clearing on its
+ * THIRD-last run — 5th of 8 beaten a length in August — having since run 9th
+ * of 9 beaten 7L and 7th of 9 beaten 5L. A good run followed by two bad ones
+ * is not a horse returning to form, it is a horse going the other way, and a
+ * three-run window let the oldest of the three speak over the two since.
+ *
+ * Measured over the same 31 settled selections, tightening to two kept both
+ * winners and all eight placed horses and cut three more beaten ones — Slieve
+ * Binnian, We Dare To Dream and Teumessias Fox. It costs nothing and catches
+ * more, which is the only kind of tightening worth having.
+ */
+const SHOWED_RUNS = 2;
 const SHOWED_BEATEN_L = 3;
 
 export function showedSomething(

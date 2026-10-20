@@ -416,7 +416,15 @@ console.log("\na selection has to have shown something lately");
   check("trouble in running clears it — it showed something and was stopped",
     showedSomething([beaten(8, 9, "badly hampered on the home turn"), beaten(11, 15)]), null);
 
-  // Only the recent runs count: the question is current form.
+  // Only the last TWO count: the question is current form.
+  //
+  // BUCCABAY, due 21 October, cleared a three-run window on its third-last
+  // start — 5th of 8 beaten a length in August — having since run 9th of 9
+  // beaten 7L and 7th of 9 beaten 5L. Dan: "why is buccabay still there?"
+  check("a good run three starts back does not survive two bad ones since",
+    showedSomething([beaten(9, 7), beaten(7, 5), beaten(5, 1)]) !== null, true);
+  check("but the run before last still counts",
+    showedSomething([beaten(9, 7), beaten(5, 1)]), null);
   check("a good run four starts ago does not count",
     showedSomething([beaten(9, 20), beaten(10, 25), beaten(8, 19), beaten(1, 0)]) !== null, true);
 
