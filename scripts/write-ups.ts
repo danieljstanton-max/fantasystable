@@ -561,7 +561,7 @@ async function main() {
       if (markGate(x.h, x.r.ofr ?? null, ra.raceType ?? null, String(ra.name ?? "")) !== null)
         return "mark";
       if (!likesConditions(raceToday, x.h).trip) return "trip";
-      if (showedSomething(x.h) !== null) return "form";
+      if (showedSomething(x.h, undefined, date) !== null) return "form";
       if (isFlatRace && x.drawIv !== null && x.drawIv < DRAW_AGAINST) return "draw";
       return null;
     };

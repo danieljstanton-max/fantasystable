@@ -434,6 +434,27 @@ console.log("\na selection has to have shown something lately");
   check("nor is one whose only runs have no finishing position",
     showedSomething([run({ positionNum: null })]), null);
 
+  // Dan, 2026-10-20: "but august isn't a latest run." Two runs is a count, not
+  // a date. Without a time bound a horse whose last two starts were in August
+  // would still clear on them in December.
+  const dated = (date: string, pos: number, btn: number) =>
+    run({ raceDate: date, positionNum: pos, ovrBtn: btn });
+
+  check("a good run 200 days ago does not clear a bad recent one",
+    showedSomething([dated("2026-10-10", 9, 12), dated("2026-04-01", 2, 1)], 2, "2026-10-21") !== null,
+    true);
+  check("but the same good run inside the window does",
+    showedSomething([dated("2026-10-10", 9, 12), dated("2026-08-20", 2, 1)], 2, "2026-10-21"), null);
+  check("a horse whose only runs are all outside the window is unassessable, not failed",
+    showedSomething([dated("2026-02-01", 9, 12), dated("2026-01-01", 10, 15)], 2, "2026-10-21"), null);
+
+  // An unreadable date must keep the run, or the whole rule silently passes
+  // everything — the trap the measuring harness for this rule fell into.
+  check("an unreadable date keeps the run and the rule still bites",
+    showedSomething([run({ raceDate: "Sat Oct 10", positionNum: 9, ovrBtn: 12 }),
+                     run({ raceDate: "Fri Sep 19", positionNum: 11, ovrBtn: 15 })], 2, "2026-10-21") !== null,
+    true);
+
   // A comment that contradicts itself must not read as positive.
   check("one-paced is not staying on",
     showedSomething([beaten(8, 9, "ran on one-paced"), beaten(11, 15), beaten(9, 20)]) !== null, true);

@@ -2712,12 +2712,54 @@ export function groundGate(history: PastRun[], band: GoingBand): string | null {
 const SHOWED_RUNS = 2;
 const SHOWED_BEATEN_L = 3;
 
+/**
+ * And it has to be recent in TIME, not just recent in the list.
+ *
+ * Dan, 2026-10-20: "but august isn't a latest run." Two runs is a count, not a
+ * date. A horse whose last two starts were both in August has shown nothing
+ * lately whatever those starts looked like, and without a date bound it would
+ * clear on them in December.
+ *
+ * A horse with no run inside the window is not failed on form — it is
+ * unassessable, which is a different thing and is already reported separately
+ * as a long absence. Failing it here would stand down every seasonal
+ * reappearance in the jumps season, which is not what was asked for.
+ */
+const SHOWED_WITHIN_DAYS = 120;
+
+/**
+ * Days between two ISO dates, or null when either cannot be read.
+ *
+ * Null rather than Infinity, because the caller must treat an unreadable date
+ * as "keep this run" and not as "too old". A Date object stringified and
+ * sliced gives "Sat Oct 10", which parses to nothing — the trap documented in
+ * audit-all.ts and hit again by the harness that measured this very rule. If
+ * an unreadable date excluded the run, every run would be excluded, `recent`
+ * would be empty, and the whole form rule would quietly pass everything.
+ * Failing open on the DATE keeps the other tests doing their job.
+ */
+function daysBetween(from: string, to: string): number | null {
+  const a = new Date(`${from}T00:00:00Z`).getTime();
+  const b = new Date(`${to}T00:00:00Z`).getTime();
+  if (Number.isNaN(a) || Number.isNaN(b)) return null;
+  return Math.round((b - a) / 86_400_000);
+}
+
 export function showedSomething(
   history: PastRun[],
-  runs: number = SHOWED_RUNS
+  runs: number = SHOWED_RUNS,
+  today?: string,
+  withinDays: number = SHOWED_WITHIN_DAYS
 ): string | null {
-  const recent = history.slice(0, runs).filter((r) => r.positionNum !== null);
-  if (!recent.length) return null;   // nothing to read, so nothing to fail
+  const all = history.filter((r) => r.positionNum !== null);
+  const recent = all
+    .slice(0, runs)
+    .filter((r) => {
+      if (!today) return true;
+      const d = daysBetween(r.raceDate, today);
+      return d === null ? true : d <= withinDays;
+    });
+  if (!recent.length) return null;   // nothing readable in the window, so nothing to fail
 
   for (const r of recent) {
     const pos = Number(r.positionNum);

@@ -435,7 +435,7 @@ async function main() {
       // is not a positive sign they are returning to form." A mark below a
       // winning mark says the handicapper has eased off; it says nothing about
       // whether the horse is still trying.
-      if (showedSomething(x.h) !== null) return "form";
+      if (showedSomething(x.h, undefined, date) !== null) return "form";
       // A horse with no draw figure is not failed for it — failing the untested
       // would empty the card by absence rather than by evidence.
       if (isFlatRace && x.drawIv !== null && x.drawIv < DRAW_AGAINST) return "draw";
@@ -498,7 +498,7 @@ async function main() {
       // rating", which is not a hedge, it is false. A reader has to be told the
       // mark it last won off and when, and left to weigh how long ago that was.
       markVsWin: wonOffHigherMark(best.r.ofr ?? null, best.h, date, ra.raceType ?? null, 12 * 100),
-      formFail: showedSomething(best.h),
+      formFail: showedSomething(best.h, undefined, date),
       /** The mark we believe it runs off, after the weight-line correction. */
       markNow: best.r.ofr === null || best.r.ofr === undefined ? null : Number(best.r.ofr),
       groundFail: groundGate(best.h, raceToday.goingBand),

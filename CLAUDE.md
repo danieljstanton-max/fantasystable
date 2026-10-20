@@ -116,7 +116,10 @@ says the handicapper has eased off; it says nothing about whether the horse is
 still trying. `showedSomething()` in `lib/selection.ts` reads the last **two**
 runs and clears a horse on any of: a top-three finish, beaten three lengths or
 less, or a comment saying it stayed on, travelled well, met trouble, or fell
-going well. No runs on record is unassessable, not a failure. Measured over 31
+going well. The clearing run must also be within 120 days — Dan, "but August isn't a latest
+run": two runs is a count, not a date. No runs on record, or none inside the
+window, is unassessable rather than a failure, so a seasonal reappearance is
+not stood down. Measured over 31
 settled selections it kept both winners and all 8 placed, and cut 7, none of
 them a winner. The window is two because BUCCABAY cleared a three-run window on
 its third-last start having run 9th and 7th since — a good run followed by two
