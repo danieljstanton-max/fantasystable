@@ -301,6 +301,34 @@
         "stake": 0.5,
         "type": "ew",
         "price": "8/1"
+      },
+      {
+        "date": "2026-10-20",
+        "horse": "Les's Legacy",
+        "stake": 1,
+        "type": "ew",
+        "price": "17/2"
+      },
+      {
+        "date": "2026-10-20",
+        "horse": "Newsreader",
+        "stake": 2,
+        "type": "win",
+        "price": "3/1"
+      },
+      {
+        "date": "2026-10-21",
+        "horse": "Crowned",
+        "stake": 1,
+        "type": "win",
+        "price": "7/1"
+      },
+      {
+        "date": "2026-10-21",
+        "horse": "Whiskey Bent",
+        "stake": 1,
+        "type": "win",
+        "price": "10/1"
       }
     ]
   }
