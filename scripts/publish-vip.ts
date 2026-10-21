@@ -183,13 +183,26 @@ async function main() {
       );
     }
     const finish = official ?? byHand;
-    const pos = official !== null ? String(r.position ?? official) : byHand === null ? null : String(byHand);
+    const pos = official !== null ? String(r.position ?? official)
+      : byHand !== null ? String(byHand)
+      : r.position !== null && String(r.position).trim() !== "" ? String(r.position)
+      : null;
     if (official === null && byHand !== null) {
       console.warn(`  ~ ${bet.horse}: settled on the given position (${byHand}); the feed has not published this race`);
     }
 
+    // A horse that unseated, fell or pulled up has a POSITION but no finishing
+    // NUMBER, and a missing number was being read as "the race has not
+    // happened yet". LES'S LEGACY unseated at Hexham on 20 October and sat at
+    // "to run" indefinitely — a bet that never settles is a loss the record
+    // quietly leaves out. The race having a result is what separates the two.
+    const nonCompletion =
+      r.status === "result" && official === null && byHand === null &&
+      r.position !== null && String(r.position).trim() !== "";
+
     let result: SettledBet["result"];
     if (r.is_non_runner) result = "void";
+    else if (nonCompletion) result = "lost";
     else if (finish === null) result = "pending";
     else if (finish === 1) result = "won";
     else if (bet.type === "ew" && places !== null && finish <= places) result = "placed";
