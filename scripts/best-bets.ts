@@ -1109,7 +1109,12 @@ async function main() {
     // rated a horse it did not.
     if (p.handPick) {
       say(`   >> SELECTED BY HAND — the model rates this ${p.score}, not the top of its race`);
-      say(`      ${p.handPick.reason}`);
+      // A sentence, not whatever fragment was typed. See write-ups.ts.
+      const r = String(p.handPick.reason ?? "").trim();
+      if (r) {
+        const sentence = r.charAt(0).toUpperCase() + r.slice(1);
+        say(`      ${/[.!?]$/.test(sentence) ? sentence : `${sentence}.`}`);
+      }
     }
 
     // The mark trajectory, printed for every selection, flattering or not —

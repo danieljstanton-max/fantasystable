@@ -2,6 +2,7 @@
 slug: cheltenham-october-meeting-2026-friday-tips
 date: 2026-10-23
 course: Cheltenham
+category: Racing Tips
 excerpt: Seven selections for Friday's Cheltenham October Meeting card, with Cooltobecareless the NAP and Fairlawn Skipper the next best.
 picks:
   - 13:15 | Sunny South West | 4/1 | Win

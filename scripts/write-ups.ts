@@ -1042,8 +1042,24 @@ async function main() {
     // between a form-book readout and a person talking about a horse.
     say(opener + (parts.length ? ` He ${listNames(parts.slice(0, 3))}.` : ""));
     sayPaceRisk();
+    // Dan's own reason, printed as a sentence rather than as whatever fragment
+    // was typed into PICKS.txt.
+    //
+    // Dan, 2026-10-23, looking at the 16:45 Cheltenham: "you have added my
+    // write ups to this section you have made it up." The reason line was
+    // being emitted raw, so "pulled away from the opposition when the pressure
+    // came last time, the form has been franked" landed mid-write-up as a
+    // lowercase fragment with no full stop — which reads as something nobody
+    // wrote on purpose, and that is exactly how it looked.
+    //
+    // A reason is his argument for the horse, so it gets a capital and a stop
+    // and nothing else. It is not reworded: the words are his.
     if (handRunner && hand && hand.reason) {
-      say(hand.reason);
+      const r = hand.reason.trim();
+      if (r) {
+        const sentence = r.charAt(0).toUpperCase() + r.slice(1);
+        say(/[.!?]$/.test(sentence) ? sentence : `${sentence}.`);
+      }
     }
 
     // A horse in the middle of a winning run says so, with the rise it earned.

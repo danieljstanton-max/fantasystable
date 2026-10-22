@@ -193,7 +193,25 @@ function renderArticle(md: string, picks: Pick[]): string {
   }
   flushTable(race ? race.body : out);
   closeRace();
-  return out.join("\n");
+
+  // Wrapped in .hrt-art, and this is not optional.
+  //
+  // Dan, 2026-10-23, looking at a race card with no border and no shading:
+  // "its nice but again - what did i ask for". He asked for a border and a
+  // different shade behind the picks, and neither was there.
+  //
+  // The cards were emitted straight into the post body, so .hrt-art__race sat
+  // outside any element carrying the design tokens — and every var(--_line),
+  // var(--_paper) and var(--_sink) inside it resolved to nothing. Borders,
+  // backgrounds and all. This is precisely the failure hrt.css warns about at
+  // the top of its own root list, which I had read: "Miss one and every
+  // var(--_line) inside it resolves to nothing, so the borders, the background
+  // and the type all disappear while the component itself looks written."
+  //
+  // The summary block gets its own .hrt-art from the shortcode. The body needs
+  // one too, and one wrapper round the lot is cheaper than registering every
+  // child class as a root.
+  return `<div class="hrt-art">\n${out.join("\n")}\n</div>`;
 }
 
 async function main() {
@@ -254,6 +272,7 @@ async function main() {
     headers: { "Content-Type": "application/json", "X-HRT-Token": token },
     body: JSON.stringify({
       slug, date, title, html, picks: filled,
+      category: meta.category ?? "",
       excerpt: meta.excerpt ?? "",
       status: LIVE ? "publish" : "draft",
     }),
