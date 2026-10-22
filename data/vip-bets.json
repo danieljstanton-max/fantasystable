@@ -329,6 +329,13 @@
         "stake": 1,
         "type": "win",
         "price": "10/1"
+      },
+      {
+        "date": "2026-10-22",
+        "horse": "Time Turner",
+        "stake": 0.5,
+        "type": "ew",
+        "price": "10/1"
       }
     ]
   }
