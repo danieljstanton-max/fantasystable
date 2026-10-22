@@ -69,42 +69,130 @@ function split(src: string): { meta: Record<string, string>; picks: Pick[]; body
   return { meta, picks, body: m[2] };
 }
 
-/** Markdown to the HTML the site's editor would have produced. */
-function toHtml(md: string): string {
-  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const inline = (s: string) =>
-    esc(s)
+/**
+ * Markdown to HTML, built as race cards rather than a wall of paragraphs.
+ *
+ * Dan, 2026-10-23: "the article looks really basic — can you build each race
+ * with a nice border, the selections you have here at the top, maybe different
+ * shade background on picks."
+ *
+ * So a race is a card: a header carrying the time and course, a shaded bar
+ * carrying the selection with its silk and price, the prose, and the verdict
+ * line as a footer. A reader scanning for "what does he fancy in the 15:00"
+ * finds it without reading six paragraphs first, and a reader who wants the
+ * argument still has it underneath.
+ *
+ * The silk is emitted inline here rather than by the shortcode, because this
+ * is where the enriched picks are. The shortcode owns the summary block at the
+ * top; this owns the body.
+ */
+function renderArticle(md: string, picks: Pick[]): string {
+  const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const inline = (t: string) =>
+    esc(t)
       .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
       .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");
 
+  const byHorse = new Map(picks.map((p) => [p.horse.toUpperCase(), p]));
+
+  // A race heading is "## 13:15 Cheltenham". Anything else stays a plain
+  // heading, so the intro, the summary and the closing sections are untouched.
+  const RACE = /^##\s+(\d{1,2}:\d{2})\s+(.+?)\s*$/;
+
+  const lines = md.split(/\r?\n/);
   const out: string[] = [];
+  let race: { time: string; course: string; body: string[]; pick?: Pick; verdict?: string } | null = null;
   let table: string[][] | null = null;
 
-  const flushTable = () => {
+  const flushTable = (sink: string[]) => {
     if (!table || table.length < 2) { table = null; return; }
-    const [head, , ...rows] = table;      // row 1 is the |---| separator
-    out.push("<figure class=\"wp-block-table\"><table><thead><tr>" +
+    const [head, , ...rows] = table;
+    sink.push('<figure class="wp-block-table hrt-art__table"><table><thead><tr>' +
       head.map((h) => `<th>${inline(h)}</th>`).join("") + "</tr></thead><tbody>" +
       rows.map((r) => "<tr>" + r.map((c) => `<td>${inline(c)}</td>`).join("") + "</tr>").join("") +
       "</tbody></table></figure>");
     table = null;
   };
 
-  for (const raw of md.split(/\r?\n/)) {
+  const closeRace = () => {
+    if (!race) return;
+    const p = race.pick;
+    let html = '<section class="hrt-art__race' + (p?.nap ? " is-nap" : p?.nb ? " is-nb" : "") + '">';
+    html += '<header class="hrt-art__raceHead">';
+    html += `<span class="hrt-art__raceTime">${esc(race.time)}</span>`;
+    html += `<span class="hrt-art__raceCourse">${esc(race.course)}</span>`;
+    if (p?.nap) html += '<span class="hrt-art__tag">NAP</span>';
+    else if (p?.nb) html += '<span class="hrt-art__tag hrt-art__tag--nb">Next best</span>';
+    html += "</header>";
+
+    if (p) {
+      html += '<div class="hrt-art__bar">';
+      html += p.silk
+        ? `<img class="hrt-art__silk" loading="lazy" decoding="async" width="40" height="40" src="${p.silk}" alt="${esc(p.horse)} silks">`
+        : '<span class="hrt-art__silk--none" aria-hidden="true"></span>';
+      html += '<span class="hrt-art__barWho">';
+      html += `<span class="hrt-art__barHorse">${esc(p.horse.toUpperCase())}</span>`;
+      html += `<span class="hrt-art__barMeta">${esc([p.jockey, p.trainer].filter(Boolean).join(" · "))}</span>`;
+      html += "</span>";
+      html += `<span class="hrt-art__barPrice"><span class="hrt-art__barOdds">${esc(p.price)}</span>` +
+        `<span class="hrt-art__barBet">${esc(p.bet)}</span></span>`;
+      html += "</div>";
+    }
+
+    html += '<div class="hrt-art__prose">' + race.body.join("\n") + "</div>";
+    if (race.verdict) {
+      html += `<p class="hrt-art__verdict">${inline(race.verdict)}</p>`;
+    }
+    html += "</section>";
+    out.push(html);
+    race = null;
+  };
+
+  for (const raw of lines) {
     const line = raw.trim();
+
     if (/^\|.*\|$/.test(line)) {
       table = table ?? [];
       table.push(line.replace(/^\||\|$/g, "").split("|").map((c) => c.trim()));
       continue;
     }
-    flushTable();
+    flushTable(race ? race.body : out);
+
+    const r = line.match(RACE);
+    if (r) { closeRace(); race = { time: r[1], course: r[2], body: [] }; continue; }
+
+    // A non-race ## heading ends the current race card.
+    if (/^##\s+/.test(line)) {
+      closeRace();
+      out.push(`<h2>${inline(line.replace(/^##\s+/, ""))}</h2>`);
+      continue;
+    }
+
     if (!line) continue;
-    if (/^---+$/.test(line)) { out.push("<hr class=\"wp-block-separator\">"); continue; }
-    const h = line.match(/^(#{1,4})\s+(.*)$/);
-    if (h) { const n = Math.min(h[1].length + 1, 4); out.push(`<h${n}>${inline(h[2])}</h${n}>`); continue; }
+
+    if (race) {
+      // "### SUNNY SOUTH WEST – 4/1 (Bet365)" names the pick; the bar above
+      // already carries it, so it is not repeated as a heading.
+      const h3 = line.match(/^###\s+(.*)$/);
+      if (h3) {
+        const name = h3[1].split(/[–—-]/)[0].trim().toUpperCase();
+        if (byHorse.has(name)) { race.pick = byHorse.get(name); continue; }
+        race.body.push(`<h3>${inline(h3[1])}</h3>`);
+        continue;
+      }
+      if (/^Selection:\s*/i.test(line)) { race.verdict = line; continue; }
+      if (/^(VIP NAP|NEXT BEST)/i.test(line)) continue;   // the tag says it
+      race.body.push(`<p>${inline(line)}</p>`);
+      continue;
+    }
+
+    if (/^---+$/.test(line)) { out.push('<hr class="wp-block-separator">'); continue; }
+    const h = line.match(/^(#{3,4})\s+(.*)$/);
+    if (h) { out.push(`<h${Math.min(h[1].length + 1, 4)}>${inline(h[2])}</h${Math.min(h[1].length + 1, 4)}>`); continue; }
     out.push(`<p>${inline(line)}</p>`);
   }
-  flushTable();
+  flushTable(race ? race.body : out);
+  closeRace();
   return out.join("\n");
 }
 
@@ -118,10 +206,11 @@ async function main() {
     ?? meta.title ?? slug.replace(/-/g, " ");
   // The H1 is the post title; WordPress renders it, so it must not also sit in
   // the body or the page carries two of them.
-  const html = toHtml(body.replace(/^#\s+.*$/m, "")) +
-    `\n<!-- wp:shortcode -->\n[hrt_article_picks heading="Every selection"]\n<!-- /wp:shortcode -->`;
+  // Picks first. Dan: "the selections you have here at the top."
+  const PICKS_BLOCK = `<!-- wp:shortcode -->\n[hrt_article_picks heading="Every selection at a glance"]\n<!-- /wp:shortcode -->`;
 
   const sql = postgres(process.env.DATABASE_URL!, { max: 1, ssl: "require" });
+  void PICKS_BLOCK;
   const filled: Pick[] = [];
   for (const p of picks) {
     const [r] = await sql<any[]>`
@@ -154,6 +243,11 @@ async function main() {
 
   const site = process.env.HRT_URL, token = process.env.HRT_TOKEN;
   if (!site || !token) { console.error("Missing HRT_URL / HRT_TOKEN"); process.exit(1); }
+
+  // The body is rendered AFTER the picks are enriched, because the race cards
+  // carry the silks.
+  const bodyNoH1 = body.replace(/^#\s+.*$/m, "");
+  const html = `${PICKS_BLOCK}\n${renderArticle(bodyNoH1, filled)}`;
 
   const res = await fetch(`${site.replace(/\/$/, "")}/wp-json/hrt/v1/article`, {
     method: "POST",
