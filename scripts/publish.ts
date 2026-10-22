@@ -19,6 +19,7 @@
  * ever exposed. A WordPress application password still works as a fallback.
  */
 import "dotenv/config";
+import { slipNameFor } from "../lib/slip-name";
 import postgres from "postgres";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -327,6 +328,8 @@ const titleCase = (s: string) =>
 
   const payload = {
     date,
+    // What the homepage calls the slip today, if anything. See lib/slip-name.ts.
+    slipHeading: slipNameFor(date) ?? "",
     status: process.argv.includes("--live") ? "publish" : "draft",
     intro,
     meetings,
