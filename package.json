@@ -70,7 +70,8 @@
     "announce": "tsx --env-file=.env.local scripts/announce.ts",
     "audit:all": "tsx --env-file=.env.local scripts/audit-all.ts",
     "backfill:bsp": "tsx --env-file=.env.local scripts/backfill-bsp.ts",
-    "vip:stats": "tsx --env-file=.env.local scripts/vip-stats.ts"
+    "vip:stats": "tsx --env-file=.env.local scripts/vip-stats.ts",
+    "publish:article": "tsx --env-file=.env.local scripts/publish-article.ts"
   },
   "dependencies": {
     "next": "^15.1.6",
