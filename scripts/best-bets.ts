@@ -120,7 +120,8 @@ async function main() {
            r.trainer_name "trainerName", r.best_odds_frac "priceFrac", r.best_odds_dec "priceDec",
            coalesce(r.headgear_first_time,false) "headgearFirst", r.wind_surgery_run "windRun",
            r.is_non_runner "isNonRunner", r.trainer_14_percent "t14Pct",
-           r.trainer_14_runs "t14Runs", r.trainer_14_wins "t14Wins"
+           r.trainer_14_runs "t14Runs", r.trainer_14_wins "t14Wins",
+           r.ew_places "ewPlaces", r.ew_denom "ewDenom"
     from runners r join races ra on ra.id = r.race_id where ra.race_date = ${date}`;
 
   const ids = [...new Set(runners.map((r) => r.horseId))];
@@ -206,6 +207,11 @@ async function main() {
     rankScore: number;
     /** Where Dan listed it in PICKS.txt, so his order survives our ranking. */
     handOrder: number;
+    /** A stake he named himself, overriding the staking plan. */
+    handStake: { type: "win" | "ew"; points: number | null } | null;
+    /** The each-way terms the sportsbooks published, where we hold them. */
+    ewPlaces: number | null;
+    ewDenom: number | null;
     handPick: { horse: string; reason: string } | null;
     handPickNap: boolean;
     groundRecord: string;
@@ -252,7 +258,22 @@ async function main() {
 
   for (const ra of races) {
     const live = (byRace.get(ra.id) ?? []).filter((r) => !r.isNonRunner);
-    if (live.length < 5) continue;
+
+    // Under five runners the model has nothing to read — a draw band needs
+    // six, the field's own weight line needs five, and a three-horse race is
+    // not a handicap puzzle. But a hand pick is not the model.
+    //
+    // Dan, 2026-10-23, naming four for Saturday: MYRETOWN never reached the
+    // card. Its race, the 15:50 Kelso, is a genuine limited handicap with four
+    // runners, and this line dropped the race before the hand pick was even
+    // looked for — so a horse he had named by hand vanished without appearing
+    // under SET ASIDE either. Silently losing one of his four is worse than
+    // any gate, because nothing says it happened.
+    //
+    // filterRace is already exempted for a hand pick a few lines down. This
+    // had to be too, or that exemption only half works.
+    const handEarly = handPickFor(handPicks, date, String(ra.offTime), String(ra.courseName));
+    if (live.length < 5 && !handEarly) continue;
 
     // The mark the horse is actually running off.
     //
@@ -308,7 +329,7 @@ async function main() {
     // a NAP and got a write-up. The filter exists to keep the MODEL inside the
     // handicaps it was built for; it has no business overruling a selection
     // Dan has made himself.
-    const handHere = handPickFor(handPicks, date, String(ra.offTime), String(ra.courseName));
+    const handHere = handEarly;
     if (!handHere &&
         !filterRace({ raceName: ra.name, ageBand: ra.ageBand, raceClass: ra.raceClass },
           live.map((x) => ({ age: x.age, isNonRunner: x.isNonRunner }))).eligible) continue;
@@ -490,6 +511,9 @@ async function main() {
       field: live.length, hcap: best.hcap, signals: best.s.signals,
       handPick: handRunner && hand ? { horse: hand.horse, reason: hand.reason } : null,
       handOrder: hand?.order ?? Number.MAX_SAFE_INTEGER,
+      handStake: handRunner && hand ? hand.stake : null,
+      ewPlaces: best.r.ewPlaces ?? null,
+      ewDenom: best.r.ewDenom ?? null,
       handPickNap: Boolean(handRunner && hand?.nap),
       groundRecord: best.s.groundRecord,
       // The mark trajectory, for EVERY selection, the same way the ground
@@ -995,8 +1019,38 @@ async function main() {
   top.forEach((p, i) => {
     const price = p.r.priceFrac ?? (p.r.priceDec ? p.r.priceDec.toFixed(1) : "no price");
     say("-".repeat(72));
-    const bet = betFor(p.r.priceDec ?? null);
-    const terms = bet.type === "ew" ? placeTerms(p.field, true) : null;
+    // Dan's own stake, where he has named one. See lib/hand-picks.ts.
+    //
+    // Dan, 2026-10-23, on QUEST FOR FUN: "the nap im tipping it eachway at
+    // 5/1." betFor() makes 5/1 a 1pt win because the staking plan draws the
+    // line at 11/2 — and in a fourteen-runner handicap paying four places he
+    // wants the places. The plan is the default, not a law he has to argue
+    // with.
+    const auto = betFor(p.r.priceDec ?? null);
+    const named = p.handStake;
+    const bet = named
+      ? {
+          type: named.type,
+          label: `${named.points ?? (named.type === "ew" ? 0.5 : 1)}pt ${named.type === "ew" ? "each-way" : "win"}`,
+        }
+      : auto;
+    // The terms the BOOKMAKERS published, where we hold them.
+    //
+    // Dan, 2026-10-23, taking QUEST FOR FUN each-way: the card printed "3
+    // places at 1/4" for a race our own data has at four places at 1/5 —
+    // because placeTerms() derives terms from the field size and the race
+    // type, while ingest stores what the sportsbooks actually offer, taken by
+    // consensus across the ones that publish them. Deriving is the fallback;
+    // the published terms are the fact.
+    //
+    // It matters more on an each-way NAP than anywhere else on the page: the
+    // difference between three places at a quarter and four at a fifth is the
+    // difference between a returned bet and a lost one.
+    const stored = p.ewPlaces && p.ewDenom
+      ? { places: Number(p.ewPlaces), denom: Number(p.ewDenom),
+          label: `${p.ewPlaces} places at 1/${p.ewDenom}` }
+      : null;
+    const terms = bet.type === "ew" ? (stored ?? placeTerms(p.field, true)) : null;
     say(`${i + 1}. ${String(p.r.horseName).toUpperCase()}    ${price}    ${bet.label}${terms ? ` (${terms.label})` : ""}`);
     // Going is null on some cards until the morning declarations land. Drop the
     // segment rather than printing "null" — an absent going is information, the

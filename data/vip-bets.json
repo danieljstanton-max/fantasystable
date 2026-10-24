@@ -336,6 +336,27 @@
         "stake": 0.5,
         "type": "ew",
         "price": "10/1"
+      },
+      {
+        "date": "2026-10-23",
+        "horse": "Unchartedterritory",
+        "stake": 1,
+        "type": "ew",
+        "price": "7/1"
+      },
+      {
+        "date": "2026-10-24",
+        "horse": "Prosperitas",
+        "stake": 2,
+        "type": "win",
+        "price": "11/4"
+      },
+      {
+        "date": "2026-10-24",
+        "horse": "Quest For Fun",
+        "stake": 1,
+        "type": "ew",
+        "price": "5/1"
       }
     ]
   }

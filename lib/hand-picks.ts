@@ -57,6 +57,31 @@ export interface HandPick {
    * order he typed is the order he meant.
    */
   order: number;
+  /**
+   * A stake Dan has named, overriding the automatic one.
+   *
+   * Dan, 2026-10-23, on QUEST FOR FUN: "the nap im tipping it eachway at 5/1."
+   * betFor() makes 5/1 a 1pt win, because 5/1 and under is a win bet and 11/2
+   * and bigger is each-way — that line is the staking plan, not a law, and in
+   * a fourteen-runner handicap paying four places he wants the places.
+   *
+   * Written as its own field after the optional NAP marker:
+   *
+   *   2026-10-24 | 16:30 | Doncaster | QUEST FOR FUN | NAP | 0.5pt each-way | ...
+   *   2026-10-24 | 16:30 | Doncaster | QUEST FOR FUN | each-way | ...
+   *
+   * Null means the staking plan decides, which is the normal case.
+   */
+  stake: { type: "win" | "ew"; points: number | null } | null;
+}
+
+/** "0.5pt each-way", "1pt win", "each-way", "ew", "win" — or null. */
+function readStake(field: string): HandPick["stake"] {
+  const m = field.trim().match(/^(?:([\d.]+)\s*pts?\s+)?(win|each[- ]?way|e\/w|ew)$/i);
+  if (!m) return null;
+  const type = /^(win)$/i.test(m[2]) ? "win" : "ew";
+  const points = m[1] ? Number(m[1]) : null;
+  return { type, points: points !== null && Number.isFinite(points) && points > 0 ? points : null };
 }
 
 export function picksPath(): string {
@@ -81,9 +106,12 @@ export function loadHandPicks(): HandPick[] {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
     if (!/^\d{1,2}:\d{2}$/.test(time)) continue;
 
-    // An optional NAP marker, as its own field before the reason.
+    // An optional NAP marker, then an optional stake, then the reason.
     const nap = rest.length > 0 && /^nap$/i.test(rest[0].trim());
-    const reason = (nap ? rest.slice(1) : rest).join(" | ").trim();
+    let after = nap ? rest.slice(1) : rest;
+    const stake = after.length > 0 ? readStake(after[0]) : null;
+    if (stake) after = after.slice(1);
+    const reason = after.join(" | ").trim();
 
     out.push({
       date,
@@ -92,6 +120,7 @@ export function loadHandPicks(): HandPick[] {
       horse,
       reason,
       nap,
+      stake,
       order: 0,   // filled below, per date
     });
   }
