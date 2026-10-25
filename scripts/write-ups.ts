@@ -130,7 +130,7 @@ async function main() {
            r.headgear, coalesce(r.headgear_first_time,false) "headgearFirst",
            r.wind_surgery_run "windRun", r.is_non_runner "isNonRunner",
            r.trainer_14_percent "t14Pct", r.trainer_14_runs "t14Runs",
-           r.trainer_14_wins "t14Wins"
+           r.trainer_14_wins "t14Wins", r.ew_places "ewPlaces", r.ew_denom "ewDenom"
     from runners r join races ra on ra.id = r.race_id
     where ra.race_date = ${date}`;
 
@@ -790,7 +790,21 @@ async function main() {
       // So it takes the shortest-priced horse that passes. Only if nothing in
       // the race passes does it fall back to the favourite — the same policy
       // the main path uses, where a gated horse is demoted rather than deleted.
-      const fav = byPrice.find(passes) ?? byPrice[0] ?? scored[0];
+      // A hand pick is not a race with nothing to say about it.
+      //
+      // Dan, 2026-10-25, naming four for Sunday: LAND OF PUNT reached the best
+      // bets and the 15:07 Wexford page tipped CLUB MANAGER instead, so
+      // pre-flight held the card — correctly, and the files-agree check earned
+      // its keep again.
+      //
+      // This branch runs when the SELECTION carries no positive signal, and it
+      // was written for a race the model cannot split: take the shortest price
+      // that clears the gates and commit. But a horse Dan has named by hand
+      // scores whatever it scores — LAND OF PUNT scored 0 — and the absence of
+      // a model signal is exactly why he named it himself. Going to the
+      // favourite there is the model overruling him in the one place he has
+      // spoken most plainly.
+      const fav = handRunner ?? byPrice.find(passes) ?? byPrice[0] ?? scored[0];
       const nm = String(fav.r.horseName).toUpperCase();
       say(`A tricky race on paper with little between them on our figures.`);
       say(
@@ -830,7 +844,9 @@ async function main() {
         say(`${others.length > 1 ? "The dangers are" : "The main danger is"} ` +
             listNames(others.map((x) => `${String(x.r.horseName).toUpperCase()} at ${price(x.r.priceFrac, x.r.priceDec)}`)) + `.`);
       if (nr.length) say(`Non-runners: ${listNames(nr.map((x) => String(x.horseName)))}.`);
-      say(`VERDICT: ${nm} ${price(fav.r.priceFrac, fav.r.priceDec)}${stakeSuffix(fav.r, ra)}`);
+      const favAdvised = fav === handRunner && hand?.price ? hand.price : price(fav.r.priceFrac, fav.r.priceDec);
+      say(`VERDICT: ${nm} ${favAdvised}` +
+        `${stakeSuffix(fav.r, ra, fav === handRunner ? hand?.stake ?? null : null)}`);
       continue;
     }
 
@@ -1186,7 +1202,8 @@ async function main() {
 
     // No best-bet marker here. The write-ups are the site's preview of the
     // whole card; the selections live in their own file.
-    say(`VERDICT: ${name} ${pr}${stakeSuffix(top.r, ra)}`);
+    const advised = top === handRunner && hand?.price ? hand.price : pr;
+    say(`VERDICT: ${name} ${advised}${stakeSuffix(top.r, ra, top === handRunner ? hand?.stake ?? null : null)}`);
   }
 
   say();
@@ -1208,11 +1225,26 @@ main().catch((e) => { console.error("\nFailed:", e.message); process.exit(1); })
  * never disagree about what was advised. Returns an empty string where there is
  * no price — a stake cannot be set without one.
  */
-function stakeSuffix(pk: any, ra: any): string {
-  const bet = betFor(pk?.priceDec ?? null);
+function stakeSuffix(pk: any, ra: any, hand?: { type: "win" | "ew"; points: number | null } | null): string {
+  // Dan's own stake where he named one, the plan otherwise — the same order
+  // best-bets uses, or the two files quote different bets for the same horse.
+  const auto = betFor(pk?.priceDec ?? null);
+  const bet = hand
+    ? { type: hand.type, label: `${hand.points ?? (hand.type === "ew" ? 0.5 : 1)}pt ${hand.type === "ew" ? "each-way" : "win"}` }
+    : auto;
   if (bet.type === "none") return "";
   if (bet.type === "win") return ` \u2014 ${bet.label}`;
 
-  const terms = placeTerms(Number(ra?.fieldSize ?? 0), isHandicap(String(ra?.name ?? "")));
+  // The terms the SPORTSBOOKS published, where we hold them.
+  //
+  // Dan, 2026-10-25: the card had LAND OF PUNT at four places at 1/5 and this
+  // file had the same bet at three places at 1/4, because best-bets was fixed
+  // to read the stored terms and this was not. files-agree compares the horse,
+  // not the terms, so nothing caught it — a reader with the card in one hand
+  // and the race page in the other would have.
+  const stored = pk?.ewPlaces && pk?.ewDenom
+    ? { label: `${pk.ewPlaces} places at 1/${pk.ewDenom}` }
+    : null;
+  const terms = stored ?? placeTerms(Number(ra?.fieldSize ?? 0), isHandicap(String(ra?.name ?? "")));
   return terms ? ` \u2014 ${bet.label}, ${terms.label}` : ` \u2014 ${bet.label}`;
 }

@@ -73,15 +73,39 @@ export interface HandPick {
    * Null means the staking plan decides, which is the normal case.
    */
   stake: { type: "win" | "ew"; points: number | null } | null;
+  /**
+   * The price Dan advised, frozen against the market.
+   *
+   * Dan, 2026-10-25: "i tipped it eachway at 9/2." WATCH THE WEATHER was 9/2
+   * when he put it up on video and to the group, and had shortened to 4/1 by
+   * the time the card was rebuilt — so a rebuild would have quietly lowered
+   * the advised price under readers who had already taken 9/2, and understated
+   * the bet in the record.
+   *
+   * The card otherwise takes the best price going at build time, which is
+   * right for a model selection and wrong for one he has already advised
+   * somewhere else. Written after the stake:
+   *
+   *   ... | NAP | 1pt each-way at 9/2 | reason
+   */
+  price: string | null;
 }
 
-/** "0.5pt each-way", "1pt win", "each-way", "ew", "win" — or null. */
-function readStake(field: string): HandPick["stake"] {
-  const m = field.trim().match(/^(?:([\d.]+)\s*pts?\s+)?(win|each[- ]?way|e\/w|ew)$/i);
+/**
+ * "0.5pt each-way", "1pt win", "each-way at 9/2", "ew", "win" — or null.
+ * An optional "at <price>" pins the advised price against the market.
+ */
+function readStake(field: string): { stake: HandPick["stake"]; price: string | null } | null {
+  const m = field.trim().match(
+    /^(?:([\d.]+)\s*pts?\s+)?(win|each[- ]?way|e\/w|ew)(?:\s+(?:at|@)\s+([\d]+\/[\d]+|evens|evs))?$/i
+  );
   if (!m) return null;
   const type = /^(win)$/i.test(m[2]) ? "win" : "ew";
   const points = m[1] ? Number(m[1]) : null;
-  return { type, points: points !== null && Number.isFinite(points) && points > 0 ? points : null };
+  return {
+    stake: { type, points: points !== null && Number.isFinite(points) && points > 0 ? points : null },
+    price: m[3] ? m[3].trim() : null,
+  };
 }
 
 export function picksPath(): string {
@@ -109,8 +133,10 @@ export function loadHandPicks(): HandPick[] {
     // An optional NAP marker, then an optional stake, then the reason.
     const nap = rest.length > 0 && /^nap$/i.test(rest[0].trim());
     let after = nap ? rest.slice(1) : rest;
-    const stake = after.length > 0 ? readStake(after[0]) : null;
-    if (stake) after = after.slice(1);
+    const read = after.length > 0 ? readStake(after[0]) : null;
+    const stake = read?.stake ?? null;
+    const price = read?.price ?? null;
+    if (read) after = after.slice(1);
     const reason = after.join(" | ").trim();
 
     out.push({
@@ -121,6 +147,7 @@ export function loadHandPicks(): HandPick[] {
       reason,
       nap,
       stake,
+      price,
       order: 0,   // filled below, per date
     });
   }

@@ -357,6 +357,13 @@
         "stake": 1,
         "type": "ew",
         "price": "5/1"
+      },
+      {
+        "date": "2026-10-25",
+        "horse": "Watch The Weather",
+        "stake": 1,
+        "type": "ew",
+        "price": "9/2"
       }
     ]
   }

@@ -209,6 +209,8 @@ async function main() {
     handOrder: number;
     /** A stake he named himself, overriding the staking plan. */
     handStake: { type: "win" | "ew"; points: number | null } | null;
+    /** A price he advised, frozen against the market. */
+    handPrice: string | null;
     /** The each-way terms the sportsbooks published, where we hold them. */
     ewPlaces: number | null;
     ewDenom: number | null;
@@ -512,6 +514,7 @@ async function main() {
       handPick: handRunner && hand ? { horse: hand.horse, reason: hand.reason } : null,
       handOrder: hand?.order ?? Number.MAX_SAFE_INTEGER,
       handStake: handRunner && hand ? hand.stake : null,
+      handPrice: handRunner && hand ? hand.price : null,
       ewPlaces: best.r.ewPlaces ?? null,
       ewDenom: best.r.ewDenom ?? null,
       handPickNap: Boolean(handRunner && hand?.nap),
@@ -1017,7 +1020,9 @@ async function main() {
   say();
 
   top.forEach((p, i) => {
-    const price = p.r.priceFrac ?? (p.r.priceDec ? p.r.priceDec.toFixed(1) : "no price");
+    // A price Dan pinned beats the market. See lib/hand-picks.ts: a rebuild
+    // must not lower the advised price under readers who already took it.
+    const price = p.handPrice ?? p.r.priceFrac ?? (p.r.priceDec ? p.r.priceDec.toFixed(1) : "no price");
     say("-".repeat(72));
     // Dan's own stake, where he has named one. See lib/hand-picks.ts.
     //

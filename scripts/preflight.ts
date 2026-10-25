@@ -13,6 +13,7 @@
 import "dotenv/config";
 import { OUT_DIR, dayLabel, writeUpsPath, bestBetsPath } from "../lib/published";
 import { openerAlternation } from "../lib/voice";
+import { loadHandPicks } from "../lib/hand-picks";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
@@ -134,6 +135,16 @@ type Check = {
   for (const r of runners as any[]) byRaceAndName.set(`${r.raceId}|${norm(r.name)}`, r);
 
   /** The runner row for this selection, in the race it was actually made in. */
+  // A stake Dan named for this horse on this day, if he named one.
+  const handPicks = loadHandPicks().filter((p) => p.date === date);
+  const handStakeFor = (sel: { horse: string }) => {
+    const h = handPicks.find(
+      (p) => p.horse.toUpperCase().replace(/[^A-Z0-9]/g, "") ===
+             sel.horse.toUpperCase().replace(/[^A-Z0-9]/g, "")
+    );
+    return h?.stake ?? null;
+  };
+
   const runnerFor = (sel: { race: string; horse: string }): any | undefined => {
     const ra = raceByLabel.get(sel.race);
     if (ra) {
@@ -239,6 +250,27 @@ type Check = {
       const printed = fracToDec(m[1]);
       const priceDec = printed ?? (runnerFor(s)?.priceDec ?? null);
       const want = betFor(priceDec === null ? null : Number(priceDec));
+
+      // A stake Dan named himself is not a breach of the plan, it IS the plan
+      // for that bet.
+      //
+      // Dan, 2026-10-25: "i tipped watch the weather 1 point eachway today on
+      // video and VIP." At 4/1 the plan makes that a 1pt win, so this check
+      // failed the whole card over a stake he had chosen deliberately and
+      // published elsewhere. A check that blocks the card when he overrules
+      // the staking plan is a check arguing with its author.
+      //
+      // It still checks everything else: the stake has to be present, and any
+      // selection he has NOT named a stake for is held to the plan exactly as
+      // before.
+      const named = handStakeFor(s);
+      if (named) {
+        const label = `${named.points ?? (named.type === "ew" ? 0.5 : 1)}pt ${named.type === "ew" ? "each-way" : "win"}`;
+        if (!m[2].startsWith(label))
+          bad.push(`${s.race} ${s.horse}: stake is "${m[2]}", Dan named "${label}"`);
+        continue;
+      }
+
       if (want.type !== "none" && !m[2].startsWith(want.label))
         bad.push(`${s.race} ${s.horse}: stake is "${m[2]}", plan says "${want.label}"`);
     }
