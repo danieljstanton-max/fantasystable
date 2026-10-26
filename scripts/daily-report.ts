@@ -201,9 +201,24 @@ async function main() {
       // Without it vip.ts tags the note "VIP PLAY" and files it as
       // "<date> VIP HHMM Horse.txt", which is how a generated note for
       // GUNFIGHTER came to look like Dan's own paid selection on 14 October.
+      // Pass the stake the CARD printed, not the one betFor() would derive.
+      //
+      // Dan, 2026-10-26: MILTEYE went up as "0.5pt each-way" on the card and
+      // "1pt win" on the NAP card, because this note is generated separately
+      // and vip.ts falls back to the staking plan. At 5/1 the plan says win;
+      // Dan had said each-way. Two documents, one bet, two different
+      // instructions — and the NAP card is the one on the homepage.
+      //
+      // Read from the best-bets text rather than recomputed, so the note
+      // cannot drift from the card whatever decided the stake: the plan, a
+      // named stake, or anything added later.
+      const topStake = bets.match(
+        /^1\.\s+[A-Z][A-Z0-9' \-().]+?\s{2,}\S+\s{2,}(.+?)\s*$/m
+      )?.[1]?.trim();
       run("npx", [
         "tsx", "--env-file=.env.local", "scripts/vip.ts",
         date, topOff, topBet, "--save", "--selection", "--nap",
+        ...(topStake ? ["--stake", topStake] : []),
       ]);
     } catch (e) {
       // A missing NAP note costs the card its longest write-up, not the day.

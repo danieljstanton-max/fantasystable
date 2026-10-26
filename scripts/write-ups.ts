@@ -1200,6 +1200,26 @@ async function main() {
 
     if (nr.length) say(`Non-runners: ${listNames(nr.map((x) => String(x.horseName)))}.`);
 
+    // Say in the prose when it is an each-way bet, not only in the verdict.
+    //
+    // Dan, 2026-10-26, on MILTEYE: "Eachway - please include eachway in write
+    // up." The verdict line already carried it, but the verdict is a stake
+    // instruction at the bottom; a reader going through the preview deserves
+    // to be told how the bet is meant to be struck while they are reading the
+    // argument for it. It also says how many places, because an each-way bet
+    // with three places and one with four are different bets.
+    const stakeNow = top === handRunner ? hand?.stake ?? null : null;
+    const betNow = stakeNow
+      ? { type: stakeNow.type }
+      : betFor(top.r.priceDec ?? null);
+    if (betNow.type === "ew") {
+      const pl = top.r.ewPlaces && top.r.ewDenom
+        ? `${top.r.ewPlaces} places at 1/${top.r.ewDenom}`
+        : placeTerms(Number(ra.fieldSize ?? 0), isHandicap(String(ra.name ?? "")))?.label ?? "";
+      const advisedPr = top === handRunner && hand?.price ? hand.price : pr;
+      say(`Each-way is the way in at ${advisedPr}${pl ? `, ${pl}` : ""}.`);
+    }
+
     // No best-bet marker here. The write-ups are the site's preview of the
     // whole card; the selections live in their own file.
     const advised = top === handRunner && hand?.price ? hand.price : pr;
