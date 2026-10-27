@@ -18,6 +18,7 @@
 import "dotenv/config";
 import postgres from "postgres";
 import { readMark, ageMissing } from "../lib/marks";
+import { cardSizeFor } from "../lib/card-size";
 import { readDraw, drawPhrase, DRAW_AGAINST } from "../lib/draw";
 import { chooseFromRace } from "../lib/funnel";
 
@@ -54,7 +55,7 @@ import { projectCard, applyGoingOverrides, bandAtOff, changesDuringCard,
 const client = postgres(process.env.DATABASE_URL!, { max: 4, ssl: "require" });
 const args = process.argv.slice(2);
 const arg = (k: string, d: string) => args.find((a) => a.startsWith(`--${k}=`))?.split("=")[1] ?? d;
-const N = parseInt(arg("n", "5"), 10);
+const N_DEFAULT = parseInt(arg("n", "5"), 10);
 
 function targetDate(): string {
   const a = args.find((x) => !x.startsWith("--"));
@@ -80,6 +81,11 @@ const humanise = (t: string) =>
 
 async function main() {
   const date = targetDate();
+
+  // How many selections today's card carries. A dated setting beats trimming
+  // by veto, which takes a pass per horse below the line and fills VETOES.txt
+  // with horses that have nothing wrong with them. See lib/card-size.ts.
+  const N = cardSizeFor(date) ?? N_DEFAULT;
 
   const races: any[] = await client`
     select ra.id, ra.course_name "courseName", ra.course_slug "courseSlug",
